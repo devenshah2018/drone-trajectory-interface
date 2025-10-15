@@ -62,94 +62,178 @@ export function FlightPathVisualization({
   const scaleY = (y: number) => ((y - minY) / rangeY) * (height - 2 * padding) + padding
 
   // Speedometer component (inline for this visualization)
-  const SpeedometerGauge = ({ speed, maxSpeed = 20 }: { speed: number; maxSpeed?: number }) => {
+const SpeedometerGauge = ({
+    speed,
+    maxSpeed = 20,
+    size = 140,
+}: {
+    speed: number
+    maxSpeed?: number
+    size?: number
+}) => {
     const safeSpeed = Math.max(0, Math.min(speed, maxSpeed))
-    const speedPercentage = (safeSpeed / maxSpeed) * 100
-    const needleAngle = -90 + (speedPercentage / 100) * 180
-    
+    const speedPercentage = maxSpeed > 0 ? safeSpeed / maxSpeed : 0
+
+    // SVG sizing and geometry (kept in viewBox units for easy responsive scaling)
+    const viewBoxWidth = 200
+    const viewBoxHeight = 120
+    const cx = 100
+    const cy = 100
+    const radius = 70
+    const startAngle = -90
+    const endAngle = 90
+    const semicircumference = Math.PI * radius // length of semicircle arc
+
+    const polarToCartesian = (cx: number, cy: number, r: number, angleDeg: number) => {
+        const angleRad = ((angleDeg - 90) * Math.PI) / 180.0
+        return { x: cx + r * Math.cos(angleRad), y: cy + r * Math.sin(angleRad) }
+    }
+
+    const describeArc = (cx: number, cy: number, r: number, startAngle: number, endAngle: number) => {
+        const start = polarToCartesian(cx, cy, r, endAngle)
+        const end = polarToCartesian(cx, cy, r, startAngle)
+        const largeArcFlag = Math.abs(endAngle - startAngle) <= 180 ? "0" : "1"
+        return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`
+    }
+
+    const arcPath = describeArc(cx, cy, radius, startAngle, endAngle)
+
+    // Needle geometry
+    const needleAngle = startAngle + speedPercentage * (endAngle - startAngle) // -90..90
+    const needleLength = radius - 14
+
+    // Ticks
+    const majorTicks = 5
+    const ticks = Array.from({ length: majorTicks + 1 }, (_, i) => {
+        const t = i / majorTicks
+        const angle = startAngle + t * (endAngle - startAngle)
+        const outer = polarToCartesian(cx, cy, radius, angle)
+        const inner = polarToCartesian(cx, cy, radius - (i % 1 === 0 ? 12 : 8), angle)
+        return { angle, outer, inner, value: Math.round(t * maxSpeed) }
+    })
+
     return (
-      <div className="bg-card/90 backdrop-blur-sm border border-border rounded-lg p-3">
-        <div className="text-center mb-2">
-          <h3 className="text-sm font-semibold text-foreground">Speed</h3>
+        <div
+            className="bg-card/90 backdrop-blur-sm border border-border rounded-lg p-3"
+            // allow the card layout to control sizing but prevent overflow
+            style={{ width: size, maxWidth: "100%", boxSizing: "border-box", display: "inline-block" }}
+            aria-hidden={false}
+        >
+            <div className="text-center mb-2">
+                <h3 className="text-sm font-semibold text-foreground">Speed</h3>
+            </div>
+
+            {/* Make the SVG responsive: use width:100% and an appropriate aspect ratio */}
+            <svg
+                width="100%"
+                height="auto"
+                viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
+                preserveAspectRatio="xMidYMid meet"
+                role="img"
+                aria-label={`Current speed ${safeSpeed.toFixed(1)} meters per second`}
+            >
+                <title>Speedometer</title>
+
+                {/* Background arc */}
+                <path
+                    d={arcPath}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    className="text-muted-foreground/40"
+                />
+
+                {/* Progress arc (using semicircumference to compute dash lengths) */}
+                <path
+                    d={arcPath}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    strokeDasharray={`${semicircumference * speedPercentage} ${semicircumference}`}
+                    strokeDashoffset={0}
+                    className="text-primary"
+                    style={{ transition: "stroke-dasharray 280ms ease" }}
+                />
+
+                {/* Tick marks & labels */}
+                {ticks.map((tick, i) => (
+                    <g key={i}>
+                        <line
+                            x1={tick.inner.x}
+                            y1={tick.inner.y}
+                            x2={tick.outer.x}
+                            y2={tick.outer.y}
+                            stroke="currentColor"
+                            strokeWidth={2}
+                            className="text-muted-foreground"
+                            strokeLinecap="round"
+                        />
+                        <text
+                            x={polarToCartesian(cx, cy, radius + 16, tick.angle).x}
+                            y={polarToCartesian(cx, cy, radius + 16, tick.angle).y + 4}
+                            textAnchor="middle"
+                            className="text-xs fill-foreground font-mono"
+                        >
+                            {tick.value}
+                        </text>
+                    </g>
+                ))}
+
+                {/* Needle (rotates around center) */}
+                <g
+                    transform={`rotate(${needleAngle} ${cx} ${cy})`}
+                    style={{ transition: "transform 300ms cubic-bezier(.2,.9,.2,1)" }}
+                >
+                    <line
+                        x1={cx}
+                        y1={cy - 6}
+                        x2={cx}
+                        y2={cy - needleLength}
+                        stroke="currentColor"
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        className="text-destructive"
+                    />
+                    <circle cx={cx} cy={cy} r={6} fill="currentColor" className="text-destructive" />
+                </g>
+
+                {/* Center cap */}
+                <circle cx={cx} cy={cy} r={3} fill="currentColor" className="text-foreground" />
+
+                {/* Speed numeric readout */}
+                <text
+                    x={cx}
+                    y={cy + 20}
+                    textAnchor="middle"
+                    className="text-sm font-bold fill-foreground"
+                    aria-live="polite"
+                >
+                    {safeSpeed.toFixed(1)} m/s
+                </text>
+
+                {/* Min / Max labels */}
+                <text
+                    x={cx - radius + 10}
+                    y={cy + 8}
+                    textAnchor="start"
+                    className="text-xs fill-muted-foreground"
+                >
+                    0
+                </text>
+                <text
+                    x={cx + radius - 10}
+                    y={cy + 8}
+                    textAnchor="end"
+                    className="text-xs fill-muted-foreground"
+                >
+                    {Math.round(maxSpeed)}
+                </text>
+            </svg>
         </div>
-        <svg width="120" height="80" viewBox="0 0 200 120">
-          {/* Speedometer arc */}
-          <path
-            d="M 30 100 A 70 70 0 0 1 170 100"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="8"
-            className="text-muted"
-          />
-          
-          {/* Speed progress arc */}
-          <path
-            d="M 30 100 A 70 70 0 0 1 170 100"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="8"
-            strokeDasharray={`${(speedPercentage / 100) * 220} 220`}
-            className="text-primary"
-          />
-          
-          {/* Tick marks */}
-          {Array.from({ length: 6 }, (_, i) => {
-            const angle = -90 + (i / 5) * 180
-            const isMainTick = i % 1 === 0
-            const tickLength = isMainTick ? 12 : 8
-            
-            const x1 = 100 + (70 - tickLength) * Math.cos((angle * Math.PI) / 180)
-            const y1 = 100 + (70 - tickLength) * Math.sin((angle * Math.PI) / 180)
-            const x2 = 100 + 70 * Math.cos((angle * Math.PI) / 180)
-            const y2 = 100 + 70 * Math.sin((angle * Math.PI) / 180)
-            
-            return (
-              <line
-                key={i}
-                x1={x1}
-                y1={y1}
-                x2={x2}
-                y2={y2}
-                stroke="currentColor"
-                strokeWidth="2"
-                className="text-muted-foreground"
-              />
-            )
-          })}
-          
-          {/* Needle */}
-          <line
-            x1="100"
-            y1="100"
-            x2={100 + 60 * Math.cos((needleAngle * Math.PI) / 180)}
-            y2={100 + 60 * Math.sin((needleAngle * Math.PI) / 180)}
-            stroke="currentColor"
-            strokeWidth="3"
-            className="text-destructive"
-          />
-          
-          {/* Center circle */}
-          <circle
-            cx="100"
-            cy="100"
-            r="4"
-            fill="currentColor"
-            className="text-destructive"
-          />
-          
-          {/* Speed text */}
-          <text
-            x="100"
-            y="115"
-            textAnchor="middle"
-            className="text-sm font-bold fill-foreground"
-          >
-            {safeSpeed.toFixed(1)} m/s
-          </text>
-        </svg>
-      </div>
     )
-  }
+}
 
   return (
     <Card className={`border-border bg-card ${className || ""}`}>
@@ -211,26 +295,66 @@ export function FlightPathVisualization({
 
               {/* Flight Progress Metrics - Under buttons */}
               {simulationState?.isRunning && (
-                <div className="flex items-center gap-6 text-md">
+                <div className="grid grid-cols-4 gap-8 text-md">
+                  <div className="text-center">
+                    <p className="text-muted-foreground text-sm">Mission Time</p>
+                    <p className="font-mono font-bold text-lg">
+                      {(() => {
+                        const totalSeconds = Math.floor(simulationState.elapsedTime)
+                        const hours = Math.floor(totalSeconds / 3600)
+                        const minutes = Math.floor((totalSeconds % 3600) / 60)
+                        const seconds = totalSeconds % 60
+                        
+                        if (hours > 0) {
+                          return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+                        }
+                        return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+                      })()}
+                    </p>
+                    <div className="flex items-center justify-center gap-1 mt-1">
+                      {simulationState.isPaused ? (
+                        <>
+                          <div className="w-2 h-2 bg-yellow-500 rounded-full" />
+                          <span className="text-xs text-muted-foreground">Paused</span>
+                        </>
+                      ) : (
+                        <>
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                          <span className="text-xs text-muted-foreground">Running</span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  
                   <div className="text-center">
                     <p className="text-muted-foreground text-sm">Waypoint</p>
                     <p className="font-mono font-bold">
                       {simulationState.currentWaypointIndex + 1} / {waypoints.length}
                     </p>
                   </div>
-                  
-                  <div className="text-center">
-                    <p className="text-muted-foreground text-sm">Progress</p>
-                    <p className="font-mono font-bold">
-                      {Math.round((simulationState.currentWaypointIndex / (waypoints.length - 1)) * 100)}%
-                    </p>
-                  </div>
-                  
+
                   <div className="text-center">
                     <p className="text-muted-foreground text-sm">Photos Taken</p>
                     <p className="font-mono font-bold text-green-600">
                       {simulationState.currentWaypointIndex + 1}
                     </p>
+                  </div>
+                  
+                  <div className="text-center">
+                    <p className="text-muted-foreground text-sm mb-2">Mission Progress</p>
+                    <div className="space-y-2">
+                      <p className="font-mono font-bold">
+                        {Math.round((simulationState.currentWaypointIndex / (waypoints.length - 1)) * 100)}%
+                      </p>
+                      <div className="w-full bg-muted rounded-full h-2 mx-auto">
+                        <div 
+                          className="bg-primary h-2 rounded-full transition-all duration-500 ease-out"
+                          style={{ 
+                            width: `${Math.round((simulationState.currentWaypointIndex / (waypoints.length - 1)) * 100)}%` 
+                          }}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
