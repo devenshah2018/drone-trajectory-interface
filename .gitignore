@@ -39,3 +39,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+legacy-code/main.ipynb
+legacy-code/src/__init__.py
+legacy-code/src/camera_utils.py
+legacy-code/src/data_model.py
+legacy-code/src/plan_computation.py
+legacy-code/src/visualization.py
+legacy-code/src/__pycache__/__init__.cpython-313.pyc
+legacy-code/src/__pycache__/camera_utils.cpython-313.pyc
+legacy-code/src/__pycache__/data_model.cpython-313.pyc
+legacy-code/src/__pycache__/plan_computation.cpython-313.pyc
+legacy-code/src/__pycache__/visualization.cpython-313.pyc
