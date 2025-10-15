@@ -685,12 +685,6 @@ export function HorizontalConfig({
                       placeholder="e.g., 150"
                     />
                   </div>
-                  <div className="bg-muted/30 rounded-lg p-3 mt-auto">
-                    <p className="text-xs text-muted-foreground mb-1">Total Survey Area</p>
-                    <p className="text-sm font-medium text-foreground">
-                      {((datasetSpec.scan_dimension_x * datasetSpec.scan_dimension_y) / 10000).toFixed(2)} hectares
-                    </p>
-                  </div>
                 </div>
               </div>
             </div>
