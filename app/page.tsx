@@ -4,7 +4,7 @@ import { useState, useRef } from "react"
 import type { Camera, DatasetSpec, Waypoint, MissionStats } from "@/lib/types"
 import { generatePhotoPlaneOnGrid, computeMissionStats } from "@/lib/flight-planner"
 import { Plane, ExternalLink } from "lucide-react"
-import { HorizontalConfig } from "@/components/horizontal-config"
+import { HorizontalConfig, type HorizontalConfigRef } from "@/components/horizontal-config"
 import { FlightPathVisualization } from "@/components/flight-path-visualization"
 import { CompactMissionStats } from "@/components/compact-mission-stats"
 import { FloatingGenerateButton } from "@/components/floating-generate-button"
@@ -42,6 +42,9 @@ export default function Home() {
   
   // Ref for flight simulation controller
   const flightSimulationRef = useRef<FlightSimulationRef>(null)
+  
+  // Ref for horizontal config component
+  const horizontalConfigRef = useRef<HorizontalConfigRef>(null)
 
   const handleGenerateFlightPlan = async () => {
     setIsGenerating(true)
@@ -76,6 +79,42 @@ export default function Home() {
 
   const handleSimulationUpdate = (state: SimulationState) => {
     setSimulationState(state)
+  }
+
+  const handleReset = () => {
+    // Reset camera to default values
+    setCamera({
+      fx: 2000,
+      fy: 2000,
+      cx: 2000,
+      cy: 1500,
+      sensor_size_x_mm: 13.2,
+      sensor_size_y_mm: 8.8,
+      image_size_x: 4000,
+      image_size_y: 3000,
+    })
+
+    // Reset dataset specification to default values
+    setDatasetSpec({
+      overlap: 0.75,
+      sidelap: 0.65,
+      height: 30.5,
+      scan_dimension_x: 150,
+      scan_dimension_y: 150,
+      exposure_time_ms: 2.0,
+    })
+
+    // Clear flight data
+    setWaypoints([])
+    setMissionStats(null)
+    setValidationError(null)
+    setSimulationState(null)
+
+    // Reset simulation if it exists
+    flightSimulationRef.current?.resetSimulation()
+    
+    // Reset preset selections
+    horizontalConfigRef.current?.resetPresets()
   }
 
   return (
@@ -126,6 +165,7 @@ export default function Home() {
       <main className="container mx-auto px-6 py-6 space-y-6">
         {/* Horizontal Configuration */}
         <HorizontalConfig
+          ref={horizontalConfigRef}
           camera={camera}
           datasetSpec={datasetSpec}
           onCameraChange={setCamera}
@@ -168,6 +208,7 @@ export default function Home() {
       {/* Floating Generate Button */}
       <FloatingGenerateButton 
         onGenerate={handleGenerateFlightPlan}
+        onReset={handleReset}
         isGenerating={isGenerating}
       />
 

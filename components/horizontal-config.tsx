@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useImperativeHandle, forwardRef } from "react"
 import type { Camera, DatasetSpec } from "@/lib/types"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,12 +15,16 @@ interface HorizontalConfigProps {
   onDatasetSpecChange: (datasetSpec: DatasetSpec) => void
 }
 
-export function HorizontalConfig({ 
+export interface HorizontalConfigRef {
+  resetPresets: () => void
+}
+
+export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfigProps>(({ 
   camera, 
   datasetSpec, 
   onCameraChange, 
   onDatasetSpecChange 
-}: HorizontalConfigProps) {
+}, ref) => {
   const [activeTab, setActiveTab] = useState("camera")
   const [selectedPreset, setSelectedPreset] = useState("")
   const [selectedMissionPreset, setSelectedMissionPreset] = useState("")
@@ -82,6 +86,14 @@ export function HorizontalConfig({
       setSelectedMissionPreset(presetKey)
     }
   }
+
+  // Expose reset function via ref
+  useImperativeHandle(ref, () => ({
+    resetPresets: () => {
+      setSelectedPreset("")
+      setSelectedMissionPreset("")
+    }
+  }), [])
 
   return (
     <Card className="border-border bg-card shadow-sm">
@@ -693,4 +705,6 @@ export function HorizontalConfig({
       </CardContent>
     </Card>
   )
-}
+})
+
+HorizontalConfig.displayName = "HorizontalConfig"

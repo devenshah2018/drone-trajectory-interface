@@ -1,16 +1,30 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { Plane } from "lucide-react"
+import { Plane, RotateCcw } from "lucide-react"
 
 interface FloatingGenerateButtonProps {
   onGenerate: () => void
+  onReset: () => void
   isGenerating: boolean
 }
 
-export function FloatingGenerateButton({ onGenerate, isGenerating }: FloatingGenerateButtonProps) {
+export function FloatingGenerateButton({ onGenerate, onReset, isGenerating }: FloatingGenerateButtonProps) {
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3">
+      {/* Reset Button */}
+      <Button
+        onClick={onReset}
+        disabled={isGenerating}
+        size="lg"
+        variant="outline"
+        className="h-12 w-12 p-0 bg-card/90 backdrop-blur-sm hover:bg-card border-border/50 hover:border-border shadow-lg hover:shadow-xl transition-all duration-200 rounded-full cursor-pointer"
+        title="Reset all configurations"
+      >
+        <RotateCcw className="w-5 h-5 text-muted-foreground" />
+      </Button>
+
+      {/* Generate Button */}
       <Button
         onClick={onGenerate}
         disabled={isGenerating}
