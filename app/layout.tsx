@@ -1,9 +1,9 @@
 // app/layout.tsx
 
-import type React from "react"
-import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
-import "./globals.css"
+import type React from "react";
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
 
 /**
  * Google Geist Sans font variable used for primary UI typography.
@@ -14,7 +14,7 @@ import "./globals.css"
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
-})
+});
 
 /**
  * Google Geist Mono font variable used for monospaced text (e.g., code, metrics).
@@ -25,7 +25,7 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
-})
+});
 
 /**
  * Application metadata used by Next.js for the document head and SEO.
@@ -36,7 +36,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Drone Flight Planner | Mission Planning",
   description: "Professional drone flight planning tool for aerial surveys and mapping missions",
-}
+};
 
 /**
  * Root layout component that wraps all pages in the application.
@@ -49,11 +49,11 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>{children}</body>
     </html>
-  )
+  );
 }

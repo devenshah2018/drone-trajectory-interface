@@ -1,15 +1,19 @@
-"use client"
+"use client";
 
-import { useState, useRef } from "react"
-import type { Camera, DatasetSpec, Waypoint, MissionStats } from "@/lib/types"
-import { generatePhotoPlaneOnGrid, computeMissionStats } from "@/lib/flight-planner"
-import { Plane, ExternalLink } from "lucide-react"
-import { HorizontalConfig, type HorizontalConfigRef } from "@/components/horizontal-config"
-import { FlightPathVisualization } from "@/components/flight-path-visualization"
-import { CompactMissionStats } from "@/components/compact-mission-stats"
-import { FloatingGenerateButton } from "@/components/floating-generate-button"
-import { AuthorProfile } from "@/components/author-profile"
-import { FlightSimulationController, type SimulationState, type FlightSimulationRef } from "@/components/flight-simulation-controller"
+import { useState, useRef } from "react";
+import type { Camera, DatasetSpec, Waypoint, MissionStats } from "@/lib/types";
+import { generatePhotoPlaneOnGrid, computeMissionStats } from "@/lib/flight-planner";
+import { Plane, ExternalLink } from "lucide-react";
+import { HorizontalConfig, type HorizontalConfigRef } from "@/components/horizontal-config";
+import { FlightPathVisualization } from "@/components/flight-path-visualization";
+import { CompactMissionStats } from "@/components/compact-mission-stats";
+import { FloatingGenerateButton } from "@/components/floating-generate-button";
+import { AuthorProfile } from "@/components/author-profile";
+import {
+  FlightSimulationController,
+  type SimulationState,
+  type FlightSimulationRef,
+} from "@/components/flight-simulation-controller";
 
 /**
  * Root page component for the mission planning UI.
@@ -30,7 +34,7 @@ export default function Home() {
     sensor_size_y_mm: 8.8,
     image_size_x: 4000,
     image_size_y: 3000,
-  })
+  });
 
   // --- Dataset / mission parameters ---
   const [datasetSpec, setDatasetSpec] = useState<DatasetSpec>({
@@ -40,21 +44,21 @@ export default function Home() {
     scan_dimension_x: 150,
     scan_dimension_y: 150,
     exposure_time_ms: 2.0,
-  })
+  });
 
   // --- Generated outputs and UI state ---
-  const [waypoints, setWaypoints] = useState<Waypoint[]>([])
-  const [missionStats, setMissionStats] = useState<MissionStats | null>(null)
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [validationError, setValidationError] = useState<string | null>(null)
-  const [simulationState, setSimulationState] = useState<SimulationState | null>(null)
-  
+  const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
+  const [missionStats, setMissionStats] = useState<MissionStats | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [simulationState, setSimulationState] = useState<SimulationState | null>(null);
+
   // --- Refs to control child components imperatively ---
   // Controls the hidden FlightSimulationController (start/pause/stop/reset)
-  const flightSimulationRef = useRef<FlightSimulationRef>(null)
-  
+  const flightSimulationRef = useRef<FlightSimulationRef>(null);
+
   // Controls the HorizontalConfig component to reset preset selections
-  const horizontalConfigRef = useRef<HorizontalConfigRef>(null)
+  const horizontalConfigRef = useRef<HorizontalConfigRef>(null);
 
   /**
    * Generate a flight plan from the current camera and dataset specifications.
@@ -64,38 +68,41 @@ export default function Home() {
    * validation error message.
    */
   const handleGenerateFlightPlan = async () => {
-    setIsGenerating(true)
-    setValidationError(null)
-    
+    setIsGenerating(true);
+    setValidationError(null);
+
     // Small delay to allow loading UI to be visible
-    await new Promise(resolve => setTimeout(resolve, 500))
-    
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
     try {
       // Core flight plan generation and stats computation
-      const generatedWaypoints = generatePhotoPlaneOnGrid(camera, datasetSpec)
-      const stats = computeMissionStats(generatedWaypoints, camera, datasetSpec)
+      const generatedWaypoints = generatePhotoPlaneOnGrid(camera, datasetSpec);
+      const stats = computeMissionStats(generatedWaypoints, camera, datasetSpec);
 
       // Persist outputs for visualization and summary
-      setWaypoints(generatedWaypoints)
-      setMissionStats(stats)
+      setWaypoints(generatedWaypoints);
+      setMissionStats(stats);
     } catch (error) {
       // Convert technical errors into user-facing messages
-      console.error('Error generating flight plan:', error)
+      console.error("Error generating flight plan:", error);
       if (error instanceof Error) {
-        let userMessage = error.message
-        if (error.message.includes('overlap must be in [0, 1)')) {
-          userMessage = 'Forward overlap must be between 0% and 95%. Please adjust your overlap setting.'
-        } else if (error.message.includes('sidelap must be in [0, 1)')) {
-          userMessage = 'Side overlap must be between 0% and 95%. Please adjust your sidelap setting.'
+        let userMessage = error.message;
+        if (error.message.includes("overlap must be in [0, 1)")) {
+          userMessage =
+            "Forward overlap must be between 0% and 95%. Please adjust your overlap setting.";
+        } else if (error.message.includes("sidelap must be in [0, 1)")) {
+          userMessage =
+            "Side overlap must be between 0% and 95%. Please adjust your sidelap setting.";
         } else {
-          userMessage = 'Unable to generate flight plan. Please check your configuration parameters.'
+          userMessage =
+            "Unable to generate flight plan. Please check your configuration parameters.";
         }
-        setValidationError(userMessage)
+        setValidationError(userMessage);
       }
     } finally {
-      setIsGenerating(false)
+      setIsGenerating(false);
     }
-  }
+  };
 
   /**
    * Receive simulation updates from the FlightSimulationController and forward
@@ -106,8 +113,8 @@ export default function Home() {
    */
   const handleSimulationUpdate = (state: SimulationState) => {
     // Update local copy so CompactMissionStats and FlightPathVisualization can consume it
-    setSimulationState(state)
-  }
+    setSimulationState(state);
+  };
 
   /**
    * Reset the application configuration and generated flight data to defaults.
@@ -129,7 +136,7 @@ export default function Home() {
       sensor_size_y_mm: 8.8,
       image_size_x: 4000,
       image_size_y: 3000,
-    })
+    });
 
     setDatasetSpec({
       overlap: 0.75,
@@ -138,37 +145,41 @@ export default function Home() {
       scan_dimension_x: 150,
       scan_dimension_y: 150,
       exposure_time_ms: 2.0,
-    })
+    });
 
     // Clear generated mission data and UI state
-    setWaypoints([])
-    setMissionStats(null)
-    setValidationError(null)
-    setSimulationState(null)
+    setWaypoints([]);
+    setMissionStats(null);
+    setValidationError(null);
+    setSimulationState(null);
 
     // Reset child components via refs
-    flightSimulationRef.current?.resetSimulation()
-    horizontalConfigRef.current?.resetPresets()
-  }
+    flightSimulationRef.current?.resetSimulation();
+    horizontalConfigRef.current?.resetPresets();
+  };
 
   // --- Render application UI ---
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background min-h-screen">
       {/* Header: app title, docs link, and user profile */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
+      <header className="border-border bg-card/50 sticky top-0 z-40 border-b backdrop-blur-sm">
         <div className="container mx-auto px-6 py-3">
-          <div className="flex items-center justify-between min-h-[60px]">
+          <div className="flex min-h-[60px] items-center justify-between">
             {/* Left Side - Logo and Title */}
             <div className="flex items-center gap-4">
-              <div className="w-11 h-11 rounded-lg bg-primary flex items-center justify-center shadow-sm">
-                <Plane className="w-6 h-6 text-primary-foreground" />
+              <div className="bg-primary flex h-11 w-11 items-center justify-center rounded-lg shadow-sm">
+                <Plane className="text-primary-foreground h-6 w-6" />
               </div>
               <div className="flex flex-col justify-center">
-                <h1 className="text-2xl font-bold text-foreground leading-tight">Drone Flight Planner</h1>
-                <p className="text-sm text-muted-foreground leading-tight">Mission Planning System</p>
+                <h1 className="text-foreground text-2xl leading-tight font-bold">
+                  Drone Flight Planner
+                </h1>
+                <p className="text-muted-foreground text-sm leading-tight">
+                  Mission Planning System
+                </p>
               </div>
             </div>
-            
+
             {/* Right Side - Navigation */}
             <div className="flex items-center gap-3">
               {/* Technical Documentation Link */}
@@ -176,18 +187,22 @@ export default function Home() {
                 href="https://github.com/devenshah2018/drone-trajectory"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200 rounded-lg hover:bg-muted/50 border border-transparent hover:border-border/50"
+                className="text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border/50 flex items-center gap-2.5 rounded-lg border border-transparent px-4 py-2.5 text-sm font-medium transition-all duration-200"
               >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fillRule="evenodd"
+                    d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+                    clipRule="evenodd"
+                  />
                 </svg>
                 <span>Technical Docs</span>
-                <ExternalLink className="w-3.5 h-3.5 opacity-60" />
+                <ExternalLink className="h-3.5 w-3.5 opacity-60" />
               </a>
-              
+
               {/* Divider */}
-              <div className="w-px h-6 bg-border/50"></div>
-              
+              <div className="bg-border/50 h-6 w-px"></div>
+
               {/* Author Profile with Dropdown */}
               <div className="flex items-center">
                 <AuthorProfile />
@@ -197,7 +212,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="container mx-auto px-6 py-6 space-y-6">
+      <main className="container mx-auto space-y-6 px-6 py-6">
         {/* Configuration panel: camera and mission parameters (keeps map visible) */}
         <HorizontalConfig
           ref={horizontalConfigRef}
@@ -208,7 +223,7 @@ export default function Home() {
         />
 
         {/* Main content grid: map visual (2 cols) + stats (1 col) */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
           {/* Flight Path Visualization - primary map view (larger area) */}
           <div className="xl:col-span-2">
             <FlightPathVisualization
@@ -222,7 +237,7 @@ export default function Home() {
           </div>
 
           {/* Right column: compact mission stats and waypoint table */}
-          <div className="xl:col-span-1 space-y-6">
+          <div className="space-y-6 xl:col-span-1">
             <CompactMissionStats
               stats={missionStats}
               waypoints={waypoints}
@@ -252,22 +267,34 @@ export default function Home() {
 
       {/* Validation Error Toast: shows user-friendly configuration errors */}
       {validationError && (
-        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 max-w-md">
-          <div className="bg-destructive/90 backdrop-blur-sm text-destructive-foreground px-6 py-4 rounded-lg shadow-lg border border-destructive/20">
+        <div className="fixed bottom-6 left-1/2 z-50 max-w-md -translate-x-1/2 transform">
+          <div className="bg-destructive/90 text-destructive-foreground border-destructive/20 rounded-lg border px-6 py-4 shadow-lg backdrop-blur-sm">
             <div className="flex items-start gap-3">
-              <svg className="w-5 h-5 text-destructive-foreground mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              <svg
+                className="text-destructive-foreground mt-0.5 h-5 w-5 flex-shrink-0"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                  clipRule="evenodd"
+                />
               </svg>
               <div>
                 <p className="text-sm font-medium">Configuration Error</p>
-                <p className="text-sm mt-1 opacity-90">{validationError}</p>
+                <p className="mt-1 text-sm opacity-90">{validationError}</p>
               </div>
               <button
                 onClick={() => setValidationError(null)}
-                className="ml-auto flex-shrink-0 text-destructive-foreground/70 hover:text-destructive-foreground"
+                className="text-destructive-foreground/70 hover:text-destructive-foreground ml-auto flex-shrink-0"
               >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fillRule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               </button>
             </div>
@@ -275,5 +302,5 @@ export default function Home() {
         </div>
       )}
     </div>
-  )
+  );
 }

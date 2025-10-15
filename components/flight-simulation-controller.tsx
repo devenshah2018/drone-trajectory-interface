@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react"
-import type { Waypoint } from "@/lib/types"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Play, Pause, Square, RotateCcw } from "lucide-react"
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from "react";
+import type { Waypoint } from "@/lib/types";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Play, Pause, Square, RotateCcw } from "lucide-react";
 
 /**
  * Live simulation state representing the drone's runtime status.
@@ -14,38 +14,37 @@ import { Play, Pause, Square, RotateCcw } from "lucide-react"
  * progress, elapsed time and distance metrics used by the UI and visualizers.
  */
 export interface SimulationState {
-  isRunning: boolean
-  isPaused: boolean
-  currentPosition: { x: number; y: number; z: number }
-  currentSpeed: number
-  currentWaypointIndex: number
-  progress: number // 0-1 between current and next waypoint
-  elapsedTime: number
-  totalDistance: number
-  distanceTraveled: number
+  isRunning: boolean;
+  isPaused: boolean;
+  currentPosition: { x: number; y: number; z: number };
+  currentSpeed: number;
+  currentWaypointIndex: number;
+  progress: number; // 0-1 between current and next waypoint
+  elapsedTime: number;
+  totalDistance: number;
+  distanceTraveled: number;
 }
 
 /**
  * Imperative API exposed by the simulation controller to parent components.
  */
 export interface FlightSimulationRef {
-  startSimulation: () => void
-  pauseSimulation: () => void
-  stopSimulation: () => void
-  resetSimulation: () => void
+  startSimulation: () => void;
+  pauseSimulation: () => void;
+  stopSimulation: () => void;
+  resetSimulation: () => void;
 }
 
 interface FlightSimulationControllerProps {
-  waypoints: Waypoint[]
-  onSimulationUpdate: (state: SimulationState) => void
-  className?: string
+  waypoints: Waypoint[];
+  onSimulationUpdate: (state: SimulationState) => void;
+  className?: string;
 }
 
-export const FlightSimulationController = forwardRef<FlightSimulationRef, FlightSimulationControllerProps>(({ 
-  waypoints, 
-  onSimulationUpdate, 
-  className 
-}, ref) => {
+export const FlightSimulationController = forwardRef<
+  FlightSimulationRef,
+  FlightSimulationControllerProps
+>(({ waypoints, onSimulationUpdate, className }, ref) => {
   const [simulationState, setSimulationState] = useState<SimulationState>({
     isRunning: false,
     isPaused: false,
@@ -55,43 +54,43 @@ export const FlightSimulationController = forwardRef<FlightSimulationRef, Flight
     progress: 0,
     elapsedTime: 0,
     totalDistance: 0,
-    distanceTraveled: 0
-  })
+    distanceTraveled: 0,
+  });
 
-  const animationRef = useRef<number>(0)
-  const lastTimeRef = useRef<number>(0)
-  const startTimeRef = useRef<number>(0)
-  const isAnimatingRef = useRef<boolean>(false)
+  const animationRef = useRef<number>(0);
+  const lastTimeRef = useRef<number>(0);
+  const startTimeRef = useRef<number>(0);
+  const isAnimatingRef = useRef<boolean>(false);
 
   // Calculate total distance of the waypoint path.
   const calculateTotalDistance = (waypoints: Waypoint[]): number => {
     // Sum Euclidean distances between consecutive waypoints
-    let total = 0
+    let total = 0;
     for (let i = 0; i < waypoints.length - 1; i++) {
-      const dx = waypoints[i + 1].x - waypoints[i].x
-      const dy = waypoints[i + 1].y - waypoints[i].y
-      const dz = waypoints[i + 1].z - waypoints[i].z
-      total += Math.sqrt(dx * dx + dy * dy + dz * dz)
+      const dx = waypoints[i + 1].x - waypoints[i].x;
+      const dy = waypoints[i + 1].y - waypoints[i].y;
+      const dz = waypoints[i + 1].z - waypoints[i].z;
+      total += Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
-    return total
-  }
+    return total;
+  };
 
   // Compute distance between two waypoints.
   const getDistance = (wp1: Waypoint, wp2: Waypoint): number => {
-    const dx = wp2.x - wp1.x
-    const dy = wp2.y - wp1.y
-    const dz = wp2.z - wp1.z
-    return Math.sqrt(dx * dx + dy * dy + dz * dz)
-  }
+    const dx = wp2.x - wp1.x;
+    const dy = wp2.y - wp1.y;
+    const dz = wp2.z - wp1.z;
+    return Math.sqrt(dx * dx + dy * dy + dz * dz);
+  };
 
   // Linear interpolation between two 3D waypoints.
   const interpolatePosition = (wp1: Waypoint, wp2: Waypoint, progress: number) => {
     return {
       x: wp1.x + (wp2.x - wp1.x) * progress,
       y: wp1.y + (wp2.y - wp1.y) * progress,
-      z: wp1.z + (wp2.z - wp1.z) * progress
-    }
-  }
+      z: wp1.z + (wp2.z - wp1.z) * progress,
+    };
+  };
 
   /**
    * Core animation loop driven by requestAnimationFrame.
@@ -102,57 +101,57 @@ export const FlightSimulationController = forwardRef<FlightSimulationRef, Flight
    */
   const animate = (currentTime: number) => {
     // Bail out quickly if animation is stopped
-    if (!isAnimatingRef.current) return
+    if (!isAnimatingRef.current) return;
 
     // Initialize timing on first frame
     if (lastTimeRef.current === 0) {
-      lastTimeRef.current = currentTime
-      startTimeRef.current = currentTime
+      lastTimeRef.current = currentTime;
+      startTimeRef.current = currentTime;
     }
 
     // Compute frame delta in seconds
-    const deltaTime = (currentTime - lastTimeRef.current) / 1000
-    lastTimeRef.current = currentTime
+    const deltaTime = (currentTime - lastTimeRef.current) / 1000;
+    lastTimeRef.current = currentTime;
 
-    if (waypoints.length < 2) return
+    if (waypoints.length < 2) return;
 
     // Update simulation state with a functional setState to avoid stale closures
-    setSimulationState(prevState => {
+    setSimulationState((prevState) => {
       // Respect running/paused flags
-      if (!prevState.isRunning || prevState.isPaused) return prevState
+      if (!prevState.isRunning || prevState.isPaused) return prevState;
 
-      const currentWP = waypoints[prevState.currentWaypointIndex]
-      const nextWPIndex = prevState.currentWaypointIndex + 1
+      const currentWP = waypoints[prevState.currentWaypointIndex];
+      const nextWPIndex = prevState.currentWaypointIndex + 1;
 
       // If at end of the path, stop animation and mark progress complete
       if (nextWPIndex >= waypoints.length) {
-        isAnimatingRef.current = false
+        isAnimatingRef.current = false;
         return {
           ...prevState,
           isRunning: false,
           currentSpeed: 0,
-          progress: 1
-        }
+          progress: 1,
+        };
       }
 
-      const nextWP = waypoints[nextWPIndex]
-      const segmentDistance = getDistance(currentWP, nextWP)
+      const nextWP = waypoints[nextWPIndex];
+      const segmentDistance = getDistance(currentWP, nextWP);
 
       // Use safe speed (min of segment endpoints) to avoid unrealistic jumps
-      const currentSpeed = Math.min(currentWP.speed, nextWP.speed)
+      const currentSpeed = Math.min(currentWP.speed, nextWP.speed);
 
       // Distance covered this frame (meters)
-      const distanceThisFrame = currentSpeed * deltaTime
-      const progressIncrement = segmentDistance > 0 ? distanceThisFrame / segmentDistance : 1
+      const distanceThisFrame = currentSpeed * deltaTime;
+      const progressIncrement = segmentDistance > 0 ? distanceThisFrame / segmentDistance : 1;
 
-      let newProgress = prevState.progress + progressIncrement
-      let newWaypointIndex = prevState.currentWaypointIndex
-      let newDistanceTraveled = prevState.distanceTraveled + distanceThisFrame
+      let newProgress = prevState.progress + progressIncrement;
+      let newWaypointIndex = prevState.currentWaypointIndex;
+      let newDistanceTraveled = prevState.distanceTraveled + distanceThisFrame;
 
       // When segment completes, advance waypoint index and reset progress
       if (newProgress >= 1) {
-        newProgress = 0
-        newWaypointIndex = nextWPIndex
+        newProgress = 0;
+        newWaypointIndex = nextWPIndex;
       }
 
       // Compute interpolated position along active segment
@@ -160,7 +159,7 @@ export const FlightSimulationController = forwardRef<FlightSimulationRef, Flight
         waypoints[newWaypointIndex],
         waypoints[Math.min(newWaypointIndex + 1, waypoints.length - 1)],
         newProgress
-      )
+      );
 
       return {
         ...prevState,
@@ -169,20 +168,20 @@ export const FlightSimulationController = forwardRef<FlightSimulationRef, Flight
         currentWaypointIndex: newWaypointIndex,
         progress: newProgress,
         elapsedTime: (currentTime - startTimeRef.current) / 1000,
-        distanceTraveled: newDistanceTraveled
-      }
-    })
+        distanceTraveled: newDistanceTraveled,
+      };
+    });
 
     // Queue next frame if animation still active
     if (isAnimatingRef.current) {
-      animationRef.current = requestAnimationFrame(animate)
+      animationRef.current = requestAnimationFrame(animate);
     }
-  }
+  };
 
   // Update parent component whenever simulation state changes
   useEffect(() => {
-    onSimulationUpdate(simulationState)
-  }, [simulationState, onSimulationUpdate])
+    onSimulationUpdate(simulationState);
+  }, [simulationState, onSimulationUpdate]);
 
   /**
    * Start or resume the simulation.
@@ -191,24 +190,24 @@ export const FlightSimulationController = forwardRef<FlightSimulationRef, Flight
    * If not running, starts from the first waypoint and resets timing.
    */
   const startSimulation = () => {
-    if (waypoints.length < 2) return
+    if (waypoints.length < 2) return;
 
-    const totalDistance = calculateTotalDistance(waypoints)
+    const totalDistance = calculateTotalDistance(waypoints);
 
     // If currently paused, resume without resetting position or progress
     if (simulationState.isRunning && simulationState.isPaused) {
       // Resume timing references but keep elapsed time intact
-      lastTimeRef.current = 0
-      isAnimatingRef.current = true
-      setSimulationState(prev => ({ ...prev, isPaused: false }))
-      animationRef.current = requestAnimationFrame(animate)
-      return
+      lastTimeRef.current = 0;
+      isAnimatingRef.current = true;
+      setSimulationState((prev) => ({ ...prev, isPaused: false }));
+      animationRef.current = requestAnimationFrame(animate);
+      return;
     }
 
     // Start a fresh simulation run
-    lastTimeRef.current = 0
-    startTimeRef.current = 0
-    isAnimatingRef.current = true
+    lastTimeRef.current = 0;
+    startTimeRef.current = 0;
+    isAnimatingRef.current = true;
 
     setSimulationState({
       isRunning: true,
@@ -219,12 +218,12 @@ export const FlightSimulationController = forwardRef<FlightSimulationRef, Flight
       progress: 0,
       elapsedTime: 0,
       totalDistance,
-      distanceTraveled: 0
-    })
+      distanceTraveled: 0,
+    });
 
     // Kick off the animation
-    animationRef.current = requestAnimationFrame(animate)
-  }
+    animationRef.current = requestAnimationFrame(animate);
+  };
 
   /**
    * Toggle pause state. When paused, the animation loop is stopped but the
@@ -232,87 +231,94 @@ export const FlightSimulationController = forwardRef<FlightSimulationRef, Flight
    */
   const pauseSimulation = () => {
     // Flip paused flag
-    setSimulationState(prev => ({ ...prev, isPaused: !prev.isPaused }))
+    setSimulationState((prev) => ({ ...prev, isPaused: !prev.isPaused }));
 
     // If we just set to paused, stop animation frames; otherwise resume
     if (simulationState.isPaused) {
       // Resume
-      isAnimatingRef.current = true
-      animationRef.current = requestAnimationFrame(animate)
+      isAnimatingRef.current = true;
+      animationRef.current = requestAnimationFrame(animate);
     } else {
       // Pause
-      isAnimatingRef.current = false
+      isAnimatingRef.current = false;
       if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current)
+        cancelAnimationFrame(animationRef.current);
       }
     }
-  }
+  };
 
   /**
    * Stop the simulation and clear the running/paused flags. State remains so
    * UI can show the last position if desired.
    */
   const stopSimulation = () => {
-    isAnimatingRef.current = false
+    isAnimatingRef.current = false;
     if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current)
+      cancelAnimationFrame(animationRef.current);
     }
-    setSimulationState(prev => ({
+    setSimulationState((prev) => ({
       ...prev,
       isRunning: false,
       isPaused: false,
-      currentSpeed: 0
-    }))
-  }
+      currentSpeed: 0,
+    }));
+  };
 
   /**
    * Reset the simulation state to defaults using the first waypoint as origin.
    * @returns void
    */
   const resetSimulation = () => {
-    isAnimatingRef.current = false
+    isAnimatingRef.current = false;
     if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current)
+      cancelAnimationFrame(animationRef.current);
     }
-    lastTimeRef.current = 0
-    startTimeRef.current = 0
-    
+    lastTimeRef.current = 0;
+    startTimeRef.current = 0;
+
     setSimulationState({
       isRunning: false,
       isPaused: false,
-      currentPosition: waypoints.length > 0 ? { x: waypoints[0].x, y: waypoints[0].y, z: waypoints[0].z } : { x: 0, y: 0, z: 0 },
+      currentPosition:
+        waypoints.length > 0
+          ? { x: waypoints[0].x, y: waypoints[0].y, z: waypoints[0].z }
+          : { x: 0, y: 0, z: 0 },
       currentSpeed: 0,
       currentWaypointIndex: 0,
       progress: 0,
       elapsedTime: 0,
       totalDistance: calculateTotalDistance(waypoints),
-      distanceTraveled: 0
-    })
-  }
+      distanceTraveled: 0,
+    });
+  };
 
   // Expose control functions via ref
-  useImperativeHandle(ref, () => ({
-    startSimulation,
-    pauseSimulation,
-    stopSimulation,
-    resetSimulation
-  }), [])
+  useImperativeHandle(
+    ref,
+    () => ({
+      startSimulation,
+      pauseSimulation,
+      stopSimulation,
+      resetSimulation,
+    }),
+    []
+  );
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current)
+        cancelAnimationFrame(animationRef.current);
       }
-    }
-  }, [])
+    };
+  }, []);
 
   // Reset when waypoints change
   useEffect(() => {
-    resetSimulation()
-  }, [waypoints])
+    resetSimulation();
+  }, [waypoints]);
 
-  const canSimulate = waypoints.length >= 2
+  const canSimulate = waypoints.length >= 2;
 
   return (
     <Card className={`border-border bg-card ${className || ""}`}>
@@ -328,36 +334,32 @@ export const FlightSimulationController = forwardRef<FlightSimulationRef, Flight
             className="flex items-center gap-2"
             variant={simulationState.isRunning ? "secondary" : "default"}
           >
-            <Play className="w-4 h-4" />
+            <Play className="h-4 w-4" />
             Start
           </Button>
-          
+
           <Button
             onClick={pauseSimulation}
             disabled={!simulationState.isRunning}
             variant="outline"
             className="flex items-center gap-2"
           >
-            <Pause className="w-4 h-4" />
+            <Pause className="h-4 w-4" />
             {simulationState.isPaused ? "Resume" : "Pause"}
           </Button>
-          
+
           <Button
             onClick={stopSimulation}
             disabled={!simulationState.isRunning}
             variant="outline"
             className="flex items-center gap-2"
           >
-            <Square className="w-4 h-4" />
+            <Square className="h-4 w-4" />
             Stop
           </Button>
-          
-          <Button
-            onClick={resetSimulation}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <RotateCcw className="w-4 h-4" />
+
+          <Button onClick={resetSimulation} variant="outline" className="flex items-center gap-2">
+            <RotateCcw className="h-4 w-4" />
             Reset
           </Button>
         </div>
@@ -367,21 +369,27 @@ export const FlightSimulationController = forwardRef<FlightSimulationRef, Flight
           <div>
             <span className="text-muted-foreground">Elapsed Time:</span>
             <div className="font-mono font-medium">
-              {Math.floor(simulationState.elapsedTime / 60)}:{(simulationState.elapsedTime % 60).toFixed(1).padStart(4, '0')}
+              {Math.floor(simulationState.elapsedTime / 60)}:
+              {(simulationState.elapsedTime % 60).toFixed(1).padStart(4, "0")}
             </div>
           </div>
           <div>
             <span className="text-muted-foreground">Progress:</span>
             <div className="font-mono font-medium">
-              {simulationState.totalDistance > 0 
-                ? ((simulationState.distanceTraveled / simulationState.totalDistance) * 100).toFixed(1)
-                : 0}%
+              {simulationState.totalDistance > 0
+                ? (
+                    (simulationState.distanceTraveled / simulationState.totalDistance) *
+                    100
+                  ).toFixed(1)
+                : 0}
+              %
             </div>
           </div>
           <div>
             <span className="text-muted-foreground">Distance:</span>
             <div className="font-mono font-medium">
-              {simulationState.distanceTraveled.toFixed(1)}m / {simulationState.totalDistance.toFixed(1)}m
+              {simulationState.distanceTraveled.toFixed(1)}m /{" "}
+              {simulationState.totalDistance.toFixed(1)}m
             </div>
           </div>
           <div>
@@ -394,32 +402,40 @@ export const FlightSimulationController = forwardRef<FlightSimulationRef, Flight
 
         {/* Progress Bar */}
         <div className="space-y-2">
-          <div className="flex justify-between text-sm text-muted-foreground">
+          <div className="text-muted-foreground flex justify-between text-sm">
             <span>Mission Progress</span>
-            <span>{simulationState.totalDistance > 0 
-              ? ((simulationState.distanceTraveled / simulationState.totalDistance) * 100).toFixed(1)
-              : 0}%</span>
+            <span>
+              {simulationState.totalDistance > 0
+                ? (
+                    (simulationState.distanceTraveled / simulationState.totalDistance) *
+                    100
+                  ).toFixed(1)
+                : 0}
+              %
+            </span>
           </div>
-          <div className="w-full bg-muted rounded-full h-2">
-            <div 
+          <div className="bg-muted h-2 w-full rounded-full">
+            <div
               className="bg-primary h-2 rounded-full transition-all duration-300"
-              style={{ 
-                width: `${simulationState.totalDistance > 0 
-                  ? (simulationState.distanceTraveled / simulationState.totalDistance) * 100 
-                  : 0}%` 
+              style={{
+                width: `${
+                  simulationState.totalDistance > 0
+                    ? (simulationState.distanceTraveled / simulationState.totalDistance) * 100
+                    : 0
+                }%`,
               }}
             />
           </div>
         </div>
 
         {!canSimulate && (
-          <div className="text-center text-muted-foreground text-sm p-4 bg-muted/30 rounded-lg">
+          <div className="text-muted-foreground bg-muted/30 rounded-lg p-4 text-center text-sm">
             Generate a flight plan with at least 2 waypoints to start simulation
           </div>
         )}
       </CardContent>
     </Card>
-  )
-})
+  );
+});
 
-FlightSimulationController.displayName = "FlightSimulationController"
+FlightSimulationController.displayName = "FlightSimulationController";

@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import type { Waypoint } from "@/lib/types"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Play, Pause, Square, RotateCcw } from "lucide-react"
-import type { SimulationState } from "./flight-simulation-controller"
+import type { Waypoint } from "@/lib/types";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Play, Pause, Square, RotateCcw } from "lucide-react";
+import type { SimulationState } from "./flight-simulation-controller";
 
 /**
  * Props for FlightPathVisualization component.
@@ -18,13 +18,13 @@ import type { SimulationState } from "./flight-simulation-controller"
  * @param className - Optional additional className applied to the root card
  */
 interface FlightPathVisualizationProps {
-  waypoints: Waypoint[]
-  simulationState?: SimulationState
-  onStartSimulation?: () => void
-  onPauseSimulation?: () => void
-  onStopSimulation?: () => void
-  onResetSimulation?: () => void
-  className?: string
+  waypoints: Waypoint[];
+  simulationState?: SimulationState;
+  onStartSimulation?: () => void;
+  onPauseSimulation?: () => void;
+  onStopSimulation?: () => void;
+  onResetSimulation?: () => void;
+  className?: string;
 }
 
 /**
@@ -36,170 +36,168 @@ interface FlightPathVisualizationProps {
  * @returns A small SVG-based speed gauge element
  */
 const SpeedometerGauge = ({
-    speed,
-    maxSpeed = 20,
-    size = 140,
+  speed,
+  maxSpeed = 20,
+  size = 140,
 }: {
-    speed: number
-    maxSpeed?: number
-    size?: number
+  speed: number;
+  maxSpeed?: number;
+  size?: number;
 }) => {
-    const safeSpeed = Math.max(0, Math.min(speed, maxSpeed))
-    const speedPercentage = maxSpeed > 0 ? safeSpeed / maxSpeed : 0
+  const safeSpeed = Math.max(0, Math.min(speed, maxSpeed));
+  const speedPercentage = maxSpeed > 0 ? safeSpeed / maxSpeed : 0;
 
-    // SVG sizing and geometry (kept in viewBox units for easy responsive scaling)
-    const viewBoxWidth = 200
-    const viewBoxHeight = 120
-    const cx = 100
-    const cy = 100
-    const radius = 70
-    const startAngle = -90
-    const endAngle = 90
-    const semicircumference = Math.PI * radius // length of semicircle arc
+  // SVG sizing and geometry (kept in viewBox units for easy responsive scaling)
+  const viewBoxWidth = 200;
+  const viewBoxHeight = 120;
+  const cx = 100;
+  const cy = 100;
+  const radius = 70;
+  const startAngle = -90;
+  const endAngle = 90;
+  const semicircumference = Math.PI * radius; // length of semicircle arc
 
-    const polarToCartesian = (cx: number, cy: number, r: number, angleDeg: number) => {
-        const angleRad = ((angleDeg - 90) * Math.PI) / 180.0
-        return { x: cx + r * Math.cos(angleRad), y: cy + r * Math.sin(angleRad) }
-    }
+  const polarToCartesian = (cx: number, cy: number, r: number, angleDeg: number) => {
+    const angleRad = ((angleDeg - 90) * Math.PI) / 180.0;
+    return { x: cx + r * Math.cos(angleRad), y: cy + r * Math.sin(angleRad) };
+  };
 
-    const describeArc = (cx: number, cy: number, r: number, startAngle: number, endAngle: number) => {
-        const start = polarToCartesian(cx, cy, r, endAngle)
-        const end = polarToCartesian(cx, cy, r, startAngle)
-        const largeArcFlag = Math.abs(endAngle - startAngle) <= 180 ? "0" : "1"
-        return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`
-    }
+  const describeArc = (cx: number, cy: number, r: number, startAngle: number, endAngle: number) => {
+    const start = polarToCartesian(cx, cy, r, endAngle);
+    const end = polarToCartesian(cx, cy, r, startAngle);
+    const largeArcFlag = Math.abs(endAngle - startAngle) <= 180 ? "0" : "1";
+    return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`;
+  };
 
-    const arcPath = describeArc(cx, cy, radius, startAngle, endAngle)
+  const arcPath = describeArc(cx, cy, radius, startAngle, endAngle);
 
-    // Needle geometry
-    const needleAngle = startAngle + speedPercentage * (endAngle - startAngle) // -90..90
-    const needleLength = radius - 14
+  // Needle geometry
+  const needleAngle = startAngle + speedPercentage * (endAngle - startAngle); // -90..90
+  const needleLength = radius - 14;
 
-    // Ticks
-    const majorTicks = 5
-    const ticks = Array.from({ length: majorTicks + 1 }, (_, i) => {
-        const t = i / majorTicks
-        const angle = startAngle + t * (endAngle - startAngle)
-        const outer = polarToCartesian(cx, cy, radius, angle)
-        const inner = polarToCartesian(cx, cy, radius - (i % 1 === 0 ? 12 : 8), angle)
-        return { angle, outer, inner, value: Math.round(t * maxSpeed) }
-    })
+  // Ticks
+  const majorTicks = 5;
+  const ticks = Array.from({ length: majorTicks + 1 }, (_, i) => {
+    const t = i / majorTicks;
+    const angle = startAngle + t * (endAngle - startAngle);
+    const outer = polarToCartesian(cx, cy, radius, angle);
+    const inner = polarToCartesian(cx, cy, radius - (i % 1 === 0 ? 12 : 8), angle);
+    return { angle, outer, inner, value: Math.round(t * maxSpeed) };
+  });
 
-    return (
-        <div
-            className="bg-card/90 backdrop-blur-sm border border-border rounded-lg p-3"
-            // allow the card layout to control sizing but prevent overflow
-            style={{ width: size, maxWidth: "100%", boxSizing: "border-box", display: "inline-block" }}
-            aria-hidden={false}
-        >
-            <div className="text-center mb-2">
-                <h3 className="text-sm font-semibold text-foreground">Speed</h3>
-            </div>
+  return (
+    <div
+      className="bg-card/90 border-border rounded-lg border p-3 backdrop-blur-sm"
+      // allow the card layout to control sizing but prevent overflow
+      style={{ width: size, maxWidth: "100%", boxSizing: "border-box", display: "inline-block" }}
+      aria-hidden={false}
+    >
+      <div className="mb-2 text-center">
+        <h3 className="text-foreground text-sm font-semibold">Speed</h3>
+      </div>
 
-            {/* Make the SVG responsive: use width:100% and an appropriate aspect ratio */}
-            <svg
-                width="100%"
-                height="auto"
-                viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
-                preserveAspectRatio="xMidYMid meet"
-                role="img"
-                aria-label={`Current speed ${safeSpeed.toFixed(1)} meters per second`}
+      {/* Make the SVG responsive: use width:100% and an appropriate aspect ratio */}
+      <svg
+        width="100%"
+        height="auto"
+        viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
+        preserveAspectRatio="xMidYMid meet"
+        role="img"
+        aria-label={`Current speed ${safeSpeed.toFixed(1)} meters per second`}
+      >
+        <title>Speedometer</title>
+
+        {/* Background arc */}
+        <path
+          d={arcPath}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="8"
+          strokeLinecap="round"
+          className="text-muted-foreground/40"
+        />
+
+        {/* Progress arc (using semicircumference to compute dash lengths) */}
+        <path
+          d={arcPath}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="8"
+          strokeLinecap="round"
+          strokeDasharray={`${semicircumference * speedPercentage} ${semicircumference}`}
+          strokeDashoffset={0}
+          className="text-primary"
+          style={{ transition: "stroke-dasharray 280ms ease" }}
+        />
+
+        {/* Tick marks & labels */}
+        {ticks.map((tick, i) => (
+          <g key={i}>
+            <line
+              x1={tick.inner.x}
+              y1={tick.inner.y}
+              x2={tick.outer.x}
+              y2={tick.outer.y}
+              stroke="currentColor"
+              strokeWidth={2}
+              className="text-muted-foreground"
+              strokeLinecap="round"
+            />
+            <text
+              x={polarToCartesian(cx, cy, radius + 16, tick.angle).x}
+              y={polarToCartesian(cx, cy, radius + 16, tick.angle).y + 4}
+              textAnchor="middle"
+              className="fill-foreground font-mono text-xs"
             >
-                <title>Speedometer</title>
+              {tick.value}
+            </text>
+          </g>
+        ))}
 
-                {/* Background arc */}
-                <path
-                    d={arcPath}
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                    className="text-muted-foreground/40"
-                />
+        {/* Needle (rotates around center) */}
+        <g
+          transform={`rotate(${needleAngle} ${cx} ${cy})`}
+          style={{ transition: "transform 300ms cubic-bezier(.2,.9,.2,1)" }}
+        >
+          <line
+            x1={cx}
+            y1={cy - 6}
+            x2={cx}
+            y2={cy - needleLength}
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+            className="text-destructive"
+          />
+          <circle cx={cx} cy={cy} r={6} fill="currentColor" className="text-destructive" />
+        </g>
 
-                {/* Progress arc (using semicircumference to compute dash lengths) */}
-                <path
-                    d={arcPath}
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                    strokeDasharray={`${semicircumference * speedPercentage} ${semicircumference}`}
-                    strokeDashoffset={0}
-                    className="text-primary"
-                    style={{ transition: "stroke-dasharray 280ms ease" }}
-                />
+        {/* Center cap */}
+        <circle cx={cx} cy={cy} r={3} fill="currentColor" className="text-foreground" />
 
-                {/* Tick marks & labels */}
-                {ticks.map((tick, i) => (
-                    <g key={i}>
-                        <line
-                            x1={tick.inner.x}
-                            y1={tick.inner.y}
-                            x2={tick.outer.x}
-                            y2={tick.outer.y}
-                            stroke="currentColor"
-                            strokeWidth={2}
-                            className="text-muted-foreground"
-                            strokeLinecap="round"
-                        />
-                        <text
-                            x={polarToCartesian(cx, cy, radius + 16, tick.angle).x}
-                            y={polarToCartesian(cx, cy, radius + 16, tick.angle).y + 4}
-                            textAnchor="middle"
-                            className="text-xs fill-foreground font-mono"
-                        >
-                            {tick.value}
-                        </text>
-                    </g>
-                ))}
+        {/* Speed numeric readout */}
+        <text
+          x={cx}
+          y={cy + 20}
+          textAnchor="middle"
+          className="fill-foreground text-sm font-bold"
+          aria-live="polite"
+        >
+          {safeSpeed.toFixed(1)} m/s
+        </text>
+      </svg>
+    </div>
+  );
+};
 
-                {/* Needle (rotates around center) */}
-                <g
-                    transform={`rotate(${needleAngle} ${cx} ${cy})`}
-                    style={{ transition: "transform 300ms cubic-bezier(.2,.9,.2,1)" }}
-                >
-                    <line
-                        x1={cx}
-                        y1={cy - 6}
-                        x2={cx}
-                        y2={cy - needleLength}
-                        stroke="currentColor"
-                        strokeWidth="3"
-                        strokeLinecap="round"
-                        className="text-destructive"
-                    />
-                    <circle cx={cx} cy={cy} r={6} fill="currentColor" className="text-destructive" />
-                </g>
-
-                {/* Center cap */}
-                <circle cx={cx} cy={cy} r={3} fill="currentColor" className="text-foreground" />
-
-                {/* Speed numeric readout */}
-                <text
-                    x={cx}
-                    y={cy + 20}
-                    textAnchor="middle"
-                    className="text-sm font-bold fill-foreground"
-                    aria-live="polite"
-                >
-                    {safeSpeed.toFixed(1)} m/s
-                </text>
-
-
-            </svg>
-        </div>
-    )
-}
-
-export function FlightPathVisualization({ 
-  waypoints, 
-  simulationState, 
+export function FlightPathVisualization({
+  waypoints,
+  simulationState,
   onStartSimulation,
   onPauseSimulation,
   onStopSimulation,
   onResetSimulation,
-  className 
+  className,
 }: FlightPathVisualizationProps) {
   // If no waypoints, render an informative empty state
   if (waypoints.length === 0) {
@@ -209,47 +207,51 @@ export function FlightPathVisualization({
           <CardTitle className="text-lg font-semibold">Flight Path Visualization</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center h-64 text-muted-foreground">
+          <div className="text-muted-foreground flex h-64 items-center justify-center">
             <div className="text-center">
-              <p className="text-lg mb-2">No flight plan generated</p>
-              <p className="text-sm">Configure your mission parameters and click "Generate Flight Plan"</p>
+              <p className="mb-2 text-lg">No flight plan generated</p>
+              <p className="text-sm">
+                Configure your mission parameters and click "Generate Flight Plan"
+              </p>
             </div>
           </div>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   // --- Calculate bounds for visualization ---
   // Extract coordinate ranges to compute scaling and padding
-  const xs = waypoints.map((w) => w.x)
-  const ys = waypoints.map((w) => w.y)
-  const minX = Math.min(...xs)
-  const maxX = Math.max(...xs)
-  const minY = Math.min(...ys)
-  const maxY = Math.max(...ys)
+  const xs = waypoints.map((w) => w.x);
+  const ys = waypoints.map((w) => w.y);
+  const minX = Math.min(...xs);
+  const maxX = Math.max(...xs);
+  const minY = Math.min(...ys);
+  const maxY = Math.max(...ys);
 
   // Prevent zero-range by defaulting to 1 when all points align
-  const rangeX = maxX - minX || 1
-  const rangeY = maxY - minY || 1
-  const padding = 40
-  const width = 800
-  const height = 600
+  const rangeX = maxX - minX || 1;
+  const rangeY = maxY - minY || 1;
+  const padding = 40;
+  const width = 800;
+  const height = 600;
 
   // Scale helper functions map world coordinates into SVG viewport
-  const scaleX = (x: number) => ((x - minX) / rangeX) * (width - 2 * padding) + padding
-  const scaleY = (y: number) => ((y - minY) / rangeY) * (height - 2 * padding) + padding
+  const scaleX = (x: number) => ((x - minX) / rangeX) * (width - 2 * padding) + padding;
+  const scaleY = (y: number) => ((y - minY) / rangeY) * (height - 2 * padding) + padding;
 
   return (
     <Card className={`border-border bg-card ${className || ""}`}>
       <CardHeader>
         <CardTitle className="text-lg font-semibold">Flight Path Visualization</CardTitle>
-        <p className="text-sm text-muted-foreground">{waypoints.length} waypoints in lawn-mower pattern</p>
+        <p className="text-muted-foreground text-sm">
+          {waypoints.length} waypoints in lawn-mower pattern
+        </p>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Flight Controls and Speedometer */}
         {waypoints.length > 0 && (
-          <div className="flex items-start justify-between gap-4 p-4 bg-muted/30 rounded-lg">
+          <div className="bg-muted/30 flex items-start justify-between gap-4 rounded-lg p-4">
             {/* Left side: Flight Controls and Status */}
             <div className="flex flex-col gap-3">
               {/* Flight Control Buttons */}
@@ -258,13 +260,17 @@ export function FlightPathVisualization({
                   onClick={onStartSimulation}
                   disabled={simulationState?.isRunning && !simulationState?.isPaused}
                   size="sm"
-                  variant={simulationState?.isRunning && !simulationState?.isPaused ? "secondary" : "default"}
+                  variant={
+                    simulationState?.isRunning && !simulationState?.isPaused
+                      ? "secondary"
+                      : "default"
+                  }
                   className="cursor-pointer"
                 >
-                  <Play className="w-4 h-4 mr-1" />
+                  <Play className="mr-1 h-4 w-4" />
                   {simulationState?.isRunning && !simulationState?.isPaused ? "Running" : "Start"}
                 </Button>
-                
+
                 <Button
                   onClick={onPauseSimulation}
                   disabled={!simulationState?.isRunning || simulationState?.isPaused}
@@ -272,10 +278,10 @@ export function FlightPathVisualization({
                   variant="outline"
                   className="cursor-pointer"
                 >
-                  <Pause className="w-4 h-4 mr-1" />
+                  <Pause className="mr-1 h-4 w-4" />
                   Pause
                 </Button>
-                
+
                 <Button
                   onClick={onStopSimulation}
                   disabled={!simulationState?.isRunning}
@@ -283,54 +289,54 @@ export function FlightPathVisualization({
                   variant="outline"
                   className="cursor-pointer"
                 >
-                  <Square className="w-4 h-4 mr-1" />
+                  <Square className="mr-1 h-4 w-4" />
                   Stop
                 </Button>
-                
+
                 <Button
                   onClick={onResetSimulation}
                   size="sm"
                   variant="outline"
                   className="cursor-pointer"
                 >
-                  <RotateCcw className="w-4 h-4 mr-1" />
+                  <RotateCcw className="mr-1 h-4 w-4" />
                   Reset
                 </Button>
               </div>
 
               {/* Flight Progress Metrics - Under buttons */}
               {simulationState?.isRunning && (
-                <div className="grid grid-cols-4 gap-8 text-md">
+                <div className="text-md grid grid-cols-4 gap-8">
                   <div className="text-center">
                     <p className="text-muted-foreground text-sm">Mission Time</p>
-                    <p className="font-mono font-bold text-lg">
+                    <p className="font-mono text-lg font-bold">
                       {(() => {
-                        const totalSeconds = Math.floor(simulationState.elapsedTime)
-                        const hours = Math.floor(totalSeconds / 3600)
-                        const minutes = Math.floor((totalSeconds % 3600) / 60)
-                        const seconds = totalSeconds % 60
-                        
+                        const totalSeconds = Math.floor(simulationState.elapsedTime);
+                        const hours = Math.floor(totalSeconds / 3600);
+                        const minutes = Math.floor((totalSeconds % 3600) / 60);
+                        const seconds = totalSeconds % 60;
+
                         if (hours > 0) {
-                          return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+                          return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
                         }
-                        return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+                        return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
                       })()}
                     </p>
-                    <div className="flex items-center justify-center gap-1 mt-1">
+                    <div className="mt-1 flex items-center justify-center gap-1">
                       {simulationState.isPaused ? (
                         <>
-                          <div className="w-2 h-2 bg-yellow-500 rounded-full" />
-                          <span className="text-xs text-muted-foreground">Paused</span>
+                          <div className="h-2 w-2 rounded-full bg-yellow-500" />
+                          <span className="text-muted-foreground text-xs">Paused</span>
                         </>
                       ) : (
                         <>
-                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                          <span className="text-xs text-muted-foreground">Running</span>
+                          <div className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
+                          <span className="text-muted-foreground text-xs">Running</span>
                         </>
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="text-center">
                     <p className="text-muted-foreground text-sm">Waypoint</p>
                     <p className="font-mono font-bold">
@@ -344,18 +350,21 @@ export function FlightPathVisualization({
                       {simulationState.currentWaypointIndex + 1}
                     </p>
                   </div>
-                  
+
                   <div className="text-center">
-                    <p className="text-muted-foreground text-sm mb-2">Mission Progress</p>
+                    <p className="text-muted-foreground mb-2 text-sm">Mission Progress</p>
                     <div className="space-y-2">
                       <p className="font-mono font-bold">
-                        {Math.round((simulationState.currentWaypointIndex / (waypoints.length - 1)) * 100)}%
+                        {Math.round(
+                          (simulationState.currentWaypointIndex / (waypoints.length - 1)) * 100
+                        )}
+                        %
                       </p>
-                      <div className="w-full bg-muted rounded-full h-2 mx-auto">
-                        <div 
+                      <div className="bg-muted mx-auto h-2 w-full rounded-full">
+                        <div
                           className="bg-primary h-2 rounded-full transition-all duration-500 ease-out"
-                          style={{ 
-                            width: `${Math.round((simulationState.currentWaypointIndex / (waypoints.length - 1)) * 100)}%` 
+                          style={{
+                            width: `${Math.round((simulationState.currentWaypointIndex / (waypoints.length - 1)) * 100)}%`,
                           }}
                         />
                       </div>
@@ -363,9 +372,9 @@ export function FlightPathVisualization({
                   </div>
                 </div>
               )}
-              
+
               {!simulationState?.isRunning && (
-                <div className="text-sm text-muted-foreground">
+                <div className="text-muted-foreground text-sm">
                   <p>{waypoints.length} waypoints loaded • Ready to simulate</p>
                 </div>
               )}
@@ -378,8 +387,13 @@ export function FlightPathVisualization({
           </div>
         )}
 
-        <div className="w-full flex justify-center relative">
-          <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} className="bg-background/50 rounded-lg border max-w-full">
+        <div className="relative flex w-full justify-center">
+          <svg
+            width="100%"
+            height={height}
+            viewBox={`0 0 ${width} ${height}`}
+            className="bg-background/50 max-w-full rounded-lg border"
+          >
             {/* Grid lines */}
             <defs>
               <pattern id="grid" width="50" height="50" patternUnits="userSpaceOnUse">
@@ -407,153 +421,164 @@ export function FlightPathVisualization({
               className="text-muted-foreground/50"
             />
 
-          {/* Flight path lines */}
-          {waypoints.map((waypoint, i) => {
-            if (i === waypoints.length - 1) return null
-            const next = waypoints[i + 1]
-            return (
-              <line
-                key={i}
-                x1={scaleX(waypoint.x)}
-                y1={scaleY(waypoint.y)}
-                x2={scaleX(next.x)}
-                y2={scaleY(next.y)}
-                stroke="currentColor"
-                strokeWidth="2"
-                className="text-primary"
-              />
-            )
-          })}
-
-          {/* Waypoint markers */}
-          {waypoints.map((waypoint, i) => (
-            <g key={i}>
-              <circle
-                cx={scaleX(waypoint.x)}
-                cy={scaleY(waypoint.y)}
-                r={i === 0 ? 6 : i === waypoints.length - 1 ? 6 : 3}
-                fill="currentColor"
-                className={i === 0 ? "text-accent" : i === waypoints.length - 1 ? "text-destructive" : "text-primary"}
-              />
-              {(i === 0 || i === waypoints.length - 1) && (
-                <text
-                  x={scaleX(waypoint.x)}
-                  y={scaleY(waypoint.y) - 12}
-                  textAnchor="middle"
-                  className="text-xs fill-foreground font-mono"
-                >
-                  {i === 0 ? "START" : "END"}
-                </text>
-              )}
-            </g>
-          ))}
-
-          {/* Drone Position - only show during simulation */}
-          {simulationState?.isRunning && (
-            <g>
-              {/* Drone shadow/trail */}
-              <circle
-                cx={scaleX(simulationState.currentPosition.x)}
-                cy={scaleY(simulationState.currentPosition.y)}
-                r="12"
-                fill="currentColor"
-                className="text-primary/20"
-              />
-              {/* Drone body */}
-              <circle
-                cx={scaleX(simulationState.currentPosition.x)}
-                cy={scaleY(simulationState.currentPosition.y)}
-                r="8"
-                fill="currentColor"
-                className="text-orange-500"
-                stroke="currentColor"
-                strokeWidth="2"
-              />
-              {/* Drone center */}
-              <circle
-                cx={scaleX(simulationState.currentPosition.x)}
-                cy={scaleY(simulationState.currentPosition.y)}
-                r="3"
-                fill="currentColor"
-                className="text-orange-700"
-              />
-              {/* Drone propellers (rotating effect) */}
-              <g className={simulationState.isPaused ? "" : "animate-spin"} 
-                 style={{ transformOrigin: `${scaleX(simulationState.currentPosition.x)}px ${scaleY(simulationState.currentPosition.y)}px` }}>
+            {/* Flight path lines */}
+            {waypoints.map((waypoint, i) => {
+              if (i === waypoints.length - 1) return null;
+              const next = waypoints[i + 1];
+              return (
                 <line
-                  x1={scaleX(simulationState.currentPosition.x) - 6}
-                  y1={scaleY(simulationState.currentPosition.y) - 6}
-                  x2={scaleX(simulationState.currentPosition.x) + 6}
-                  y2={scaleY(simulationState.currentPosition.y) + 6}
+                  key={i}
+                  x1={scaleX(waypoint.x)}
+                  y1={scaleY(waypoint.y)}
+                  x2={scaleX(next.x)}
+                  y2={scaleY(next.y)}
                   stroke="currentColor"
-                  strokeWidth="1"
-                  className="text-orange-600"
+                  strokeWidth="2"
+                  className="text-primary"
                 />
-                <line
-                  x1={scaleX(simulationState.currentPosition.x) - 6}
-                  y1={scaleY(simulationState.currentPosition.y) + 6}
-                  x2={scaleX(simulationState.currentPosition.x) + 6}
-                  y2={scaleY(simulationState.currentPosition.y) - 6}
-                  stroke="currentColor"
-                  strokeWidth="1"
-                  className="text-orange-600"
-                />
-              </g>
-              {/* Drone label */}
-              <text
-                x={scaleX(simulationState.currentPosition.x)}
-                y={scaleY(simulationState.currentPosition.y) - 20}
-                textAnchor="middle"
-                className="text-xs fill-foreground font-bold"
-              >
-                DRONE
-              </text>
-            </g>
-          )}
+              );
+            })}
 
-          {/* Camera capture indicators - show when drone is taking photos */}
-          {simulationState?.isRunning && waypoints.map((waypoint, i) => {
-            const isCurrentOrPassed = i <= simulationState.currentWaypointIndex
-            if (!isCurrentOrPassed) return null
-            
-            return (
-              <g key={`camera-${i}`}>
+            {/* Waypoint markers */}
+            {waypoints.map((waypoint, i) => (
+              <g key={i}>
                 <circle
                   cx={scaleX(waypoint.x)}
                   cy={scaleY(waypoint.y)}
-                  r="15"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1"
-                  strokeDasharray="2,2"
-                  className="text-green-600/60"
+                  r={i === 0 ? 6 : i === waypoints.length - 1 ? 6 : 3}
+                  fill="currentColor"
+                  className={
+                    i === 0
+                      ? "text-accent"
+                      : i === waypoints.length - 1
+                        ? "text-destructive"
+                        : "text-primary"
+                  }
                 />
+                {(i === 0 || i === waypoints.length - 1) && (
+                  <text
+                    x={scaleX(waypoint.x)}
+                    y={scaleY(waypoint.y) - 12}
+                    textAnchor="middle"
+                    className="fill-foreground font-mono text-xs"
+                  >
+                    {i === 0 ? "START" : "END"}
+                  </text>
+                )}
               </g>
-            )
-          })}
-        </svg>
+            ))}
+
+            {/* Drone Position - only show during simulation */}
+            {simulationState?.isRunning && (
+              <g>
+                {/* Drone shadow/trail */}
+                <circle
+                  cx={scaleX(simulationState.currentPosition.x)}
+                  cy={scaleY(simulationState.currentPosition.y)}
+                  r="12"
+                  fill="currentColor"
+                  className="text-primary/20"
+                />
+                {/* Drone body */}
+                <circle
+                  cx={scaleX(simulationState.currentPosition.x)}
+                  cy={scaleY(simulationState.currentPosition.y)}
+                  r="8"
+                  fill="currentColor"
+                  className="text-orange-500"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                />
+                {/* Drone center */}
+                <circle
+                  cx={scaleX(simulationState.currentPosition.x)}
+                  cy={scaleY(simulationState.currentPosition.y)}
+                  r="3"
+                  fill="currentColor"
+                  className="text-orange-700"
+                />
+                {/* Drone propellers (rotating effect) */}
+                <g
+                  className={simulationState.isPaused ? "" : "animate-spin"}
+                  style={{
+                    transformOrigin: `${scaleX(simulationState.currentPosition.x)}px ${scaleY(simulationState.currentPosition.y)}px`,
+                  }}
+                >
+                  <line
+                    x1={scaleX(simulationState.currentPosition.x) - 6}
+                    y1={scaleY(simulationState.currentPosition.y) - 6}
+                    x2={scaleX(simulationState.currentPosition.x) + 6}
+                    y2={scaleY(simulationState.currentPosition.y) + 6}
+                    stroke="currentColor"
+                    strokeWidth="1"
+                    className="text-orange-600"
+                  />
+                  <line
+                    x1={scaleX(simulationState.currentPosition.x) - 6}
+                    y1={scaleY(simulationState.currentPosition.y) + 6}
+                    x2={scaleX(simulationState.currentPosition.x) + 6}
+                    y2={scaleY(simulationState.currentPosition.y) - 6}
+                    stroke="currentColor"
+                    strokeWidth="1"
+                    className="text-orange-600"
+                  />
+                </g>
+                {/* Drone label */}
+                <text
+                  x={scaleX(simulationState.currentPosition.x)}
+                  y={scaleY(simulationState.currentPosition.y) - 20}
+                  textAnchor="middle"
+                  className="fill-foreground text-xs font-bold"
+                >
+                  DRONE
+                </text>
+              </g>
+            )}
+
+            {/* Camera capture indicators - show when drone is taking photos */}
+            {simulationState?.isRunning &&
+              waypoints.map((waypoint, i) => {
+                const isCurrentOrPassed = i <= simulationState.currentWaypointIndex;
+                if (!isCurrentOrPassed) return null;
+
+                return (
+                  <g key={`camera-${i}`}>
+                    <circle
+                      cx={scaleX(waypoint.x)}
+                      cy={scaleY(waypoint.y)}
+                      r="15"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1"
+                      strokeDasharray="2,2"
+                      className="text-green-600/60"
+                    />
+                  </g>
+                );
+              })}
+          </svg>
         </div>
-        <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
+        <div className="text-muted-foreground flex items-center justify-center gap-6 text-sm">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-accent" />
+            <div className="bg-accent h-3 w-3 rounded-full" />
             <span>Start Point</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-primary" />
+            <div className="bg-primary h-3 w-3 rounded-full" />
             <span>Waypoints</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-destructive" />
+            <div className="bg-destructive h-3 w-3 rounded-full" />
             <span>End Point</span>
           </div>
           {simulationState?.isRunning && (
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-orange-500" />
+              <div className="h-3 w-3 rounded-full bg-orange-500" />
               <span>Drone Position</span>
             </div>
           )}
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
