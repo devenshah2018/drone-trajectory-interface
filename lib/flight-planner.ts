@@ -301,7 +301,7 @@ export function computeMissionStats(waypoints: Waypoint[], camera: Camera, datas
   }
 
   // Use proper time calculation with acceleration/deceleration
-  const estimatedTime = computeTotalMissionTime(waypoints)
+  const estimatedTime = computeTotalMissionTime(waypoints, computeSpeedDuringPhotoCapture(camera, datasetSpec))
 
   const coverageArea = datasetSpec.scan_dimension_x * datasetSpec.scan_dimension_y
   const gsd = computeGroundSamplingDistance(camera, datasetSpec.height)
