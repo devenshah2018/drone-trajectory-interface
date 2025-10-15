@@ -213,23 +213,7 @@ const SpeedometerGauge = ({
                     {safeSpeed.toFixed(1)} m/s
                 </text>
 
-                {/* Min / Max labels */}
-                <text
-                    x={cx - radius + 10}
-                    y={cy + 8}
-                    textAnchor="start"
-                    className="text-xs fill-muted-foreground"
-                >
-                    0
-                </text>
-                <text
-                    x={cx + radius - 10}
-                    y={cy + 8}
-                    textAnchor="end"
-                    className="text-xs fill-muted-foreground"
-                >
-                    {Math.round(maxSpeed)}
-                </text>
+
             </svg>
         </div>
     )
