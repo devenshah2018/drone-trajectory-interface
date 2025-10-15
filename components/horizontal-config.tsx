@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tooltip } from "@/components/ui/tooltip"
-import { Camera as CameraIcon, Settings, Focus, Grid3X3, Layers, Ruler, Plane, HelpCircle, Download } from "lucide-react"
+import { Camera as CameraIcon, Settings, Focus, Grid3X3, Layers, Ruler, Plane, Info, Download } from "lucide-react"
 
 interface HorizontalConfigProps {
   camera: Camera
@@ -145,7 +145,7 @@ export function HorizontalConfig({
                   </div>
                 </div>
                 <Tooltip content="Load pre-configured camera settings for popular drone models based on manufacturer specifications." side="left">
-                  <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground  transition-colors" />
+                  <Info className="w-3 h-3 text-muted-foreground hover:text-foreground  transition-colors" />
                 </Tooltip>
               </div>
             </div>
@@ -174,7 +174,7 @@ export function HorizontalConfig({
                           <p className="text-xs text-muted-foreground">Higher values = telephoto, Lower values = wide-angle</p>
                         </div>
                       } side="top">
-                        <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground " />
+                        <Info className="w-3 h-3 text-muted-foreground hover:text-foreground " />
                       </Tooltip>
                     </div>
                     <Input
@@ -205,7 +205,7 @@ export function HorizontalConfig({
                           <p className="text-xs text-muted-foreground">Usually f<sub>x</sub> ≈ f<sub>y</sub> for square pixels</p>
                         </div>
                       } side="top">
-                        <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground " />
+                        <Info className="w-3 h-3 text-muted-foreground hover:text-foreground " />
                       </Tooltip>
                     </div>
                     <Input
@@ -247,7 +247,7 @@ export function HorizontalConfig({
                             <p className="text-xs text-muted-foreground">Deviation from center indicates lens misalignment</p>
                           </div>
                         } side="right">
-                          <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground " />
+                          <Info className="w-3 h-3 text-muted-foreground hover:text-foreground " />
                         </Tooltip>
                       </div>
                       <Input
@@ -277,7 +277,7 @@ export function HorizontalConfig({
                             <p className="text-xs text-muted-foreground">Critical for accurate photogrammetry</p>
                           </div>
                         } side="right">
-                          <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground " />
+                          <Info className="w-3 h-3 text-muted-foreground hover:text-foreground " />
                         </Tooltip>
                       </div>
                       <Input
@@ -309,7 +309,7 @@ export function HorizontalConfig({
                             <p className="text-xs text-muted-foreground">h=height, s=sensor, f=focal length, w=width</p>
                           </div>
                         } side="right">
-                          <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground " />
+                          <Info className="w-3 h-3 text-muted-foreground hover:text-foreground " />
                         </Tooltip>
                       </div>
                       <Input
@@ -339,7 +339,7 @@ export function HorizontalConfig({
                             <p className="text-xs text-muted-foreground">Determines vertical field of view and coverage</p>
                           </div>
                         } side="right">
-                          <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground " />
+                          <Info className="w-3 h-3 text-muted-foreground hover:text-foreground " />
                         </Tooltip>
                       </div>
                       <Input
@@ -380,7 +380,7 @@ export function HorizontalConfig({
                           <p className="text-xs text-muted-foreground">Must match camera's actual resolution</p>
                         </div>
                       } side="top">
-                        <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground " />
+                        <Info className="w-3 h-3 text-muted-foreground hover:text-foreground " />
                       </Tooltip>
                     </div>
                     <Input
@@ -411,7 +411,7 @@ export function HorizontalConfig({
                           <p className="text-xs text-muted-foreground">Determines aspect ratio and GSD accuracy</p>
                         </div>
                       } side="top">
-                        <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground " />
+                        <Info className="w-3 h-3 text-muted-foreground hover:text-foreground " />
                       </Tooltip>
                     </div>
                     <Input
@@ -458,7 +458,7 @@ export function HorizontalConfig({
                   </div>
                 </div>
                 <Tooltip content="Load pre-configured mission parameters for standard survey operations with optimal coverage and efficiency." side="left">
-                  <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground  transition-colors" />
+                  <Info className="w-3 h-3 text-muted-foreground hover:text-foreground  transition-colors" />
                 </Tooltip>
               </div>
             </div>
@@ -488,7 +488,7 @@ export function HorizontalConfig({
                             <p className="text-xs text-muted-foreground">75-85% recommended for photogrammetry</p>
                           </div>
                         } side="top">
-                          <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground " />
+                          <Info className="w-3 h-3 text-muted-foreground hover:text-foreground " />
                         </Tooltip>
                       </div>
                       <span className="text-xs text-primary font-medium bg-primary/10 px-2 py-1 rounded">
@@ -523,7 +523,7 @@ export function HorizontalConfig({
                             <p className="text-xs text-muted-foreground">60-70% recommended for 3D reconstruction</p>
                           </div>
                         } side="top">
-                          <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground " />
+                          <Info className="w-3 h-3 text-muted-foreground hover:text-foreground " />
                         </Tooltip>
                       </div>
                       <span className="text-xs text-primary font-medium bg-primary/10 px-2 py-1 rounded">
@@ -567,7 +567,7 @@ export function HorizontalConfig({
                           <p className="text-xs text-muted-foreground">Higher altitude = lower resolution, larger coverage</p>
                         </div>
                       } side="top">
-                        <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground " />
+                        <Info className="w-3 h-3 text-muted-foreground hover:text-foreground " />
                       </Tooltip>
                     </div>
                     <Input
@@ -598,7 +598,7 @@ export function HorizontalConfig({
                           <p className="text-xs text-muted-foreground">Lower exposure = higher max flight speed</p>
                         </div>
                       } side="top">
-                        <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground " />
+                        <Info className="w-3 h-3 text-muted-foreground hover:text-foreground " />
                       </Tooltip>
                     </div>
                     <Input
@@ -639,7 +639,7 @@ export function HorizontalConfig({
                           <p className="text-xs text-muted-foreground">d = distance between images</p>
                         </div>
                       } side="top">
-                        <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground " />
+                        <Info className="w-3 h-3 text-muted-foreground hover:text-foreground " />
                       </Tooltip>
                     </div>
                     <Input
@@ -670,7 +670,7 @@ export function HorizontalConfig({
                           <p className="text-xs text-muted-foreground">Larger area = longer flight time</p>
                         </div>
                       } side="top">
-                        <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground " />
+                        <Info className="w-3 h-3 text-muted-foreground hover:text-foreground " />
                       </Tooltip>
                     </div>
                     <Input

@@ -35,7 +35,7 @@ export function Tooltip({ children, content, side = "top", className }: TooltipP
       onFocus={() => setIsVisible(true)}
       onBlur={() => setIsVisible(false)}
     >
-      <div tabIndex={0}>
+      <div tabIndex={0} className="cursor-pointer">
         {children}
       </div>
       <div className={tooltipClasses}>

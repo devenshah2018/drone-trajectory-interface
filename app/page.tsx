@@ -82,35 +82,42 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+        <div className="container mx-auto px-6 py-3">
+          <div className="flex items-center justify-between min-h-[60px]">
+            {/* Left Side - Logo and Title */}
+            <div className="flex items-center gap-4">
+              <div className="w-11 h-11 rounded-lg bg-primary flex items-center justify-center shadow-sm">
                 <Plane className="w-6 h-6 text-primary-foreground" />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">Drone Flight Planner</h1>
-                <p className="text-sm text-muted-foreground">Mission Planning System</p>
+              <div className="flex flex-col justify-center">
+                <h1 className="text-2xl font-bold text-foreground leading-tight">Drone Flight Planner</h1>
+                <p className="text-sm text-muted-foreground leading-tight">Mission Planning System</p>
               </div>
             </div>
             
-            <div className="flex items-center gap-4">
+            {/* Right Side - Navigation */}
+            <div className="flex items-center gap-3">
               {/* Technical Documentation Link */}
               <a
                 href="https://github.com/devenshah2018/drone-trajectory"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50"
+                className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200 rounded-lg hover:bg-muted/50 border border-transparent hover:border-border/50"
               >
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
                 </svg>
                 <span>Technical Docs</span>
-                <ExternalLink className="w-3 h-3 opacity-50" />
+                <ExternalLink className="w-3.5 h-3.5 opacity-60" />
               </a>
               
+              {/* Divider */}
+              <div className="w-px h-6 bg-border/50"></div>
+              
               {/* Author Profile with Dropdown */}
-              <AuthorProfile />
+              <div className="flex items-center">
+                <AuthorProfile />
+              </div>
             </div>
           </div>
         </div>
