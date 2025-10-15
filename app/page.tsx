@@ -189,7 +189,11 @@ export default function Home() {
           {/* Right Column - Mission Stats */}
           <div className="xl:col-span-1 space-y-6">
             {/* Mission Statistics */}
-            <CompactMissionStats stats={missionStats} waypoints={waypoints} />
+            <CompactMissionStats 
+              stats={missionStats} 
+              waypoints={waypoints} 
+              simulationState={simulationState || undefined}
+            />
           </div>
         </div>
 

@@ -1,17 +1,20 @@
 "use client"
 
 import type { MissionStats, Waypoint } from "@/lib/types"
+import type { SimulationState } from "./flight-simulation-controller"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BarChart3, Clock, MapPin, Camera, Navigation } from "lucide-react"
-import { useCallback, useRef } from "react"
+import { useCallback, useRef, useEffect } from "react"
 
 interface CompactMissionStatsProps {
   stats: MissionStats | null
   waypoints: Waypoint[]
+  simulationState?: SimulationState
 }
 
-export function CompactMissionStats({ stats, waypoints }: CompactMissionStatsProps) {
+export function CompactMissionStats({ stats, waypoints, simulationState }: CompactMissionStatsProps) {
   const tableRef = useRef<HTMLDivElement>(null)
+  const currentWaypointRef = useRef<HTMLDivElement>(null)
 
   const handleKeyNavigation = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
     if (!tableRef.current) return
@@ -58,6 +61,31 @@ export function CompactMissionStats({ stats, waypoints }: CompactMissionStatsPro
     const nextElement = focusableElements[nextIndex] as HTMLElement
     nextElement?.focus()
   }, [])
+
+  // Auto-scroll to current waypoint during simulation
+  useEffect(() => {
+    if (simulationState?.isRunning && currentWaypointRef.current && tableRef.current) {
+      const currentElement = currentWaypointRef.current
+      const container = tableRef.current
+      
+      // Calculate if the current waypoint is visible
+      const containerRect = container.getBoundingClientRect()
+      const elementRect = currentElement.getBoundingClientRect()
+      
+      // Check if element is outside the visible area
+      const isAboveViewport = elementRect.top < containerRect.top
+      const isBelowViewport = elementRect.bottom > containerRect.bottom
+      
+      if (isAboveViewport || isBelowViewport) {
+        // Smooth scroll to keep current waypoint in view
+        currentElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+          inline: 'nearest'
+        })
+      }
+    }
+  }, [simulationState?.currentWaypointIndex, simulationState?.isRunning])
 
   if (!stats) {
     return (
@@ -198,56 +226,194 @@ export function CompactMissionStats({ stats, waypoints }: CompactMissionStatsPro
                 role="rowgroup"
                 aria-label="Table data"
               >
-                {waypoints.map((waypoint, index) => (
-                  <div
-                    key={index}
-                    className="grid grid-cols-4 gap-2 p-3 text-xs font-mono hover:bg-muted/30 focus-within:bg-muted/40 transition-colors"
-                    role="row"
-                    aria-rowindex={index + 1}
-                    tabIndex={-1}
-                  >
-                    <div 
-                      role="cell"
-                      className="text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 rounded px-1"
-                      aria-label={`Waypoint ${index + 1}`}
-                      tabIndex={0}
+                {waypoints.map((waypoint, index) => {
+                  // Determine waypoint status for highlighting
+                  const isCurrent = simulationState?.isRunning && index === simulationState.currentWaypointIndex
+                  const isCompleted = simulationState?.isRunning && index < simulationState.currentWaypointIndex
+                  const isUpcoming = simulationState?.isRunning && index > simulationState.currentWaypointIndex
+                  const isInactive = !simulationState?.isRunning
+                  
+                  // Create dynamic classes for row highlighting
+                  let rowClasses = "grid grid-cols-4 gap-2 p-3 text-xs font-mono relative"
+                  
+                  if (isCurrent) {
+                    // Current waypoint - green highlighting for arrived
+                    rowClasses += " bg-emerald-50/60 dark:bg-emerald-950/25"
+                    rowClasses += " border-l-3 border-emerald-500/70"
+                    rowClasses += " ring-1 ring-emerald-200/40 ring-inset"
+                  } else if (isCompleted) {
+                    // Completed waypoints - gray with subtle highlighting
+                    rowClasses += " bg-muted/50 dark:bg-muted/30"
+                    rowClasses += " border-l-2 border-muted-foreground/40"
+                    rowClasses += " opacity-80"
+                  } else if (isUpcoming) {
+                    // Upcoming waypoints - very subtle gray
+                    rowClasses += " bg-muted/25 dark:bg-muted/15"
+                    rowClasses += " border-l-1 border-muted-foreground/25"
+                  } else if (isInactive) {
+                    // Default state when simulation is not running
+                    rowClasses += " hover:bg-muted/30 focus-within:bg-muted/40"
+                  }
+                  
+                  return (
+                    <div
+                      key={index}
+                      ref={isCurrent ? currentWaypointRef : undefined}
+                      className={rowClasses}
+                      role="row"
+                      aria-rowindex={index + 1}
+                      tabIndex={-1}
+                      aria-label={isCurrent ? `Current waypoint ${index + 1}` : isCompleted ? `Completed waypoint ${index + 1}` : `Waypoint ${index + 1}`}
                     >
-                      #{index + 1}
+                      {/* Waypoint number cell with status indicator */}
+                      <div 
+                        role="cell"
+                        className="text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 rounded px-1 flex items-center gap-2"
+                        aria-label={`Waypoint ${index + 1}`}
+                        tabIndex={0}
+                      >
+                        <span className="flex-shrink-0">#{index + 1}</span>
+                        {/* Status indicator */}
+                        {isCurrent && (
+                          <div className="w-3 h-3 bg-emerald-500 rounded-sm flex items-center justify-center flex-shrink-0" 
+                               aria-label="Current position - arrived">
+                            <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        )}
+                        {isCompleted && (
+                          <div className="w-3 h-3 bg-muted-foreground/60 rounded-sm flex items-center justify-center flex-shrink-0" 
+                               aria-label="Completed">
+                            <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        )}
+                        {isUpcoming && !isCurrent && (
+                          <div className="w-2 h-2 bg-muted-foreground/30 rounded-full flex-shrink-0" 
+                               aria-label="Upcoming" />
+                        )}
+                      </div>
+                      
+                      {/* X coordinate */}
+                      <div 
+                        role="cell"
+                        className={`focus:outline-none focus:ring-2 focus:ring-primary/50 rounded px-1 ${
+                          isCurrent ? 'text-foreground font-semibold' : 
+                          isCompleted ? 'text-muted-foreground/80' :
+                          'text-foreground'
+                        }`}
+                        aria-label={`X coordinate: ${waypoint.x.toFixed(1)} meters`}
+                        tabIndex={0}
+                      >
+                        {waypoint.x.toFixed(1)}
+                      </div>
+                      
+                      {/* Y coordinate */}
+                      <div 
+                        role="cell"
+                        className={`focus:outline-none focus:ring-2 focus:ring-primary/50 rounded px-1 ${
+                          isCurrent ? 'text-foreground font-semibold' : 
+                          isCompleted ? 'text-muted-foreground/80' :
+                          'text-foreground'
+                        }`}
+                        aria-label={`Y coordinate: ${waypoint.y.toFixed(1)} meters`}
+                        tabIndex={0}
+                      >
+                        {waypoint.y.toFixed(1)}
+                      </div>
+                      
+                      {/* Speed */}
+                      <div 
+                        role="cell"
+                        className={`focus:outline-none focus:ring-2 focus:ring-primary/50 rounded px-1 ${
+                          isCurrent ? 'text-foreground font-semibold' : 
+                          isCompleted ? 'text-muted-foreground/80' :
+                          'text-foreground'
+                        }`}
+                        aria-label={`Flight speed: ${waypoint.speed.toFixed(1)} meters per second`}
+                        tabIndex={0}
+                      >
+                        {waypoint.speed.toFixed(1)}
+                      </div>
+                      
+                      {/* Enhanced highlighting overlay for current waypoint */}
+                      {isCurrent && (
+                        <>
+                          <div className="absolute inset-0 bg-emerald-100/20 dark:bg-emerald-800/10 pointer-events-none rounded" />
+                          {/* Progress indicator for current segment */}
+                          {simulationState?.progress !== undefined && (
+                            <div className="absolute bottom-0 left-0 h-0.5 bg-emerald-500/70 rounded-b"
+                                 style={{ width: `${(simulationState.progress * 100).toFixed(1)}%` }}
+                                 aria-label={`${(simulationState.progress * 100).toFixed(1)}% progress to next waypoint`} />
+                          )}
+                        </>
+                      )}
                     </div>
-                    <div 
-                      role="cell"
-                      className="text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 rounded px-1"
-                      aria-label={`X coordinate: ${waypoint.x.toFixed(1)} meters`}
-                      tabIndex={0}
-                    >
-                      {waypoint.x.toFixed(1)}
-                    </div>
-                    <div 
-                      role="cell"
-                      className="text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 rounded px-1"
-                      aria-label={`Y coordinate: ${waypoint.y.toFixed(1)} meters`}
-                      tabIndex={0}
-                    >
-                      {waypoint.y.toFixed(1)}
-                    </div>
-                    <div 
-                      role="cell"
-                      className="text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 rounded px-1"
-                      aria-label={`Flight speed: ${waypoint.speed.toFixed(1)} meters per second`}
-                      tabIndex={0}
-                    >
-                      {waypoint.speed.toFixed(1)}
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
+            
+            {/* Legend for simulation highlighting */}
+            {simulationState?.isRunning && (
+              <div className="mt-4 p-3 bg-muted/20 rounded-lg border border-border/30">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-medium text-foreground">Flight Progress</h4>
+                  <div className="text-xs text-muted-foreground font-mono">
+                    {simulationState.isPaused ? (
+                      <span className="text-muted-foreground">⏸ Paused</span>
+                    ) : (
+                      <span className="text-primary">▶ Active</span>
+                    )}
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-emerald-500 rounded-sm flex items-center justify-center">
+                      <svg className="w-1.5 h-1.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <span className="text-muted-foreground">Current Position</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-muted-foreground/60 rounded-sm flex items-center justify-center">
+                      <svg className="w-1.5 h-1.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <span className="text-muted-foreground">Completed</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-muted-foreground/30 rounded-full" />
+                    <span className="text-muted-foreground">Upcoming</span>
+                  </div>
+                </div>
+                {simulationState.currentWaypointIndex < waypoints.length && (
+                  <div className="mt-2 pt-2 border-t border-border/30">
+                    <div className="text-xs text-muted-foreground">
+                      Flying to waypoint {simulationState.currentWaypointIndex + 2}/{waypoints.length}
+                      {simulationState.progress > 0 && (
+                        <span className="ml-2">({(simulationState.progress * 100).toFixed(0)}% complete)</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            
             <div 
               id="waypoints-description" 
               className="sr-only"
               aria-live="polite"
             >
-              Table showing {waypoints.length} flight path waypoints with their coordinates and flight speeds. Use Tab to enter the table, then arrow keys to navigate between cells. Use Home and End to jump to the beginning or end of each row.
+              Table showing {waypoints.length} flight path waypoints with their coordinates and flight speeds.
+              {simulationState?.isRunning ? 
+                ` During simulation, waypoints are subtly highlighted: primary theme for current position, muted for completed, and subtle for upcoming waypoints.` :
+                ''
+              } Use Tab to enter the table, then arrow keys to navigate between cells. Use Home and End to jump to the beginning or end of each row.
             </div>
           </div>
         )}
