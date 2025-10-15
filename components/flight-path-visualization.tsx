@@ -505,16 +505,8 @@ const SpeedometerGauge = ({
                   stroke="currentColor"
                   strokeWidth="1"
                   strokeDasharray="2,2"
-                  className="text-green-500/60"
+                  className="text-green-600/60"
                 />
-                <text
-                  x={scaleX(waypoint.x)}
-                  y={scaleY(waypoint.y) + 25}
-                  textAnchor="middle"
-                  className="text-xs fill-green-600 font-mono"
-                >
-                  📷
-                </text>
               </g>
             )
           })}
