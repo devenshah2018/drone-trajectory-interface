@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Drone Flight Planner | Enterprise Mission Planning",
+  title: "Drone Flight Planner | Mission Planning",
   description: "Professional drone flight planning tool for aerial surveys and mapping missions",
 }
 

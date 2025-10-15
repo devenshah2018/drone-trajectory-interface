@@ -90,14 +90,14 @@ export default function Home() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-foreground">Drone Flight Planner</h1>
-                <p className="text-sm text-muted-foreground">Enterprise Mission Planning System</p>
+                <p className="text-sm text-muted-foreground">Mission Planning System</p>
               </div>
             </div>
             
             <div className="flex items-center gap-4">
               {/* Technical Documentation Link */}
               <a
-                href="https://github.com/devenshah2018/drone-flight-planner-notebooks"
+                href="https://github.com/devenshah2018/drone-trajectory"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50"
