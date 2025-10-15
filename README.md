@@ -1,36 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Drone Flight Planner
 
-## Getting Started
+A lightweight Next.js app for planning simple aerial survey missions. It generates a lawn‑mower style flight plan from camera intrinsics and mission parameters, visualizes the path, and runs a local simulation to preview drone motion.
 
-First, run the development server:
+This repository is intended as a practical prototype — easy to run locally and extend for custom workflows.
+
+## Key features
+
+- Generate a grid-based flight plan from camera + mission settings
+- Visualize flight path, start/end markers, and live simulated drone position
+- Compact configuration panel with camera presets and mission presets
+- Lightweight mission statistics (distance, estimated time, GSD, footprint)
+- Keyboard- and screen-reader-friendly waypoint table
+
+## Quick start
+
+1. Install dependencies
+
+```bash
+npm install
+# or
+pnpm install
+# or
+yarn
+```
+
+2. Start dev server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+3. Open your browser at `http://localhost:3000`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Basic usage
 
-## Learn More
+1. Set camera parameters (or choose a camera preset).
+2. Set mission parameters: overlap, sidelap, height, survey width/length, exposure.
+3. Click **Generate Flight Plan**. The map and waypoint table update.
+4. Use the simulation controls (Start / Pause / Stop / Reset) to preview drone motion.
 
-To learn more about Next.js, take a look at the following resources:
+Notes:
+- Overlap and sidelap are ratios in `[0, 1)`. Values near 1 increase coverage and flight time.
+- Exposure time affects the allowed flight speed for blur-free images.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Configuration
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Camera and mission fields are on the main screen (no hidden tabs) so the map remains visible.
+- Presets allow loading common camera/mapping setups and can be cleared via the reset control.
 
-## Deploy on Vercel
+## Simulation controls
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Start: begin a fresh simulation. If paused, the Start control resumes the simulation (no reset).
+- Pause / Resume: temporarily stops motion while keeping the current state.
+- Stop: stops and clears running flag (keeps last position visible).
+- Reset: reset simulation state to the first waypoint.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Waypoint table highlights current, completed, and upcoming rows during simulation. Only the table auto-scrolls to keep the active waypoint visible — the main page scroll remains unchanged.
