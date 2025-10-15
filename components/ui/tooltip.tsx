@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 
 export interface TooltipProps {
   children: React.ReactNode
-  content: string
+  content: string | React.ReactNode
   side?: "top" | "right" | "bottom" | "left"
   className?: string
 }
@@ -28,20 +28,19 @@ export function Tooltip({ children, content, side = "top", className }: TooltipP
   )
 
   return (
-    <div className="relative inline-block">
-      <div
-        onMouseEnter={() => setIsVisible(true)}
-        onMouseLeave={() => setIsVisible(false)}
-        onFocus={() => setIsVisible(true)}
-        onBlur={() => setIsVisible(false)}
-        tabIndex={0}
-        className="cursor-help"
-      >
+    <div 
+      className="relative inline-block"
+      onMouseEnter={() => setIsVisible(true)}
+      onMouseLeave={() => setIsVisible(false)}
+      onFocus={() => setIsVisible(true)}
+      onBlur={() => setIsVisible(false)}
+    >
+      <div tabIndex={0}>
         {children}
       </div>
       <div className={tooltipClasses}>
         <div className="relative z-10">
-          {content}
+          {typeof content === 'string' ? content : content}
         </div>
       </div>
     </div>

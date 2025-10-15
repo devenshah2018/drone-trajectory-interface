@@ -145,7 +145,7 @@ export function HorizontalConfig({
                   </div>
                 </div>
                 <Tooltip content="Load pre-configured camera settings for popular drone models based on manufacturer specifications." side="left">
-                  <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help transition-colors" />
+                  <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground  transition-colors" />
                 </Tooltip>
               </div>
             </div>
@@ -163,8 +163,18 @@ export function HorizontalConfig({
                       <Label htmlFor="fx" className="text-sm font-medium text-foreground">
                         X-axis (pixels)
                       </Label>
-                      <Tooltip content="Focal length in the X (horizontal) direction expressed in pixels. This intrinsic camera parameter determines the horizontal field of view and magnification. Higher values indicate more zoom/telephoto characteristics. Must be obtained from camera calibration for accurate photogrammetry results. Valid range: 100-10,000 pixels." side="top">
-                        <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />
+                      <Tooltip content={
+                        <div className="space-y-2">
+                          <p className="font-medium">Focal Length X-axis (pixels)</p>
+                          <p className="text-sm">Horizontal focal length in the pinhole camera model.</p>
+                          <div className="bg-muted/50 rounded p-2 font-mono text-xs">
+                            <div>Projection: u = f<sub>x</sub> × (X/Z) + c<sub>x</sub></div>
+                            <div>FOV: θ<sub>x</sub> = 2 × arctan(w/(2×f<sub>x</sub>))</div>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Higher values = telephoto, Lower values = wide-angle</p>
+                        </div>
+                      } side="top">
+                        <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground " />
                       </Tooltip>
                     </div>
                     <Input
@@ -184,8 +194,18 @@ export function HorizontalConfig({
                       <Label htmlFor="fy" className="text-sm font-medium text-foreground">
                         Y-axis (pixels)
                       </Label>
-                      <Tooltip content="Focal length in the Y (vertical) direction expressed in pixels. This intrinsic camera parameter determines the vertical field of view. For most cameras, this equals fx. Small differences may indicate sensor pixel aspect ratio variations or lens distortions that require correction. Valid range: 100-10,000 pixels." side="top">
-                        <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />
+                      <Tooltip content={
+                        <div className="space-y-2">
+                          <p className="font-medium">Focal Length Y-axis (pixels)</p>
+                          <p className="text-sm">Vertical focal length in the pinhole camera model.</p>
+                          <div className="bg-muted/50 rounded p-2 font-mono text-xs">
+                            <div>Projection: v = f<sub>y</sub> × (Y/Z) + c<sub>y</sub></div>
+                            <div>FOV: θ<sub>y</sub> = 2 × arctan(h/(2×f<sub>y</sub>))</div>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Usually f<sub>x</sub> ≈ f<sub>y</sub> for square pixels</p>
+                        </div>
+                      } side="top">
+                        <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground " />
                       </Tooltip>
                     </div>
                     <Input
@@ -216,8 +236,18 @@ export function HorizontalConfig({
                         <Label htmlFor="cx" className="text-xs font-medium text-foreground">
                           Principal X (px)
                         </Label>
-                        <Tooltip content="X-coordinate of the principal point in pixels. This is where the optical axis intersects the image plane and represents the lens optical center. For well-calibrated cameras, this is typically near the image center (image_width/2). Deviations indicate lens mounting misalignment. Valid range: 0-20,000 pixels." side="right">
-                          <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />
+                        <Tooltip content={
+                          <div className="space-y-2">
+                            <p className="font-medium">Principal Point X (pixels)</p>
+                            <p className="text-sm">X-coordinate where optical axis meets image plane.</p>
+                            <div className="bg-muted/50 rounded p-2 font-mono text-xs">
+                              <div>u = f<sub>x</sub> × (X/Z) + c<sub>x</sub></div>
+                              <div>Ideally: c<sub>x</sub> ≈ width/2</div>
+                            </div>
+                            <p className="text-xs text-muted-foreground">Deviation from center indicates lens misalignment</p>
+                          </div>
+                        } side="right">
+                          <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground " />
                         </Tooltip>
                       </div>
                       <Input
@@ -236,8 +266,18 @@ export function HorizontalConfig({
                         <Label htmlFor="cy" className="text-xs font-medium text-foreground">
                           Principal Y (px)
                         </Label>
-                        <Tooltip content="Y-coordinate of the principal point in pixels. This is where the optical axis intersects the image plane vertically. For well-calibrated cameras, this is typically near the image center (image_height/2). Accurate values are essential for precise geometric corrections in photogrammetry workflows. Valid range: 0-20,000 pixels." side="right">
-                          <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />
+                        <Tooltip content={
+                          <div className="space-y-2">
+                            <p className="font-medium">Principal Point Y (pixels)</p>
+                            <p className="text-sm">Y-coordinate where optical axis meets image plane.</p>
+                            <div className="bg-muted/50 rounded p-2 font-mono text-xs">
+                              <div>v = f<sub>y</sub> × (Y/Z) + c<sub>y</sub></div>
+                              <div>Ideally: c<sub>y</sub> ≈ height/2</div>
+                            </div>
+                            <p className="text-xs text-muted-foreground">Critical for accurate photogrammetry</p>
+                          </div>
+                        } side="right">
+                          <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground " />
                         </Tooltip>
                       </div>
                       <Input
@@ -258,8 +298,18 @@ export function HorizontalConfig({
                         <Label htmlFor="sensor_x" className="text-xs font-medium text-foreground">
                           Sensor W (mm)
                         </Label>
-                        <Tooltip content="Physical width of the camera sensor in millimeters. Combined with focal length, this determines the horizontal field of view and ground sample distance. Essential for accurate survey planning and photogrammetry processing. Valid range: 1-100mm (covers micro sensors to large format cameras)." side="right">
-                          <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />
+                        <Tooltip content={
+                          <div className="space-y-2">
+                            <p className="font-medium">Sensor Width (mm)</p>
+                            <p className="text-sm">Physical sensor width for FOV calculations.</p>
+                            <div className="bg-muted/50 rounded p-2 font-mono text-xs">
+                              <div>GSD = (h × s<sub>x</sub>) / (f<sub>x</sub> × w)</div>
+                              <div>FOV<sub>x</sub> = 2 × arctan(s<sub>x</sub>/(2×f<sub>mm</sub>))</div>
+                            </div>
+                            <p className="text-xs text-muted-foreground">h=height, s=sensor, f=focal length, w=width</p>
+                          </div>
+                        } side="right">
+                          <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground " />
                         </Tooltip>
                       </div>
                       <Input
@@ -278,8 +328,18 @@ export function HorizontalConfig({
                         <Label htmlFor="sensor_y" className="text-xs font-medium text-foreground">
                           Sensor H (mm)
                         </Label>
-                        <Tooltip content="Physical height of the camera sensor in millimeters. Combined with sensor width, this defines the sensor aspect ratio and vertical field of view. Critical for accurate geometric calculations in drone surveying applications. Valid range: 1-100mm." side="right">
-                          <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />
+                        <Tooltip content={
+                          <div className="space-y-2">
+                            <p className="font-medium">Sensor Height (mm)</p>
+                            <p className="text-sm">Physical sensor height for FOV calculations.</p>
+                            <div className="bg-muted/50 rounded p-2 font-mono text-xs">
+                              <div>GSD = (h × s<sub>y</sub>) / (f<sub>y</sub> × h<sub>img</sub>)</div>
+                              <div>FOV<sub>y</sub> = 2 × arctan(s<sub>y</sub>/(2×f<sub>mm</sub>))</div>
+                            </div>
+                            <p className="text-xs text-muted-foreground">Determines vertical field of view and coverage</p>
+                          </div>
+                        } side="right">
+                          <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground " />
                         </Tooltip>
                       </div>
                       <Input
@@ -309,8 +369,18 @@ export function HorizontalConfig({
                       <Label htmlFor="image_x" className="text-sm font-medium text-foreground">
                         Width (pixels)
                       </Label>
-                      <Tooltip content="Image width resolution in pixels. This value must exactly match your camera's output resolution. Higher values provide more detail and accuracy for photogrammetry but result in larger file sizes and longer processing times. Valid range: 100-20,000 pixels." side="top">
-                        <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />
+                      <Tooltip content={
+                        <div className="space-y-2">
+                          <p className="font-medium">Image Width (pixels)</p>
+                          <p className="text-sm">Horizontal resolution of captured images.</p>
+                          <div className="bg-muted/50 rounded p-2 font-mono text-xs">
+                            <div>pixel_size = sensor_width / image_width</div>
+                            <div>c<sub>x</sub> ≈ image_width / 2</div>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Must match camera's actual resolution</p>
+                        </div>
+                      } side="top">
+                        <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground " />
                       </Tooltip>
                     </div>
                     <Input
@@ -330,8 +400,18 @@ export function HorizontalConfig({
                       <Label htmlFor="image_y" className="text-sm font-medium text-foreground">
                         Height (pixels)
                       </Label>
-                      <Tooltip content="Image height resolution in pixels. Must exactly match your camera's output resolution. Combined with image width, this determines the total image resolution and aspect ratio. Critical for accurate ground sample distance calculations. Valid range: 100-20,000 pixels." side="top">
-                        <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />
+                      <Tooltip content={
+                        <div className="space-y-2">
+                          <p className="font-medium">Image Height (pixels)</p>
+                          <p className="text-sm">Vertical resolution of captured images.</p>
+                          <div className="bg-muted/50 rounded p-2 font-mono text-xs">
+                            <div>pixel_size = sensor_height / image_height</div>
+                            <div>c<sub>y</sub> ≈ image_height / 2</div>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Determines aspect ratio and GSD accuracy</p>
+                        </div>
+                      } side="top">
+                        <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground " />
                       </Tooltip>
                     </div>
                     <Input
@@ -378,7 +458,7 @@ export function HorizontalConfig({
                   </div>
                 </div>
                 <Tooltip content="Load pre-configured mission parameters for standard survey operations with optimal coverage and efficiency." side="left">
-                  <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help transition-colors" />
+                  <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground  transition-colors" />
                 </Tooltip>
               </div>
             </div>
@@ -397,8 +477,18 @@ export function HorizontalConfig({
                         <Label htmlFor="overlap" className="text-sm font-medium text-foreground">
                           Forward Overlap
                         </Label>
-                        <Tooltip content="Forward overlap percentage between consecutive images along the flight path direction. Minimum 60% for basic mapping, 75-85% recommended for high-quality photogrammetry and 3D modeling. Higher values ensure better tie point matching and geometric accuracy but increase flight duration and data processing time. Valid range: 0-95% (0.00-0.95)." side="top">
-                          <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />
+                        <Tooltip content={
+                          <div className="space-y-2">
+                            <p className="font-medium">Forward Overlap</p>
+                            <p className="text-sm">Overlap between consecutive images along flight line.</p>
+                            <div className="bg-muted/50 rounded p-2 font-mono text-xs">
+                              <div>d<sub>x</sub> = footprint<sub>x</sub> × (1 - overlap)</div>
+                              <div>overlap = 1 - (d<sub>x</sub> / footprint<sub>x</sub>)</div>
+                            </div>
+                            <p className="text-xs text-muted-foreground">75-85% recommended for photogrammetry</p>
+                          </div>
+                        } side="top">
+                          <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground " />
                         </Tooltip>
                       </div>
                       <span className="text-xs text-primary font-medium bg-primary/10 px-2 py-1 rounded">
@@ -422,8 +512,18 @@ export function HorizontalConfig({
                         <Label htmlFor="sidelap" className="text-sm font-medium text-foreground">
                           Side Overlap
                         </Label>
-                        <Tooltip content="Side overlap percentage between adjacent flight strips (parallel flight lines). Minimum 30% for basic mapping, 60-70% recommended for complex terrain and high-quality 3D reconstruction. Higher values provide better edge coverage and reduce data gaps but significantly increase flight time and battery consumption. Valid range: 0-95% (0.00-0.95)." side="top">
-                          <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />
+                        <Tooltip content={
+                          <div className="space-y-2">
+                            <p className="font-medium">Side Overlap</p>
+                            <p className="text-sm">Overlap between adjacent parallel flight lines.</p>
+                            <div className="bg-muted/50 rounded p-2 font-mono text-xs">
+                              <div>d<sub>y</sub> = footprint<sub>y</sub> × (1 - sidelap)</div>
+                              <div>sidelap = 1 - (d<sub>y</sub> / footprint<sub>y</sub>)</div>
+                            </div>
+                            <p className="text-xs text-muted-foreground">60-70% recommended for 3D reconstruction</p>
+                          </div>
+                        } side="top">
+                          <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground " />
                         </Tooltip>
                       </div>
                       <span className="text-xs text-primary font-medium bg-primary/10 px-2 py-1 rounded">
@@ -456,8 +556,18 @@ export function HorizontalConfig({
                       <Label htmlFor="height" className="text-sm font-medium text-foreground">
                         Flight Height (meters)
                       </Label>
-                      <Tooltip content="Flight altitude above ground level (AGL) in meters. Directly affects ground sampling distance (GSD) - higher altitudes reduce resolution but cover more area per image. Consider local regulations, terrain variations, and required detail level. Typical range: 30-120m for most mapping applications. Valid range: 5-500m." side="top">
-                        <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />
+                      <Tooltip content={
+                        <div className="space-y-2">
+                          <p className="font-medium">Flight Height (meters AGL)</p>
+                          <p className="text-sm">Altitude above ground level affecting resolution.</p>
+                          <div className="bg-muted/50 rounded p-2 font-mono text-xs">
+                            <div>GSD = (h × s) / (f × w)</div>
+                            <div>footprint = 2 × h × tan(FOV/2)</div>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Higher altitude = lower resolution, larger coverage</p>
+                        </div>
+                      } side="top">
+                        <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground " />
                       </Tooltip>
                     </div>
                     <Input
@@ -477,8 +587,18 @@ export function HorizontalConfig({
                       <Label htmlFor="exposure" className="text-sm font-medium text-foreground">
                         Exposure Time (milliseconds)
                       </Label>
-                      <Tooltip content="Camera exposure time (shutter speed) in milliseconds. Shorter exposures prevent motion blur during flight but require adequate lighting. Must balance image sharpness with proper exposure. Typical range: 1-5ms for bright conditions, up to 10ms for overcast skies. Consider drone ground speed to minimize blur. Valid range: 0.1-100ms." side="top">
-                        <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />
+                      <Tooltip content={
+                        <div className="space-y-2">
+                          <p className="font-medium">Exposure Time (milliseconds)</p>
+                          <p className="text-sm">Shutter speed to prevent motion blur.</p>
+                          <div className="bg-muted/50 rounded p-2 font-mono text-xs">
+                            <div>max_speed = GSD / exposure_time</div>
+                            <div>blur = speed × exposure_time</div>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Lower exposure = higher max flight speed</p>
+                        </div>
+                      } side="top">
+                        <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground " />
                       </Tooltip>
                     </div>
                     <Input
@@ -508,8 +628,18 @@ export function HorizontalConfig({
                       <Label htmlFor="scan_x" className="text-sm font-medium text-foreground">
                         Width (meters)
                       </Label>
-                      <Tooltip content="East-west dimension of the rectangular survey area in meters. This determines the length of individual flight lines and affects the total mission duration. Combined with overlap settings, this influences the number of photos per flight line and overall data density. Valid range: 10-10,000m." side="top">
-                        <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />
+                      <Tooltip content={
+                        <div className="space-y-2">
+                          <p className="font-medium">Survey Area Width (meters)</p>
+                          <p className="text-sm">East-west dimension of rectangular survey area.</p>
+                          <div className="bg-muted/50 rounded p-2 font-mono text-xs">
+                            <div>n<sub>x</sub> = ⌈width / d<sub>x</sub>⌉ + 1</div>
+                            <div>flight_lines = ⌈height / d<sub>y</sub>⌉ + 1</div>
+                          </div>
+                          <p className="text-xs text-muted-foreground">d = distance between images</p>
+                        </div>
+                      } side="top">
+                        <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground " />
                       </Tooltip>
                     </div>
                     <Input
@@ -529,8 +659,18 @@ export function HorizontalConfig({
                       <Label htmlFor="scan_y" className="text-sm font-medium text-foreground">
                         Length (meters)
                       </Label>
-                      <Tooltip content="North-south dimension of the rectangular survey area in meters. This determines the spacing between parallel flight lines based on side overlap settings. Combined with width, defines the total survey area and significantly impacts mission planning, flight time, and battery requirements. Valid range: 10-10,000m." side="top">
-                        <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help" />
+                      <Tooltip content={
+                        <div className="space-y-2">
+                          <p className="font-medium">Survey Area Length (meters)</p>
+                          <p className="text-sm">North-south dimension of rectangular survey area.</p>
+                          <div className="bg-muted/50 rounded p-2 font-mono text-xs">
+                            <div>total_area = width × length</div>
+                            <div>mission_time ∝ area / footprint</div>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Larger area = longer flight time</p>
+                        </div>
+                      } side="top">
+                        <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground " />
                       </Tooltip>
                     </div>
                     <Input
