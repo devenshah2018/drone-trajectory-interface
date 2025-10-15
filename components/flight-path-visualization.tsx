@@ -6,6 +6,17 @@ import { Button } from "@/components/ui/button"
 import { Play, Pause, Square, RotateCcw } from "lucide-react"
 import type { SimulationState } from "./flight-simulation-controller"
 
+/**
+ * Props for FlightPathVisualization component.
+ *
+ * @param waypoints - Array of waypoints defining the flight path
+ * @param simulationState - Optional live simulation state used for rendering drone position and progress
+ * @param onStartSimulation - Optional callback to start the simulation
+ * @param onPauseSimulation - Optional callback to pause the simulation
+ * @param onStopSimulation - Optional callback to stop the simulation
+ * @param onResetSimulation - Optional callback to reset the simulation
+ * @param className - Optional additional className applied to the root card
+ */
 interface FlightPathVisualizationProps {
   waypoints: Waypoint[]
   simulationState?: SimulationState
@@ -16,52 +27,14 @@ interface FlightPathVisualizationProps {
   className?: string
 }
 
-export function FlightPathVisualization({ 
-  waypoints, 
-  simulationState, 
-  onStartSimulation,
-  onPauseSimulation,
-  onStopSimulation,
-  onResetSimulation,
-  className 
-}: FlightPathVisualizationProps) {
-  if (waypoints.length === 0) {
-    return (
-      <Card className={`border-border bg-card ${className || ""}`}>
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold">Flight Path Visualization</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-64 text-muted-foreground">
-            <div className="text-center">
-              <p className="text-lg mb-2">No flight plan generated</p>
-              <p className="text-sm">Configure your mission parameters and click "Generate Flight Plan"</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  // Calculate bounds for visualization
-  const xs = waypoints.map((w) => w.x)
-  const ys = waypoints.map((w) => w.y)
-  const minX = Math.min(...xs)
-  const maxX = Math.max(...xs)
-  const minY = Math.min(...ys)
-  const maxY = Math.max(...ys)
-
-  const rangeX = maxX - minX || 1
-  const rangeY = maxY - minY || 1
-  const padding = 40
-  const width = 800
-  const height = 600
-
-  // Scale points to fit in SVG
-  const scaleX = (x: number) => ((x - minX) / rangeX) * (width - 2 * padding) + padding
-  const scaleY = (y: number) => ((y - minY) / rangeY) * (height - 2 * padding) + padding
-
-  // Speedometer component (inline for this visualization)
+/**
+ * Small inline speedometer used inside the visualization.
+ *
+ * @param props.speed - Current speed to display (m/s)
+ * @param props.maxSpeed - Maximum gauge value
+ * @param props.size - Visual size (px) of the gauge container
+ * @returns A small SVG-based speed gauge element
+ */
 const SpeedometerGauge = ({
     speed,
     maxSpeed = 20,
@@ -218,6 +191,54 @@ const SpeedometerGauge = ({
         </div>
     )
 }
+
+export function FlightPathVisualization({ 
+  waypoints, 
+  simulationState, 
+  onStartSimulation,
+  onPauseSimulation,
+  onStopSimulation,
+  onResetSimulation,
+  className 
+}: FlightPathVisualizationProps) {
+  // If no waypoints, render an informative empty state
+  if (waypoints.length === 0) {
+    return (
+      <Card className={`border-border bg-card ${className || ""}`}>
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold">Flight Path Visualization</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center h-64 text-muted-foreground">
+            <div className="text-center">
+              <p className="text-lg mb-2">No flight plan generated</p>
+              <p className="text-sm">Configure your mission parameters and click "Generate Flight Plan"</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // --- Calculate bounds for visualization ---
+  // Extract coordinate ranges to compute scaling and padding
+  const xs = waypoints.map((w) => w.x)
+  const ys = waypoints.map((w) => w.y)
+  const minX = Math.min(...xs)
+  const maxX = Math.max(...xs)
+  const minY = Math.min(...ys)
+  const maxY = Math.max(...ys)
+
+  // Prevent zero-range by defaulting to 1 when all points align
+  const rangeX = maxX - minX || 1
+  const rangeY = maxY - minY || 1
+  const padding = 40
+  const width = 800
+  const height = 600
+
+  // Scale helper functions map world coordinates into SVG viewport
+  const scaleX = (x: number) => ((x - minX) / rangeX) * (width - 2 * padding) + padding
+  const scaleY = (y: number) => ((y - minY) / rangeY) * (height - 2 * padding) + padding
 
   return (
     <Card className={`border-border bg-card ${className || ""}`}>

@@ -4,7 +4,19 @@
 import type { Camera, DatasetSpec, Waypoint, MissionStats } from "./types"
 
 /**
- * Computes the focal length in mm for the given camera
+ * Collection of flight-planner utility functions.
+ *
+ * @remarks
+ * This module provides camera geometry helpers, footprint and GSD calculations,
+ * image-spacing computations, simple kinematic time estimators, and a basic
+ * lawn-mower waypoint generator suitable for mission planning prototypes.
+ */
+
+/**
+ * Computes the focal length in mm for the given camera.
+ *
+ * @param camera - Camera intrinsics and sensor sizes
+ * @returns A tuple [fx_mm, fy_mm] representing focal length in millimeters for X and Y
  */
 export function computeFocalLengthInMm(camera: Camera): [number, number] {
   // Convert focal length from pixels to mm
@@ -15,7 +27,11 @@ export function computeFocalLengthInMm(camera: Camera): [number, number] {
 }
 
 /**
- * Project a 3D world point into the image coordinates
+ * Project a 3D world point into image pixel coordinates using a pinhole model.
+ *
+ * @param camera - Camera intrinsics
+ * @param worldPoint - 3D point in camera-relative coordinates [X, Y, Z]
+ * @returns Image pixel coordinates [u, v]
  */
 export function projectWorldPointToImage(camera: Camera, worldPoint: [number, number, number]): [number, number] {
   const [X, Y, Z] = worldPoint
@@ -32,7 +48,12 @@ export function projectWorldPointToImage(camera: Camera, worldPoint: [number, nu
 }
 
 /**
- * Reproject a 2D image point back to 3D world coordinates at a given depth
+ * Reproject a 2D image point back to 3D world coordinates at a specified depth.
+ *
+ * @param camera - Camera intrinsics
+ * @param imagePoint - Image pixel coordinates [u, v]
+ * @param distanceFromSurface - Depth (Z) in the same units as world coordinates
+ * @returns Reprojected world coordinates [X, Y, Z]
  */
 export function reprojectImagePointToWorld(
   camera: Camera,
@@ -54,36 +75,55 @@ export function reprojectImagePointToWorld(
 }
 
 /**
- * Compute the footprint of the image captured by the camera at a given distance from the surface
+ * Compute the ground footprint of the camera image at a given distance.
+ *
+ * @param camera - Camera intrinsics and sensor sizes
+ * @param distance_from_surface - Distance from camera to ground surface
+ * @returns Footprint width and height on the ground [width_m, height_m]
  */
 export function computeImageFootprintOnSurface(camera: Camera, distance_from_surface: number): [number, number] {
   // Get image corner pixel coordinates
   const corner1: [number, number] = [0, 0] // Top-left
   const corner2: [number, number] = [camera.image_size_x, camera.image_size_y] // Bottom-right
   
-  // Reproject corners to world coordinates
+  // Reproject corners to world coordinates at the given depth
   const worldPoint1 = reprojectImagePointToWorld(camera, corner1, distance_from_surface)
   const worldPoint2 = reprojectImagePointToWorld(camera, corner2, distance_from_surface)
   
-  // Calculate footprint dimensions
+  // Calculate footprint dimensions (absolute to ensure positive sizes)
   const footprint_x = Math.abs(worldPoint2[0] - worldPoint1[0])
   const footprint_y = Math.abs(worldPoint2[1] - worldPoint1[1])
   
   return [footprint_x, footprint_y]
 }
 
+/**
+ * Compute ground sampling distance (GSD) at the specified height.
+ *
+ * @param camera - Camera intrinsics
+ * @param distance_from_surface - Height above surface
+ * @returns Ground sampling distance in meters/pixel (smaller is higher resolution)
+ */
 export function computeGroundSamplingDistance(camera: Camera, distance_from_surface: number): number {
-  // Get the image footprint
+  // Get the image footprint on the ground
   const footprint = computeImageFootprintOnSurface(camera, distance_from_surface)
   
-  // Calculate GSD in both directions
+  // Calculate per-axis GSD
   const gsd_x = footprint[0] / camera.image_size_x
   const gsd_y = footprint[1] / camera.image_size_y
   
-  // Return the smaller GSD (higher resolution)
+  // Return the smaller GSD (best resolution)
   return Math.min(gsd_x, gsd_y)
 }
 
+/**
+ * Compute the distance between consecutive image centers (nadir case) given overlaps.
+ *
+ * @param camera - Camera intrinsics
+ * @param datasetSpec - Mission parameters including overlap and sidelap
+ * @returns Tuple [distance_x, distance_y] in meters between image centers
+ * @throws Error when overlap or sidelap values are out of range [0,1)
+ */
 export function computeDistanceBetweenImages(camera: Camera, datasetSpec: DatasetSpec): [number, number] {
   // Validate overlap and sidelap
   const overlap = datasetSpec.overlap
@@ -96,56 +136,80 @@ export function computeDistanceBetweenImages(camera: Camera, datasetSpec: Datase
     throw new Error(`sidelap must be in [0, 1), got ${sidelap}`)
   }
 
-  // Compute the footprint of a single image on the surface at the height
+  // Compute the nadir footprint at flight height
   const footprint = computeImageFootprintOnSurface(camera, datasetSpec.height)
   const [footprint_x, footprint_y] = footprint
 
-  // Distance between image centers
+  // Distance between image centers given the overlap ratios
   const distance_x = footprint_x * (1.0 - overlap)
   const distance_y = footprint_y * (1.0 - sidelap)
 
   return [distance_x, distance_y]
 }
 
+/**
+ * Compute footprint when camera is tilted (non-nadir).
+ *
+ * @param camera - Camera intrinsics
+ * @param height - Flight height above ground
+ * @param cameraAngleRad - Tilt angle in radians
+ * @returns Footprint dimensions on the ground [width, height]
+ */
 export function computeNonNadirFootprint(
   camera: Camera,
   height: number,
   cameraAngleRad: number
 ): [number, number] {
-  // Standard nadir footprint
+  // Start with nadir footprint
   const footprint = computeImageFootprintOnSurface(camera, height)
   
-  // Stretch the footprint in the direction of tilt
+  // Copy footprint and stretch in tilt direction. This is a simplified model.
   const footprintTilted: [number, number] = [...footprint]
 
-  // For non-nadir, the footprint on the ground increases by 1/cos(angle) in the direction of tilt
+  // For non-nadir, footprint increases by 1/cos(angle) in the tilt direction
   footprintTilted[1] /= Math.cos(cameraAngleRad)
   return footprintTilted
 }
 
+/**
+ * Compute image center spacing for a non-nadir camera configuration.
+ *
+ * @param camera - Camera intrinsics
+ * @param datasetSpec - Mission parameters
+ * @param cameraAngleRad - Tilt angle in radians
+ * @returns [dx, dy] distances between image centers
+ */
 export function computeDistanceBetweenImagesNonNadir(
   camera: Camera,
   datasetSpec: DatasetSpec,
   cameraAngleRad: number
 ): [number, number] {
-  // Compute the footprint of a single image on the surface at the height
+  // Compute tilted footprint and spacing
   const footprint = computeNonNadirFootprint(camera, datasetSpec.height, cameraAngleRad)
 
-  // Distance between image centers
   const dx = footprint[0] * (1 - datasetSpec.overlap)
   const dy = footprint[1] * (1 - datasetSpec.sidelap)
   return [dx, dy]
 }
 
+/**
+ * Compute the maximum traversal speed allowed during photo capture to limit
+ * movement to a small number of pixels during exposure.
+ *
+ * @param camera - Camera intrinsics
+ * @param datasetSpec - Mission parameters including exposure time
+ * @param allowed_movement_px - Allowed movement in pixels during exposure (default 1 px)
+ * @returns Maximum allowed speed in meters/second
+ */
 export function computeSpeedDuringPhotoCapture(
   camera: Camera,
   datasetSpec: DatasetSpec,
   allowed_movement_px = 1,
 ): number {
-  // Compute the ground sampling distance (GSD) at the flight height
+  // Compute GSD (meters/pixel) at flight height
   const gsd = computeGroundSamplingDistance(camera, datasetSpec.height)
   
-  // Maximum allowed ground movement during exposure
+  // Maximum allowed ground movement during exposure (meters)
   const max_ground_movement = allowed_movement_px * gsd
   
   // Convert exposure time from milliseconds to seconds
@@ -157,69 +221,75 @@ export function computeSpeedDuringPhotoCapture(
   return max_speed
 }
 
+/**
+ * Estimate time to travel between two waypoints using a simple kinematic model.
+ *
+ * @param waypoint1 - Starting waypoint (includes preferred speed)
+ * @param waypoint2 - Ending waypoint (includes preferred speed)
+ * @param maxSpeed - Upper speed limit (m/s)
+ * @param maxAcceleration - Max acceleration/deceleration (m/s^2)
+ * @returns Estimated travel time in seconds
+ */
 export function computeTimeBetweenWaypoints(
   waypoint1: Waypoint,
   waypoint2: Waypoint,
   maxSpeed = 16.0,
   maxAcceleration = 3.5
 ): number {
-  // Calculate distance between waypoints
+  // Calculate Euclidean distance between waypoints
   const dx = waypoint2.x - waypoint1.x
   const dy = waypoint2.y - waypoint1.y
   const dz = waypoint2.z - waypoint1.z
   const distance = Math.sqrt(dx * dx + dy * dy + dz * dz)
   
-  // Starting and ending speeds
+  // Starting and ending speeds provided by waypoint objects
   const vStart = waypoint1.speed
   const vEnd = waypoint2.speed
   
-  // Calculate the distance needed to change speed from maxSpeed to vEnd
+  // Compute distances required for accel/decel phases (constant accel model)
   let decelDistance = 0
   if (maxSpeed > vEnd) {
     decelDistance = (maxSpeed * maxSpeed - vEnd * vEnd) / (2 * maxAcceleration)
   }
   
-  // Calculate the distance needed to accelerate from vStart to maxSpeed
   let accelDistance = 0
   if (vStart < maxSpeed) {
     accelDistance = (maxSpeed * maxSpeed - vStart * vStart) / (2 * maxAcceleration)
   }
   
-  // Check if we have enough distance to reach maxSpeed
   const totalAccelDecelDistance = accelDistance + decelDistance
   
   if (totalAccelDecelDistance <= distance) {
-    // Trapezoidal profile: accelerate to maxSpeed, cruise, then decelerate
+    // Trapezoidal velocity profile: accelerate to max, cruise, decelerate
     const cruiseDistance = distance - totalAccelDecelDistance
-    
-    // Time for each phase
     const accelTime = vStart < maxSpeed ? (maxSpeed - vStart) / maxAcceleration : 0
     const cruiseTime = cruiseDistance > 0 ? cruiseDistance / maxSpeed : 0
     const decelTime = maxSpeed > vEnd ? (maxSpeed - vEnd) / maxAcceleration : 0
-    
     return accelTime + cruiseTime + decelTime
   } else {
-    // Triangular profile: accelerate to peak speed, then immediately decelerate
+    // Triangular profile: accelerate to peak then decelerate without cruising
     const vPeakSquared = (vStart * vStart + vEnd * vEnd + 2 * maxAcceleration * distance) / 2
-    
     let vPeak: number
     if (vPeakSquared < 0) {
       vPeak = Math.max(vStart, vEnd)
     } else {
       vPeak = Math.sqrt(vPeakSquared)
     }
-    
-    // Ensure we don't exceed maxSpeed
     vPeak = Math.min(vPeak, maxSpeed)
-    
-    // Calculate actual times
     const accelTime = vPeak > vStart ? (vPeak - vStart) / maxAcceleration : 0
     const decelTime = vPeak > vEnd ? (vPeak - vEnd) / maxAcceleration : 0
-    
     return accelTime + decelTime
   }
 }
 
+/**
+ * Sum estimated times for the full mission by summing segment times.
+ *
+ * @param waypoints - Array of waypoints representing the mission path
+ * @param maxSpeed - Max speed used for time estimates
+ * @param maxAcceleration - Max acceleration used for time estimates
+ * @returns Total estimated mission flight time in seconds
+ */
 export function computeTotalMissionTime(
   waypoints: Waypoint[],
   maxSpeed = 16.0,
@@ -231,7 +301,7 @@ export function computeTotalMissionTime(
   
   let totalTime = 0.0
   
-  // Sum up flight times between consecutive waypoints
+  // Sum flight times between consecutive waypoints
   for (let i = 0; i < waypoints.length - 1; i++) {
     const flightTime = computeTimeBetweenWaypoints(
       waypoints[i],
@@ -246,15 +316,21 @@ export function computeTotalMissionTime(
 }
 
 /**
- * Generate the complete photo plan as a list of waypoints in a lawn-mower pattern
+ * Generate a simple lawn-mower pattern of waypoints covering a rectangular area.
+ *
+ * @param camera - Camera intrinsics used to compute image spacing
+ * @param datasetSpec - Mission parameters including survey dimensions and overlaps
+ * @returns Array of generated waypoints with x,y,z coordinates and nominal speed
  */
 export function generatePhotoPlaneOnGrid(camera: Camera, datasetSpec: DatasetSpec): Waypoint[] {
-  // Placeholder: Generate lawn-mower pattern waypoints
+  // Compute nominal spacing between image centers
   const distances = computeDistanceBetweenImages(camera, datasetSpec)
   const [dx, dy] = distances
 
+  // Nominal cruise speed to satisfy exposure constraints
   const max_speed = computeSpeedDuringPhotoCapture(camera, datasetSpec)
 
+  // Estimate number of images required along each axis
   const num_images_x = Math.ceil(datasetSpec.scan_dimension_x / dx) + 1
   const num_images_y = Math.ceil(datasetSpec.scan_dimension_y / dy) + 1
 
@@ -266,6 +342,7 @@ export function generatePhotoPlaneOnGrid(camera: Camera, datasetSpec: DatasetSpe
 
   const waypoints: Waypoint[] = []
 
+  // Generate lawn-mower rows, alternating direction each row
   for (let row = 0; row < num_images_y; row++) {
     const y = start_y + row * actual_dy
 
@@ -290,8 +367,16 @@ export function generatePhotoPlaneOnGrid(camera: Camera, datasetSpec: DatasetSpe
   return waypoints
 }
 
+/**
+ * Compute summary mission statistics such as total distance, estimated time and GSD.
+ *
+ * @param waypoints - Generated mission waypoints
+ * @param camera - Camera intrinsics
+ * @param datasetSpec - Mission parameters
+ * @returns MissionStats including totalWaypoints, totalDistance, estimatedTime, coverageArea, gsd, and imageFootprint
+ */
 export function computeMissionStats(waypoints: Waypoint[], camera: Camera, datasetSpec: DatasetSpec): MissionStats {
-  // Calculate total distance
+  // Calculate total distance by summing Euclidean distances between consecutive waypoints
   let totalDistance = 0
   for (let i = 0; i < waypoints.length - 1; i++) {
     const dx = waypoints[i + 1].x - waypoints[i].x
@@ -300,7 +385,7 @@ export function computeMissionStats(waypoints: Waypoint[], camera: Camera, datas
     totalDistance += Math.sqrt(dx * dx + dy * dy + dz * dz)
   }
 
-  // Use proper time calculation with acceleration/deceleration
+  // Use time calculation that accounts for acceleration/deceleration
   const estimatedTime = computeTotalMissionTime(waypoints, computeSpeedDuringPhotoCapture(camera, datasetSpec))
 
   const coverageArea = datasetSpec.scan_dimension_x * datasetSpec.scan_dimension_y

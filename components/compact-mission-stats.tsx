@@ -6,16 +6,38 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BarChart3, Clock, MapPin, Camera, Navigation } from "lucide-react"
 import { useCallback, useRef, useEffect } from "react"
 
+/**
+ * CompactMissionStats component props.
+ *
+ * @param stats - Mission statistics or null when no mission is available
+ * @param waypoints - Array of waypoints that define the flight path
+ * @param simulationState - Optional live simulation state used to drive row highlighting and progress indicators
+ */
 interface CompactMissionStatsProps {
   stats: MissionStats | null
   waypoints: Waypoint[]
   simulationState?: SimulationState
 }
 
+/**
+ * Compact mission stats panel showing key metrics and a waypoint table.
+ *
+ * @param props - Component props
+ * @param props.stats - Mission statistics or null when not available
+ * @param props.waypoints - Flight path waypoints to display in the table
+ * @param props.simulationState - Optional simulation state for highlighting/progress
+ * @returns A Card element containing mission metrics and the waypoint table
+ */
 export function CompactMissionStats({ stats, waypoints, simulationState }: CompactMissionStatsProps) {
   const tableRef = useRef<HTMLDivElement>(null)
   const currentWaypointRef = useRef<HTMLDivElement>(null)
 
+  /**
+   * Handle keyboard navigation inside the waypoint table.
+   *
+   * @param event - Keyboard event from the table container
+   * @returns void
+   */
   const handleKeyNavigation = useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
     if (!tableRef.current) return
 
@@ -63,6 +85,14 @@ export function CompactMissionStats({ stats, waypoints, simulationState }: Compa
   }, [])
 
   // Auto-scroll to current waypoint during simulation
+  /**
+   * Keep the current waypoint centered in the table container while simulation runs.
+   *
+   * @remarks
+   * Uses bounding rect checks to determine if the element is outside the table's
+   * visible region and scrolls only the table container to avoid affecting the
+   * overall page scroll position.
+   */
   useEffect(() => {
     if (simulationState?.isRunning && currentWaypointRef.current && tableRef.current) {
       const currentElement = currentWaypointRef.current
@@ -87,6 +117,23 @@ export function CompactMissionStats({ stats, waypoints, simulationState }: Compa
     }
   }, [simulationState?.currentWaypointIndex, simulationState?.isRunning])
 
+  /**
+   * Format seconds into a human-readable time string.
+   *
+   * @param seconds - Time in seconds
+   * @returns Readable time string like '1h 2m' or '5m 12s'
+   */
+  const formatTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600)
+    const mins = Math.floor((seconds % 3600) / 60)
+    const secs = Math.floor(seconds % 60)
+    
+    if (hours > 0) {
+      return `${hours}h ${mins}m`
+    }
+    return `${mins}m ${secs}s`
+  }
+
   if (!stats) {
     return (
       <Card className="border-border bg-card shadow-sm">
@@ -107,17 +154,6 @@ export function CompactMissionStats({ stats, waypoints, simulationState }: Compa
         </CardContent>
       </Card>
     )
-  }
-
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600)
-    const mins = Math.floor((seconds % 3600) / 60)
-    const secs = Math.floor(seconds % 60)
-    
-    if (hours > 0) {
-      return `${hours}h ${mins}m`
-    }
-    return `${mins}m ${secs}s`
   }
 
   return (

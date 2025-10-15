@@ -8,6 +8,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tooltip } from "@/components/ui/tooltip"
 import { Camera as CameraIcon, Settings, Focus, Grid3X3, Layers, Ruler, Plane, Info, Download, HelpCircle } from "lucide-react"
 
+/**
+ * Props for the horizontal configuration panel.
+ *
+ * @param camera - Current camera intrinsics and sensor parameters
+ * @param datasetSpec - Mission/dataset specification values used to generate the flight plan
+ * @param onCameraChange - Callback invoked when a camera field is updated
+ * @param onDatasetSpecChange - Callback invoked when a dataset field is updated
+ */
 interface HorizontalConfigProps {
   camera: Camera
   datasetSpec: DatasetSpec
@@ -15,10 +23,26 @@ interface HorizontalConfigProps {
   onDatasetSpecChange: (datasetSpec: DatasetSpec) => void
 }
 
+/**
+ * Imperative ref exposed by HorizontalConfig for parent components.
+ *
+ * @remarks Provides a simple resetPresets() method to clear any selected presets.
+ */
 export interface HorizontalConfigRef {
   resetPresets: () => void
 }
 
+/**
+ * Compact horizontal configuration panel for camera and mission parameters.
+ *
+ * @param props - Component props
+ * @param props.camera - Camera intrinsics and sizes
+ * @param props.datasetSpec - Mission configuration (overlap, height, area, etc.)
+ * @param props.onCameraChange - Handler called with updated camera object
+ * @param props.onDatasetSpecChange - Handler called with updated datasetSpec object
+ * @returns A Card element containing all configuration inputs laid out compactly
+ * @remarks Client component using forwardRef to expose resetPresets to parents.
+ */
 export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfigProps>(({ 
   camera, 
   datasetSpec, 
@@ -62,14 +86,35 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
     }
   }
 
+  /**
+   * Update a single camera field and propagate the complete camera object.
+   *
+   * @param field - Key of the Camera object to update
+   * @param value - New numeric value for the specified field
+   * @returns void
+   */
   const updateCamera = (field: keyof Camera, value: number) => {
+    // Use parent callback to keep single source of truth in the page state
     onCameraChange({ ...camera, [field]: value })
   }
 
+  /**
+   * Update a single dataset specification field and propagate the complete object.
+   *
+   * @param field - Key of the DatasetSpec object to update
+   * @param value - New numeric value for the specified field
+   * @returns void
+   */
   const updateDatasetSpec = (field: keyof DatasetSpec, value: number) => {
     onDatasetSpecChange({ ...datasetSpec, [field]: value })
   }
 
+  /**
+   * Load a predefined camera preset and apply its configuration.
+   *
+   * @param presetKey - Key identifying the preset from cameraPresets
+   * @returns void
+   */
   const loadCameraPreset = (presetKey: string) => {
     const preset = cameraPresets[presetKey as keyof typeof cameraPresets]
     if (preset) {
@@ -78,6 +123,12 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
     }
   }
 
+  /**
+   * Load a predefined mission preset and apply its dataset configuration.
+   *
+   * @param presetKey - Key identifying the preset from missionPresets
+   * @returns void
+   */
   const loadMissionPreset = (presetKey: string) => {
     const preset = missionPresets[presetKey as keyof typeof missionPresets]
     if (preset) {
@@ -89,11 +140,13 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
   // Expose reset function via ref
   useImperativeHandle(ref, () => ({
     resetPresets: () => {
+      // Clear selected preset values without modifying parent camera/dataset state
       setSelectedPreset("")
       setSelectedMissionPreset("")
     }
   }), [])
 
+  // --- Render: compact two-column layout with clear section headers ---
   return (
     <Card className="border-border bg-card shadow-sm">
       <CardHeader className="pb-2">

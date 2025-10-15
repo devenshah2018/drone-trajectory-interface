@@ -3,9 +3,17 @@
 import { useState } from "react"
 import { ChevronDown, Github, Linkedin, ExternalLink, User } from "lucide-react"
 
+/**
+ * Compact author badge with a dropdown of external social links.
+ *
+ * @returns A button that toggles a dropdown containing the author's profile links.
+ * @remarks Client component that manages local open/close state for the dropdown.
+ */
 export function AuthorProfile() {
+  // Local state controlling dropdown visibility
   const [isOpen, setIsOpen] = useState(false)
 
+  // List of external social/profile links shown in the dropdown
   const socialLinks = [
     {
       name: "LinkedIn",
@@ -14,7 +22,7 @@ export function AuthorProfile() {
       description: "Professional Profile"
     },
     {
-      name: "GitHub", 
+      name: "GitHub",
       url: "https://github.com/devenshah2018",
       icon: Github,
       description: "Code Repository"
@@ -29,6 +37,10 @@ export function AuthorProfile() {
 
   return (
     <div className="relative">
+      {/*
+        Trigger button: toggles dropdown. onBlur uses a small timeout to allow
+        link clicks before closing the menu.
+      */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         onBlur={() => setTimeout(() => setIsOpen(false), 150)}
@@ -41,6 +53,10 @@ export function AuthorProfile() {
         <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
+      {/*
+        Dropdown menu: rendered only when isOpen is true to avoid unnecessary DOM nodes.
+        Positioned absolutely so it overlays adjacent content without affecting layout.
+      */}
       {isOpen && (
         <div className="absolute right-0 top-full mt-2 w-56 bg-card border border-border rounded-lg shadow-lg z-50 overflow-hidden">
           <div className="px-4 py-3 border-b border-border">
@@ -52,6 +68,7 @@ export function AuthorProfile() {
             {socialLinks.map((link) => {
               const IconComponent = link.icon
               return (
+                // Each link opens in a new tab; rel attributes for security
                 <a
                   key={link.name}
                   href={link.url}

@@ -11,8 +11,16 @@ import { FloatingGenerateButton } from "@/components/floating-generate-button"
 import { AuthorProfile } from "@/components/author-profile"
 import { FlightSimulationController, type SimulationState, type FlightSimulationRef } from "@/components/flight-simulation-controller"
 
+/**
+ * Root page component for the mission planning UI.
+ *
+ * @returns The main application UI containing configuration, map, stats, and
+ * controls for flight plan generation and simulation.
+ * @remarks This is a client component that manages local state and refs for
+ * interacting with child components (map, simulation controller, config).
+ */
 export default function Home() {
-  // Default camera configuration (typical drone camera)
+  // --- Camera configuration state (defaults chosen for typical drone camera) ---
   const [camera, setCamera] = useState<Camera>({
     fx: 2000,
     fy: 2000,
@@ -24,7 +32,7 @@ export default function Home() {
     image_size_y: 3000,
   })
 
-  // Default dataset specification
+  // --- Dataset / mission parameters ---
   const [datasetSpec, setDatasetSpec] = useState<DatasetSpec>({
     overlap: 0.75,
     sidelap: 0.65,
@@ -34,34 +42,46 @@ export default function Home() {
     exposure_time_ms: 2.0,
   })
 
+  // --- Generated outputs and UI state ---
   const [waypoints, setWaypoints] = useState<Waypoint[]>([])
   const [missionStats, setMissionStats] = useState<MissionStats | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [validationError, setValidationError] = useState<string | null>(null)
   const [simulationState, setSimulationState] = useState<SimulationState | null>(null)
   
-  // Ref for flight simulation controller
+  // --- Refs to control child components imperatively ---
+  // Controls the hidden FlightSimulationController (start/pause/stop/reset)
   const flightSimulationRef = useRef<FlightSimulationRef>(null)
   
-  // Ref for horizontal config component
+  // Controls the HorizontalConfig component to reset preset selections
   const horizontalConfigRef = useRef<HorizontalConfigRef>(null)
 
+  /**
+   * Generate a flight plan from the current camera and dataset specifications.
+   *
+   * @returns A promise that resolves when generation completes. On success it
+   * updates waypoints and mission stats; on failure it sets a user-friendly
+   * validation error message.
+   */
   const handleGenerateFlightPlan = async () => {
     setIsGenerating(true)
     setValidationError(null)
     
-    // Add a small delay to show the loading state
+    // Small delay to allow loading UI to be visible
     await new Promise(resolve => setTimeout(resolve, 500))
     
     try {
+      // Core flight plan generation and stats computation
       const generatedWaypoints = generatePhotoPlaneOnGrid(camera, datasetSpec)
       const stats = computeMissionStats(generatedWaypoints, camera, datasetSpec)
+
+      // Persist outputs for visualization and summary
       setWaypoints(generatedWaypoints)
       setMissionStats(stats)
     } catch (error) {
+      // Convert technical errors into user-facing messages
       console.error('Error generating flight plan:', error)
       if (error instanceof Error) {
-        // Convert technical errors to user-friendly messages
         let userMessage = error.message
         if (error.message.includes('overlap must be in [0, 1)')) {
           userMessage = 'Forward overlap must be between 0% and 95%. Please adjust your overlap setting.'
@@ -77,12 +97,29 @@ export default function Home() {
     }
   }
 
+  /**
+   * Receive simulation updates from the FlightSimulationController and forward
+   * them to local state so other components can react to simulation progress.
+   *
+   * @param state - Current simulation state provided by the controller
+   * @returns void
+   */
   const handleSimulationUpdate = (state: SimulationState) => {
+    // Update local copy so CompactMissionStats and FlightPathVisualization can consume it
     setSimulationState(state)
   }
 
+  /**
+   * Reset the application configuration and generated flight data to defaults.
+   *
+   * @remarks
+   * Resets camera, datasetSpec, clears waypoints and mission stats, clears
+   * validation errors, resets the simulation controller and any selected presets.
+   *
+   * @returns void
+   */
   const handleReset = () => {
-    // Reset camera to default values
+    // Reset camera and dataset spec to their initial defaults
     setCamera({
       fx: 2000,
       fy: 2000,
@@ -94,7 +131,6 @@ export default function Home() {
       image_size_y: 3000,
     })
 
-    // Reset dataset specification to default values
     setDatasetSpec({
       overlap: 0.75,
       sidelap: 0.65,
@@ -104,22 +140,21 @@ export default function Home() {
       exposure_time_ms: 2.0,
     })
 
-    // Clear flight data
+    // Clear generated mission data and UI state
     setWaypoints([])
     setMissionStats(null)
     setValidationError(null)
     setSimulationState(null)
 
-    // Reset simulation if it exists
+    // Reset child components via refs
     flightSimulationRef.current?.resetSimulation()
-    
-    // Reset preset selections
     horizontalConfigRef.current?.resetPresets()
   }
 
+  // --- Render application UI ---
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
+      {/* Header: app title, docs link, and user profile */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-40">
         <div className="container mx-auto px-6 py-3">
           <div className="flex items-center justify-between min-h-[60px]">
@@ -163,7 +198,7 @@ export default function Home() {
       </header>
 
       <main className="container mx-auto px-6 py-6 space-y-6">
-        {/* Horizontal Configuration */}
+        {/* Configuration panel: camera and mission parameters (keeps map visible) */}
         <HorizontalConfig
           ref={horizontalConfigRef}
           camera={camera}
@@ -172,12 +207,12 @@ export default function Home() {
           onDatasetSpecChange={setDatasetSpec}
         />
 
-        {/* Main Content Grid */}
+        {/* Main content grid: map visual (2 cols) + stats (1 col) */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* Flight Path Visualization - Takes up 2 columns */}
+          {/* Flight Path Visualization - primary map view (larger area) */}
           <div className="xl:col-span-2">
-            <FlightPathVisualization 
-              waypoints={waypoints} 
+            <FlightPathVisualization
+              waypoints={waypoints}
               simulationState={simulationState || undefined}
               onStartSimulation={() => flightSimulationRef.current?.startSimulation()}
               onPauseSimulation={() => flightSimulationRef.current?.pauseSimulation()}
@@ -186,18 +221,17 @@ export default function Home() {
             />
           </div>
 
-          {/* Right Column - Mission Stats */}
+          {/* Right column: compact mission stats and waypoint table */}
           <div className="xl:col-span-1 space-y-6">
-            {/* Mission Statistics */}
-            <CompactMissionStats 
-              stats={missionStats} 
-              waypoints={waypoints} 
+            <CompactMissionStats
+              stats={missionStats}
+              waypoints={waypoints}
               simulationState={simulationState || undefined}
             />
           </div>
         </div>
 
-        {/* Hidden Flight Simulation Controller (provides logic only) */}
+        {/* Hidden simulation controller: provides animation/state but not visible */}
         {waypoints.length >= 2 && (
           <div className="hidden">
             <FlightSimulationController
@@ -209,14 +243,14 @@ export default function Home() {
         )}
       </main>
 
-      {/* Floating Generate Button */}
-      <FloatingGenerateButton 
+      {/* Floating Generate Button: triggers plan generation or reset */}
+      <FloatingGenerateButton
         onGenerate={handleGenerateFlightPlan}
         onReset={handleReset}
         isGenerating={isGenerating}
       />
 
-      {/* Validation Error Toast */}
+      {/* Validation Error Toast: shows user-friendly configuration errors */}
       {validationError && (
         <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 max-w-md">
           <div className="bg-destructive/90 backdrop-blur-sm text-destructive-foreground px-6 py-4 rounded-lg shadow-lg border border-destructive/20">

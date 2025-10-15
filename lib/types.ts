@@ -2,6 +2,10 @@
 
 /**
  * Data model for a simple pinhole camera.
+ *
+ * @remarks
+ * Holds intrinsic parameters and sensor/image sizes used for projecting and
+ * reprojecting points between image and world coordinates.
  */
 export interface Camera {
   /** Focal length in pixels along the x-axis */
@@ -23,7 +27,10 @@ export interface Camera {
 }
 
 /**
- * Data model for specifications of an image dataset.
+ * Data model for specifications of an image dataset (mission parameters).
+ *
+ * @remarks
+ * Values are used to compute image spacing, coverage area, and capture timing.
  */
 export interface DatasetSpec {
   /** Forward overlap ratio between consecutive images (0-1) */
@@ -41,7 +48,11 @@ export interface DatasetSpec {
 }
 
 /**
- * Waypoints are positions where the drone should fly to and capture a photo.
+ * Waypoint model used by the flight planner and simulator.
+ *
+ * @remarks
+ * Each waypoint represents a position where the drone will fly to and optionally
+ * capture imagery. Optional look-at coordinates are used for non-nadir camera orientations.
  */
 export interface Waypoint {
   /** X coordinate in meters (eastward direction) */
@@ -52,19 +63,31 @@ export interface Waypoint {
   z: number
   /** Maximum speed at this waypoint in m/s for blur-free photos */
   speed: number
-  /** X coordinate of look-at point for non-nadir scans */
+  /** X coordinate of look-at point for non-nadir scans (optional) */
   look_at_x?: number
-  /** Y coordinate of look-at point for non-nadir scans */
+  /** Y coordinate of look-at point for non-nadir scans (optional) */
   look_at_y?: number
-  /** Z coordinate of look-at point for non-nadir scans */
+  /** Z coordinate of look-at point for non-nadir scans (optional) */
   look_at_z?: number
 }
 
+/**
+ * Summary statistics computed for a generated mission.
+ *
+ * @returns An object containing counts, distances, estimated time, coverage area,
+ * GSD (ground sampling distance) and the image footprint on the ground.
+ */
 export interface MissionStats {
+  /** Number of waypoints in the generated plan */
   totalWaypoints: number
+  /** Total planned flight distance in meters */
   totalDistance: number // meters
+  /** Estimated mission flight time in seconds */
   estimatedTime: number // seconds
+  /** Covered area in square meters */
   coverageArea: number // square meters
+  /** Ground sampling distance in meters/pixel */
   gsd: number // Ground sampling distance in meters
+  /** Image footprint on the ground [width, height] in meters */
   imageFootprint: [number, number] // [x, y] in meters
 }

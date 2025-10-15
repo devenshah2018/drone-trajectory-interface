@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Play, Pause, Square, RotateCcw } from "lucide-react"
 
+/**
+ * Live simulation state representing the drone's runtime status.
+ *
+ * @remarks
+ * Holds flags for running/paused state, current 3D position, speed, waypoint
+ * progress, elapsed time and distance metrics used by the UI and visualizers.
+ */
 export interface SimulationState {
   isRunning: boolean
   isPaused: boolean
@@ -18,6 +25,9 @@ export interface SimulationState {
   distanceTraveled: number
 }
 
+/**
+ * Imperative API exposed by the simulation controller to parent components.
+ */
 export interface FlightSimulationRef {
   startSimulation: () => void
   pauseSimulation: () => void
@@ -53,8 +63,9 @@ export const FlightSimulationController = forwardRef<FlightSimulationRef, Flight
   const startTimeRef = useRef<number>(0)
   const isAnimatingRef = useRef<boolean>(false)
 
-  // Calculate total distance
+  // Calculate total distance of the waypoint path.
   const calculateTotalDistance = (waypoints: Waypoint[]): number => {
+    // Sum Euclidean distances between consecutive waypoints
     let total = 0
     for (let i = 0; i < waypoints.length - 1; i++) {
       const dx = waypoints[i + 1].x - waypoints[i].x
@@ -65,7 +76,7 @@ export const FlightSimulationController = forwardRef<FlightSimulationRef, Flight
     return total
   }
 
-  // Calculate distance between two waypoints
+  // Compute distance between two waypoints.
   const getDistance = (wp1: Waypoint, wp2: Waypoint): number => {
     const dx = wp2.x - wp1.x
     const dy = wp2.y - wp1.y
@@ -73,7 +84,7 @@ export const FlightSimulationController = forwardRef<FlightSimulationRef, Flight
     return Math.sqrt(dx * dx + dy * dy + dz * dz)
   }
 
-  // Interpolate between two waypoints
+  // Linear interpolation between two 3D waypoints.
   const interpolatePosition = (wp1: Waypoint, wp2: Waypoint, progress: number) => {
     return {
       x: wp1.x + (wp2.x - wp1.x) * progress,
@@ -82,27 +93,38 @@ export const FlightSimulationController = forwardRef<FlightSimulationRef, Flight
     }
   }
 
-  // Animation loop
+  /**
+   * Core animation loop driven by requestAnimationFrame.
+   *
+   * @param currentTime - High-resolution timestamp provided by RAF
+   * @remarks Uses refs to avoid re-subscribing on every render and updates
+   * the simulation state in-place to minimize React render churn.
+   */
   const animate = (currentTime: number) => {
+    // Bail out quickly if animation is stopped
     if (!isAnimatingRef.current) return
 
+    // Initialize timing on first frame
     if (lastTimeRef.current === 0) {
       lastTimeRef.current = currentTime
       startTimeRef.current = currentTime
     }
 
-    const deltaTime = (currentTime - lastTimeRef.current) / 1000 // Convert to seconds
+    // Compute frame delta in seconds
+    const deltaTime = (currentTime - lastTimeRef.current) / 1000
     lastTimeRef.current = currentTime
 
     if (waypoints.length < 2) return
 
+    // Update simulation state with a functional setState to avoid stale closures
     setSimulationState(prevState => {
+      // Respect running/paused flags
       if (!prevState.isRunning || prevState.isPaused) return prevState
 
       const currentWP = waypoints[prevState.currentWaypointIndex]
       const nextWPIndex = prevState.currentWaypointIndex + 1
 
-      // Check if we've reached the end
+      // If at end of the path, stop animation and mark progress complete
       if (nextWPIndex >= waypoints.length) {
         isAnimatingRef.current = false
         return {
@@ -115,9 +137,11 @@ export const FlightSimulationController = forwardRef<FlightSimulationRef, Flight
 
       const nextWP = waypoints[nextWPIndex]
       const segmentDistance = getDistance(currentWP, nextWP)
-      const currentSpeed = Math.min(currentWP.speed, nextWP.speed) // Use minimum speed for safety
-      
-      // Calculate how much distance we cover in this frame
+
+      // Use safe speed (min of segment endpoints) to avoid unrealistic jumps
+      const currentSpeed = Math.min(currentWP.speed, nextWP.speed)
+
+      // Distance covered this frame (meters)
       const distanceThisFrame = currentSpeed * deltaTime
       const progressIncrement = segmentDistance > 0 ? distanceThisFrame / segmentDistance : 1
 
@@ -125,13 +149,13 @@ export const FlightSimulationController = forwardRef<FlightSimulationRef, Flight
       let newWaypointIndex = prevState.currentWaypointIndex
       let newDistanceTraveled = prevState.distanceTraveled + distanceThisFrame
 
-      // Check if we've reached the next waypoint
+      // When segment completes, advance waypoint index and reset progress
       if (newProgress >= 1) {
         newProgress = 0
         newWaypointIndex = nextWPIndex
       }
 
-      // Calculate current position
+      // Compute interpolated position along active segment
       const currentPosition = interpolatePosition(
         waypoints[newWaypointIndex],
         waypoints[Math.min(newWaypointIndex + 1, waypoints.length - 1)],
@@ -149,24 +173,39 @@ export const FlightSimulationController = forwardRef<FlightSimulationRef, Flight
       }
     })
 
-    // Continue animation
+    // Queue next frame if animation still active
     if (isAnimatingRef.current) {
       animationRef.current = requestAnimationFrame(animate)
     }
   }
 
-  // Update parent component with simulation state
+  // Update parent component whenever simulation state changes
   useEffect(() => {
     onSimulationUpdate(simulationState)
   }, [simulationState, onSimulationUpdate])
 
-  // Start simulation
+  /**
+   * Start or resume the simulation.
+   *
+   * @remarks If the simulation is paused, this resumes from current state.
+   * If not running, starts from the first waypoint and resets timing.
+   */
   const startSimulation = () => {
     if (waypoints.length < 2) return
 
     const totalDistance = calculateTotalDistance(waypoints)
-    
-    // Reset timing references
+
+    // If currently paused, resume without resetting position or progress
+    if (simulationState.isRunning && simulationState.isPaused) {
+      // Resume timing references but keep elapsed time intact
+      lastTimeRef.current = 0
+      isAnimatingRef.current = true
+      setSimulationState(prev => ({ ...prev, isPaused: false }))
+      animationRef.current = requestAnimationFrame(animate)
+      return
+    }
+
+    // Start a fresh simulation run
     lastTimeRef.current = 0
     startTimeRef.current = 0
     isAnimatingRef.current = true
@@ -183,20 +222,25 @@ export const FlightSimulationController = forwardRef<FlightSimulationRef, Flight
       distanceTraveled: 0
     })
 
-    // Start the animation loop
+    // Kick off the animation
     animationRef.current = requestAnimationFrame(animate)
   }
 
-  // Pause simulation
+  /**
+   * Toggle pause state. When paused, the animation loop is stopped but the
+   * current state is preserved so it can be resumed.
+   */
   const pauseSimulation = () => {
+    // Flip paused flag
     setSimulationState(prev => ({ ...prev, isPaused: !prev.isPaused }))
-    
+
+    // If we just set to paused, stop animation frames; otherwise resume
     if (simulationState.isPaused) {
-      // Resume animation
+      // Resume
       isAnimatingRef.current = true
       animationRef.current = requestAnimationFrame(animate)
     } else {
-      // Pause animation
+      // Pause
       isAnimatingRef.current = false
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current)
@@ -204,7 +248,10 @@ export const FlightSimulationController = forwardRef<FlightSimulationRef, Flight
     }
   }
 
-  // Stop simulation
+  /**
+   * Stop the simulation and clear the running/paused flags. State remains so
+   * UI can show the last position if desired.
+   */
   const stopSimulation = () => {
     isAnimatingRef.current = false
     if (animationRef.current) {
@@ -218,7 +265,10 @@ export const FlightSimulationController = forwardRef<FlightSimulationRef, Flight
     }))
   }
 
-  // Reset simulation
+  /**
+   * Reset the simulation state to defaults using the first waypoint as origin.
+   * @returns void
+   */
   const resetSimulation = () => {
     isAnimatingRef.current = false
     if (animationRef.current) {
@@ -239,14 +289,6 @@ export const FlightSimulationController = forwardRef<FlightSimulationRef, Flight
       distanceTraveled: 0
     })
   }
-
-  // Expose control functions via ref
-  useImperativeHandle(ref, () => ({
-    startSimulation,
-    pauseSimulation,
-    stopSimulation,
-    resetSimulation
-  }), [])
 
   // Expose control functions via ref
   useImperativeHandle(ref, () => ({
