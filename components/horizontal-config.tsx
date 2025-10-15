@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tooltip } from "@/components/ui/tooltip"
-import { Camera as CameraIcon, Settings, Focus, Grid3X3, Layers, Ruler, Plane, HelpCircle } from "lucide-react"
+import { Camera as CameraIcon, Settings, Focus, Grid3X3, Layers, Ruler, Plane, HelpCircle, Download } from "lucide-react"
 
 interface HorizontalConfigProps {
   camera: Camera
@@ -22,6 +22,42 @@ export function HorizontalConfig({
   onDatasetSpecChange 
 }: HorizontalConfigProps) {
   const [activeTab, setActiveTab] = useState("camera")
+  const [selectedPreset, setSelectedPreset] = useState("")
+  const [selectedMissionPreset, setSelectedMissionPreset] = useState("")
+
+  // Camera presets
+  const cameraPresets = {
+    'skydio-vt300l-wide': {
+      name: 'Skydio VT300L - Wide',
+      description: 'Professional mapping camera with wide field of view',
+      config: {
+        fx: 4938.56,
+        fy: 4936.49,
+        cx: 4095.5,
+        cy: 3071.5,
+        sensor_size_x_mm: 13.107,
+        sensor_size_y_mm: 9.830,
+        image_size_x: 8192,
+        image_size_y: 6144
+      }
+    }
+  }
+
+  // Mission presets
+  const missionPresets = {
+    'nominal': {
+      name: 'Nominal Survey',
+      description: 'Standard mapping mission with balanced coverage and efficiency',
+      config: {
+        overlap: 0.7,
+        sidelap: 0.7,
+        height: 30.48, // 100 ft
+        scan_dimension_x: 150,
+        scan_dimension_y: 150,
+        exposure_time_ms: 2 // 1/500 exposure time
+      }
+    }
+  }
 
   const updateCamera = (field: keyof Camera, value: number) => {
     onCameraChange({ ...camera, [field]: value })
@@ -29,6 +65,22 @@ export function HorizontalConfig({
 
   const updateDatasetSpec = (field: keyof DatasetSpec, value: number) => {
     onDatasetSpecChange({ ...datasetSpec, [field]: value })
+  }
+
+  const loadCameraPreset = (presetKey: string) => {
+    const preset = cameraPresets[presetKey as keyof typeof cameraPresets]
+    if (preset) {
+      onCameraChange(preset.config as Camera)
+      setSelectedPreset(presetKey)
+    }
+  }
+
+  const loadMissionPreset = (presetKey: string) => {
+    const preset = missionPresets[presetKey as keyof typeof missionPresets]
+    if (preset) {
+      onDatasetSpecChange(preset.config as DatasetSpec)
+      setSelectedMissionPreset(presetKey)
+    }
   }
 
   return (
@@ -67,6 +119,37 @@ export function HorizontalConfig({
           </div>
 
           <div className={`mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${activeTab !== "camera" ? "hidden" : ""}`}>
+            {/* Camera Preset Dropdown - Compact */}
+            <div className="flex items-center justify-end mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Quick load:</span>
+                <div className="relative">
+                  <select 
+                    className="appearance-none h-8 w-56 rounded-md border border-input bg-background/95 backdrop-blur-sm px-3 pr-8 text-xs font-medium text-foreground shadow-sm transition-all duration-200 hover:border-primary/50 hover:shadow-md focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-0 cursor-pointer"
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        loadCameraPreset(e.target.value)
+                      }
+                    }}
+                    value={selectedPreset}
+                  >
+                    <option value="" disabled className="text-muted-foreground">Select camera preset...</option>
+                    {Object.entries(cameraPresets).map(([key, preset]) => (
+                      <option key={key} value={key} className="text-foreground bg-background">
+                        {preset.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                    <Download className="w-3 h-3 text-muted-foreground" />
+                  </div>
+                </div>
+                <Tooltip content="Load pre-configured camera settings for popular drone models based on manufacturer specifications." side="left">
+                  <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help transition-colors" />
+                </Tooltip>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4 min-h-[240px]">
               {/* Focal Length Section */}
               <div className="space-y-4 flex flex-col h-full">
@@ -269,6 +352,37 @@ export function HorizontalConfig({
           </div>
 
           <div className={`mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${activeTab !== "mission" ? "hidden" : ""}`}>
+            {/* Mission Preset Dropdown - Compact */}
+            <div className="flex items-center justify-end mb-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Quick load:</span>
+                <div className="relative">
+                  <select 
+                    className="appearance-none h-8 w-56 rounded-md border border-input bg-background/95 backdrop-blur-sm px-3 pr-8 text-xs font-medium text-foreground shadow-sm transition-all duration-200 hover:border-primary/50 hover:shadow-md focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-0 cursor-pointer"
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        loadMissionPreset(e.target.value)
+                      }
+                    }}
+                    value={selectedMissionPreset}
+                  >
+                    <option value="" disabled className="text-muted-foreground">Select mission preset...</option>
+                    {Object.entries(missionPresets).map(([key, preset]) => (
+                      <option key={key} value={key} className="text-foreground bg-background">
+                        {preset.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                    <Download className="w-3 h-3 text-muted-foreground" />
+                  </div>
+                </div>
+                <Tooltip content="Load pre-configured mission parameters for standard survey operations with optimal coverage and efficiency." side="left">
+                  <HelpCircle className="w-3 h-3 text-muted-foreground hover:text-foreground cursor-help transition-colors" />
+                </Tooltip>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4 min-h-[240px]">
               {/* Image Overlap Section */}
               <div className="space-y-4 flex flex-col h-full">
