@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tooltip } from "@/components/ui/tooltip"
-import { Camera as CameraIcon, Settings, Focus, Grid3X3, Layers, Ruler, Plane, Info, Download } from "lucide-react"
+import { Camera as CameraIcon, Settings, Focus, Grid3X3, Layers, Ruler, Plane, Info, Download, HelpCircle } from "lucide-react"
 
 interface HorizontalConfigProps {
   camera: Camera
@@ -25,7 +25,6 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
   onCameraChange, 
   onDatasetSpecChange 
 }, ref) => {
-  const [activeTab, setActiveTab] = useState("camera")
   const [selectedPreset, setSelectedPreset] = useState("")
   const [selectedMissionPreset, setSelectedMissionPreset] = useState("")
 
@@ -97,607 +96,298 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
 
   return (
     <Card className="border-border bg-card shadow-sm">
-      <CardHeader className="pb-4">
-        <CardTitle className="text-xl font-semibold text-foreground">Mission Configuration</CardTitle>
-        <CardDescription className="text-sm text-muted-foreground">
-          Configure your camera and mission parameters
-        </CardDescription>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <CardTitle className="text-lg font-semibold text-foreground">Configuration</CardTitle>
+            <CardDescription className="text-xs text-muted-foreground">
+              Configure camera and mission parameters
+            </CardDescription>
+          </div>
+          <div className="flex items-center gap-4">
+            {/* Camera Preset */}
+            <div className="flex items-center gap-2">
+              <Tooltip content="Load predefined camera configurations for common drone models and sensors">
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground">Camera Preset:</span>
+                </div>
+              </Tooltip>
+              <select 
+                className="appearance-none h-7 w-44 rounded border border-input bg-background px-2 pr-6 text-xs text-foreground hover:border-primary/50 focus:border-primary focus:outline-none cursor-pointer"
+                onChange={(e) => { if (e.target.value) loadCameraPreset(e.target.value) }}
+                value={selectedPreset}
+              >
+                <option value="">Choose camera model...</option>
+                {Object.entries(cameraPresets).map(([key, preset]) => (
+                  <option key={key} value={key}>{preset.name}</option>
+                ))}
+              </select>
+            </div>
+            {/* Mission Preset */}
+            <div className="flex items-center gap-2">
+              <Tooltip content="Load predefined mission parameters for common survey scenarios">
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground">Mission Preset:</span>
+                </div>
+              </Tooltip>
+              <select 
+                className="appearance-none h-7 w-44 rounded border border-input bg-background px-2 pr-6 text-xs text-foreground hover:border-primary/50 focus:border-primary focus:outline-none cursor-pointer"
+                onChange={(e) => { if (e.target.value) loadMissionPreset(e.target.value) }}
+                value={selectedMissionPreset}
+              >
+                <option value="">Choose mission type...</option>
+                {Object.entries(missionPresets).map(([key, preset]) => (
+                  <option key={key} value={key}>{preset.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </div>
       </CardHeader>
-      <CardContent>
-        <div className="w-full">
-          <div className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground w-full">
-            <button
-              onClick={() => setActiveTab("camera")}
-              className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 flex-1 gap-2 ${
-                activeTab === "camera"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground cursor-pointer"
-              }`}
-            >
-              <CameraIcon className="w-4 h-4" />
-              Camera Settings
-            </button>
-            <button
-              onClick={() => setActiveTab("mission")}
-              className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 flex-1 gap-2 ${
-                activeTab === "mission"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground cursor-pointer"
-              }`}
-            >
-              <Settings className="w-4 h-4" />
-              Mission Parameters
-            </button>
-          </div>
-
-          <div className={`mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${activeTab !== "camera" ? "hidden" : ""}`}>
-            {/* Camera Preset Dropdown - Compact */}
-            <div className="flex items-center justify-end mb-4">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Quick load:</span>
-                <div className="relative">
-                  <select 
-                    className="appearance-none h-8 w-56 rounded-md border border-input bg-background/95 backdrop-blur-sm px-3 pr-8 text-xs font-medium text-foreground shadow-sm transition-all duration-200 hover:border-primary/50 hover:shadow-md focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-0 cursor-pointer"
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        loadCameraPreset(e.target.value)
-                      }
-                    }}
-                    value={selectedPreset}
-                  >
-                    <option value="" disabled className="text-muted-foreground">Select camera preset...</option>
-                    {Object.entries(cameraPresets).map(([key, preset]) => (
-                      <option key={key} value={key} className="text-foreground bg-background">
-                        {preset.name}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                    <Download className="w-3 h-3 text-muted-foreground" />
-                  </div>
-                </div>
-                <Tooltip content="Load pre-configured camera settings for popular drone models based on manufacturer specifications." side="left">
-                  <Info className="w-3 h-3 text-muted-foreground hover:text-foreground  transition-colors" />
-                </Tooltip>
+      <CardContent className="pt-0 pb-3">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          {/* Camera Settings */}
+          <div>
+            <div className="flex items-center gap-2 pb-2 mb-3 border-b border-border/30">
+              <div className="w-4 h-4 rounded bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                <CameraIcon className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
               </div>
+              <h3 className="text-md font-semibold text-foreground">Camera Settings</h3>
             </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4 min-h-[240px]">
-              {/* Focal Length Section */}
-              <div className="space-y-4 flex flex-col h-full">
-                <div className="flex items-center gap-2 pb-2 border-b border-border/50">
-                  <Focus className="w-4 h-4 text-muted-foreground" />
-                  <h3 className="text-sm font-medium text-foreground">Focal Length</h3>
-                </div>
-                <div className="flex-1 space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="fx" className="text-sm font-medium text-foreground">
-                        X-axis (pixels)
-                      </Label>
-                      <Tooltip content={
-                        <div className="space-y-2">
-                          <p className="font-medium">Focal Length X-axis (pixels)</p>
-                          <p className="text-sm">Horizontal focal length in the pinhole camera model.</p>
-                          <div className="bg-muted/50 rounded p-2 font-mono text-xs">
-                            <div>Projection: u = f<sub>x</sub> × (X/Z) + c<sub>x</sub></div>
-                            <div>FOV: θ<sub>x</sub> = 2 × arctan(w/(2×f<sub>x</sub>))</div>
-                          </div>
-                          <p className="text-xs text-muted-foreground">Higher values = telephoto, Lower values = wide-angle</p>
-                        </div>
-                      } side="top">
-                        <Info className="w-3 h-3 text-muted-foreground hover:text-foreground " />
-                      </Tooltip>
-                    </div>
-                    <Input
-                      id="fx"
-                      type="number"
-                      min="100"
-                      max="10000"
-                      step="1"
-                      value={camera.fx}
-                      onChange={(e) => updateCamera('fx', Number.parseFloat(e.target.value))}
-                      className="bg-background border-input hover:border-primary/50 focus:border-primary transition-colors h-10"
-                      placeholder="e.g., 2000"
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="fy" className="text-sm font-medium text-foreground">
-                        Y-axis (pixels)
-                      </Label>
-                      <Tooltip content={
-                        <div className="space-y-2">
-                          <p className="font-medium">Focal Length Y-axis (pixels)</p>
-                          <p className="text-sm">Vertical focal length in the pinhole camera model.</p>
-                          <div className="bg-muted/50 rounded p-2 font-mono text-xs">
-                            <div>Projection: v = f<sub>y</sub> × (Y/Z) + c<sub>y</sub></div>
-                            <div>FOV: θ<sub>y</sub> = 2 × arctan(h/(2×f<sub>y</sub>))</div>
-                          </div>
-                          <p className="text-xs text-muted-foreground">Usually f<sub>x</sub> ≈ f<sub>y</sub> for square pixels</p>
-                        </div>
-                      } side="top">
-                        <Info className="w-3 h-3 text-muted-foreground hover:text-foreground " />
-                      </Tooltip>
-                    </div>
-                    <Input
-                      id="fy"
-                      type="number"
-                      min="100"
-                      max="10000"
-                      step="1"
-                      value={camera.fy}
-                      onChange={(e) => updateCamera('fy', Number.parseFloat(e.target.value))}
-                      className="bg-background border-input hover:border-primary/50 focus:border-primary transition-colors h-10"
-                      placeholder="e.g., 2000"
-                    />
-                  </div>
-                </div>
+            <div className="grid grid-cols-4 gap-3">
+              {/* Row 1 - Focal Length & Principal Point */}
+              <div>
+                <Tooltip content="Focal length in X direction (pixels). Determines horizontal field of view and image scale.">
+                  <Label htmlFor="fx" className="text-xs text-muted-foreground mb-1 block cursor-pointer">
+                    Focal Length X (px)
+                  </Label>
+                </Tooltip>
+                <Input
+                  id="fx"
+                  type="number"
+                  value={camera.fx}
+                  onChange={(e) => updateCamera('fx', Number.parseFloat(e.target.value))}
+                  className="h-7 text-xs"
+                />
               </div>
-
-              {/* Principal Point & Sensor Section */}
-              <div className="space-y-4 flex flex-col h-full">
-                <div className="flex items-center gap-2 pb-2 border-b border-border/50">
-                  <Grid3X3 className="w-4 h-4 text-muted-foreground" />
-                  <h3 className="text-sm font-medium text-foreground">Principal Point & Sensor</h3>
-                </div>
-                <div className="flex-1 space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor="cx" className="text-xs font-medium text-foreground">
-                          Principal X (px)
-                        </Label>
-                        <Tooltip content={
-                          <div className="space-y-2">
-                            <p className="font-medium">Principal Point X (pixels)</p>
-                            <p className="text-sm">X-coordinate where optical axis meets image plane.</p>
-                            <div className="bg-muted/50 rounded p-2 font-mono text-xs">
-                              <div>u = f<sub>x</sub> × (X/Z) + c<sub>x</sub></div>
-                              <div>Ideally: c<sub>x</sub> ≈ width/2</div>
-                            </div>
-                            <p className="text-xs text-muted-foreground">Deviation from center indicates lens misalignment</p>
-                          </div>
-                        } side="right">
-                          <Info className="w-3 h-3 text-muted-foreground hover:text-foreground " />
-                        </Tooltip>
-                      </div>
-                      <Input
-                        id="cx"
-                        type="number"
-                        min="0"
-                        max="20000"
-                        step="1"
-                        value={camera.cx}
-                        onChange={(e) => updateCamera('cx', Number.parseFloat(e.target.value))}
-                        className="bg-background border-input hover:border-primary/50 focus:border-primary transition-colors h-10"
-                      />
-                    </div>
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor="cy" className="text-xs font-medium text-foreground">
-                          Principal Y (px)
-                        </Label>
-                        <Tooltip content={
-                          <div className="space-y-2">
-                            <p className="font-medium">Principal Point Y (pixels)</p>
-                            <p className="text-sm">Y-coordinate where optical axis meets image plane.</p>
-                            <div className="bg-muted/50 rounded p-2 font-mono text-xs">
-                              <div>v = f<sub>y</sub> × (Y/Z) + c<sub>y</sub></div>
-                              <div>Ideally: c<sub>y</sub> ≈ height/2</div>
-                            </div>
-                            <p className="text-xs text-muted-foreground">Critical for accurate photogrammetry</p>
-                          </div>
-                        } side="right">
-                          <Info className="w-3 h-3 text-muted-foreground hover:text-foreground " />
-                        </Tooltip>
-                      </div>
-                      <Input
-                        id="cy"
-                        type="number"
-                        min="0"
-                        max="20000"
-                        step="1"
-                        value={camera.cy}
-                        onChange={(e) => updateCamera('cy', Number.parseFloat(e.target.value))}
-                        className="bg-background border-input hover:border-primary/50 focus:border-primary transition-colors h-10"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor="sensor_x" className="text-xs font-medium text-foreground">
-                          Sensor W (mm)
-                        </Label>
-                        <Tooltip content={
-                          <div className="space-y-2">
-                            <p className="font-medium">Sensor Width (mm)</p>
-                            <p className="text-sm">Physical sensor width for FOV calculations.</p>
-                            <div className="bg-muted/50 rounded p-2 font-mono text-xs">
-                              <div>GSD = (h × s<sub>x</sub>) / (f<sub>x</sub> × w)</div>
-                              <div>FOV<sub>x</sub> = 2 × arctan(s<sub>x</sub>/(2×f<sub>mm</sub>))</div>
-                            </div>
-                            <p className="text-xs text-muted-foreground">h=height, s=sensor, f=focal length, w=width</p>
-                          </div>
-                        } side="right">
-                          <Info className="w-3 h-3 text-muted-foreground hover:text-foreground " />
-                        </Tooltip>
-                      </div>
-                      <Input
-                        id="sensor_x"
-                        type="number"
-                        min="1"
-                        max="100"
-                        step="0.1"
-                        value={camera.sensor_size_x_mm}
-                        onChange={(e) => updateCamera('sensor_size_x_mm', Number.parseFloat(e.target.value))}
-                        className="bg-background border-input hover:border-primary/50 focus:border-primary transition-colors h-10"
-                      />
-                    </div>
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor="sensor_y" className="text-xs font-medium text-foreground">
-                          Sensor H (mm)
-                        </Label>
-                        <Tooltip content={
-                          <div className="space-y-2">
-                            <p className="font-medium">Sensor Height (mm)</p>
-                            <p className="text-sm">Physical sensor height for FOV calculations.</p>
-                            <div className="bg-muted/50 rounded p-2 font-mono text-xs">
-                              <div>GSD = (h × s<sub>y</sub>) / (f<sub>y</sub> × h<sub>img</sub>)</div>
-                              <div>FOV<sub>y</sub> = 2 × arctan(s<sub>y</sub>/(2×f<sub>mm</sub>))</div>
-                            </div>
-                            <p className="text-xs text-muted-foreground">Determines vertical field of view and coverage</p>
-                          </div>
-                        } side="right">
-                          <Info className="w-3 h-3 text-muted-foreground hover:text-foreground " />
-                        </Tooltip>
-                      </div>
-                      <Input
-                        id="sensor_y"
-                        type="number"
-                        min="1"
-                        max="100"
-                        step="0.1"
-                        value={camera.sensor_size_y_mm}
-                        onChange={(e) => updateCamera('sensor_size_y_mm', Number.parseFloat(e.target.value))}
-                        className="bg-background border-input hover:border-primary/50 focus:border-primary transition-colors h-10"
-                      />
-                    </div>
-                  </div>
-                </div>
+              <div>
+                <Tooltip content="Focal length in Y direction (pixels). Determines vertical field of view and image scale.">
+                  <Label htmlFor="fy" className="text-xs text-muted-foreground mb-1 block cursor-pointer">
+                    Focal Length Y (px)
+                  </Label>
+                </Tooltip>
+                <Input
+                  id="fy"
+                  type="number"
+                  value={camera.fy}
+                  onChange={(e) => updateCamera('fy', Number.parseFloat(e.target.value))}
+                  className="h-7 text-xs"
+                />
               </div>
-
-              {/* Image Resolution Section */}
-              <div className="space-y-4 flex flex-col h-full">
-                <div className="flex items-center gap-2 pb-2 border-b border-border/50">
-                  <CameraIcon className="w-4 h-4 text-muted-foreground" />
-                  <h3 className="text-sm font-medium text-foreground">Image Resolution</h3>
-                </div>
-                <div className="flex-1 space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="image_x" className="text-sm font-medium text-foreground">
-                        Width (pixels)
-                      </Label>
-                      <Tooltip content={
-                        <div className="space-y-2">
-                          <p className="font-medium">Image Width (pixels)</p>
-                          <p className="text-sm">Horizontal resolution of captured images.</p>
-                          <div className="bg-muted/50 rounded p-2 font-mono text-xs">
-                            <div>pixel_size = sensor_width / image_width</div>
-                            <div>c<sub>x</sub> ≈ image_width / 2</div>
-                          </div>
-                          <p className="text-xs text-muted-foreground">Must match camera's actual resolution</p>
-                        </div>
-                      } side="top">
-                        <Info className="w-3 h-3 text-muted-foreground hover:text-foreground " />
-                      </Tooltip>
-                    </div>
-                    <Input
-                      id="image_x"
-                      type="number"
-                      min="100"
-                      max="20000"
-                      step="1"
-                      value={camera.image_size_x}
-                      onChange={(e) => updateCamera('image_size_x', Number.parseInt(e.target.value))}
-                      className="bg-background border-input hover:border-primary/50 focus:border-primary transition-colors h-10"
-                      placeholder="e.g., 4000"
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="image_y" className="text-sm font-medium text-foreground">
-                        Height (pixels)
-                      </Label>
-                      <Tooltip content={
-                        <div className="space-y-2">
-                          <p className="font-medium">Image Height (pixels)</p>
-                          <p className="text-sm">Vertical resolution of captured images.</p>
-                          <div className="bg-muted/50 rounded p-2 font-mono text-xs">
-                            <div>pixel_size = sensor_height / image_height</div>
-                            <div>c<sub>y</sub> ≈ image_height / 2</div>
-                          </div>
-                          <p className="text-xs text-muted-foreground">Determines aspect ratio and GSD accuracy</p>
-                        </div>
-                      } side="top">
-                        <Info className="w-3 h-3 text-muted-foreground hover:text-foreground " />
-                      </Tooltip>
-                    </div>
-                    <Input
-                      id="image_y"
-                      type="number"
-                      min="100"
-                      max="20000"
-                      step="1"
-                      value={camera.image_size_y}
-                      onChange={(e) => updateCamera('image_size_y', Number.parseInt(e.target.value))}
-                      className="bg-background border-input hover:border-primary/50 focus:border-primary transition-colors h-10"
-                      placeholder="e.g., 3000"
-                    />
-                  </div>
-                </div>
+              <div>
+                <Tooltip content="Principal point X coordinate (pixels). The X-coordinate of the optical center on the image sensor.">
+                  <Label htmlFor="cx" className="text-xs text-muted-foreground mb-1 block cursor-pointer">
+                    Principal Point X (px)
+                  </Label>
+                </Tooltip>
+                <Input
+                  id="cx"
+                  type="number"
+                  value={camera.cx}
+                  onChange={(e) => updateCamera('cx', Number.parseFloat(e.target.value))}
+                  className="h-7 text-xs"
+                />
+              </div>
+              <div>
+                <Tooltip content="Principal point Y coordinate (pixels). The Y-coordinate of the optical center on the image sensor.">
+                  <Label htmlFor="cy" className="text-xs text-muted-foreground mb-1 block cursor-pointer">
+                    Principal Point Y (px)
+                  </Label>
+                </Tooltip>
+                <Input
+                  id="cy"
+                  type="number"
+                  value={camera.cy}
+                  onChange={(e) => updateCamera('cy', Number.parseFloat(e.target.value))}
+                  className="h-7 text-xs"
+                />
+              </div>
+              
+              {/* Row 2 - Sensor & Image Size */}
+              <div>
+                <Tooltip content="Physical width of the camera sensor in millimeters. Used to calculate ground sampling distance.">
+                  <Label htmlFor="sensor_x" className="text-xs text-muted-foreground mb-1 block cursor-pointer">
+                    Sensor Width (mm)
+                  </Label>
+                </Tooltip>
+                <Input
+                  id="sensor_x"
+                  type="number"
+                  step="0.1"
+                  value={camera.sensor_size_x_mm}
+                  onChange={(e) => updateCamera('sensor_size_x_mm', Number.parseFloat(e.target.value))}
+                  className="h-7 text-xs"
+                />
+              </div>
+              <div>
+                <Tooltip content="Physical height of the camera sensor in millimeters. Used to calculate ground sampling distance.">
+                  <Label htmlFor="sensor_y" className="text-xs text-muted-foreground mb-1 block cursor-pointer">
+                    Sensor Height (mm)
+                  </Label>
+                </Tooltip>
+                <Input
+                  id="sensor_y"
+                  type="number"
+                  step="0.1"
+                  value={camera.sensor_size_y_mm}
+                  onChange={(e) => updateCamera('sensor_size_y_mm', Number.parseFloat(e.target.value))}
+                  className="h-7 text-xs"
+                />
+              </div>
+              <div>
+                <Tooltip content="Image width in pixels. The horizontal resolution of captured images.">
+                  <Label htmlFor="image_x" className="text-xs text-muted-foreground mb-1 block cursor-pointer">
+                    Image Width (px)
+                  </Label>
+                </Tooltip>
+                <Input
+                  id="image_x"
+                  type="number"
+                  value={camera.image_size_x}
+                  onChange={(e) => updateCamera('image_size_x', Number.parseInt(e.target.value))}
+                  className="h-7 text-xs"
+                />
+              </div>
+              <div>
+                <Tooltip content="Image height in pixels. The vertical resolution of captured images.">
+                  <Label htmlFor="image_y" className="text-xs text-muted-foreground mb-1 block cursor-pointer">
+                    Image Height (px)
+                  </Label>
+                </Tooltip>
+                <Input
+                  id="image_y"
+                  type="number"
+                  value={camera.image_size_y}
+                  onChange={(e) => updateCamera('image_size_y', Number.parseInt(e.target.value))}
+                  className="h-7 text-xs"
+                />
               </div>
             </div>
           </div>
 
-          <div className={`mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${activeTab !== "mission" ? "hidden" : ""}`}>
-            {/* Mission Preset Dropdown - Compact */}
-            <div className="flex items-center justify-end mb-4">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Quick load:</span>
-                <div className="relative">
-                  <select 
-                    className="appearance-none h-8 w-56 rounded-md border border-input bg-background/95 backdrop-blur-sm px-3 pr-8 text-xs font-medium text-foreground shadow-sm transition-all duration-200 hover:border-primary/50 hover:shadow-md focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:ring-offset-0 cursor-pointer"
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        loadMissionPreset(e.target.value)
-                      }
-                    }}
-                    value={selectedMissionPreset}
-                  >
-                    <option value="" disabled className="text-muted-foreground">Select mission preset...</option>
-                    {Object.entries(missionPresets).map(([key, preset]) => (
-                      <option key={key} value={key} className="text-foreground bg-background">
-                        {preset.name}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                    <Download className="w-3 h-3 text-muted-foreground" />
-                  </div>
-                </div>
-                <Tooltip content="Load pre-configured mission parameters for standard survey operations with optimal coverage and efficiency." side="left">
-                  <Info className="w-3 h-3 text-muted-foreground hover:text-foreground  transition-colors" />
-                </Tooltip>
+          {/* Mission Parameters */}
+          <div>
+            <div className="flex items-center gap-2 pb-2 mb-3 border-b border-border/30">
+              <div className="w-4 h-4 rounded bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                <Settings className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
               </div>
+              <h3 className="text-md font-semibold text-foreground">Mission Parameters</h3>
             </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4 min-h-[240px]">
-              {/* Image Overlap Section */}
-              <div className="space-y-4 flex flex-col h-full">
-                <div className="flex items-center gap-2 pb-2 border-b border-border/50">
-                  <Layers className="w-4 h-4 text-muted-foreground" />
-                  <h3 className="text-sm font-medium text-foreground">Image Overlap</h3>
-                </div>
-                <div className="flex-1 space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor="overlap" className="text-sm font-medium text-foreground">
-                          Forward Overlap
-                        </Label>
-                        <Tooltip content={
-                          <div className="space-y-2">
-                            <p className="font-medium">Forward Overlap</p>
-                            <p className="text-sm">Overlap between consecutive images along flight line.</p>
-                            <div className="bg-muted/50 rounded p-2 font-mono text-xs">
-                              <div>d<sub>x</sub> = footprint<sub>x</sub> × (1 - overlap)</div>
-                              <div>overlap = 1 - (d<sub>x</sub> / footprint<sub>x</sub>)</div>
-                            </div>
-                            <p className="text-xs text-muted-foreground">75-85% recommended for photogrammetry</p>
-                          </div>
-                        } side="top">
-                          <Info className="w-3 h-3 text-muted-foreground hover:text-foreground " />
-                        </Tooltip>
-                      </div>
-                      <span className="text-xs text-primary font-medium bg-primary/10 px-2 py-1 rounded">
-                        {(datasetSpec.overlap * 100).toFixed(0)}%
-                      </span>
-                    </div>
-                    <Input
-                      id="overlap"
-                      type="number"
-                      step="0.05"
-                      min="0"
-                      max="0.95"
-                      value={datasetSpec.overlap}
-                      onChange={(e) => updateDatasetSpec('overlap', Number.parseFloat(e.target.value))}
-                      className="h-10 bg-background border-input hover:border-primary/50 focus:border-primary transition-colors"
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor="sidelap" className="text-sm font-medium text-foreground">
-                          Side Overlap
-                        </Label>
-                        <Tooltip content={
-                          <div className="space-y-2">
-                            <p className="font-medium">Side Overlap</p>
-                            <p className="text-sm">Overlap between adjacent parallel flight lines.</p>
-                            <div className="bg-muted/50 rounded p-2 font-mono text-xs">
-                              <div>d<sub>y</sub> = footprint<sub>y</sub> × (1 - sidelap)</div>
-                              <div>sidelap = 1 - (d<sub>y</sub> / footprint<sub>y</sub>)</div>
-                            </div>
-                            <p className="text-xs text-muted-foreground">60-70% recommended for 3D reconstruction</p>
-                          </div>
-                        } side="top">
-                          <Info className="w-3 h-3 text-muted-foreground hover:text-foreground " />
-                        </Tooltip>
-                      </div>
-                      <span className="text-xs text-primary font-medium bg-primary/10 px-2 py-1 rounded">
-                        {(datasetSpec.sidelap * 100).toFixed(0)}%
-                      </span>
-                    </div>
-                    <Input
-                      id="sidelap"
-                      type="number"
-                      step="0.05"
-                      min="0"
-                      max="0.95"
-                      value={datasetSpec.sidelap}
-                      onChange={(e) => updateDatasetSpec('sidelap', Number.parseFloat(e.target.value))}
-                      className="h-10 bg-background border-input hover:border-primary/50 focus:border-primary transition-colors"
-                    />
-                  </div>
+            <div className="grid grid-cols-3 gap-3">
+              {/* Row 1 - Overlap & Height */}
+              <div>
+                <Tooltip content="Forward overlap percentage between consecutive images in flight direction. Higher values ensure better reconstruction quality but increase flight time.">
+                  <Label htmlFor="overlap" className="text-xs text-muted-foreground mb-1 block cursor-pointer">
+                    Forward Overlap
+                  </Label>
+                </Tooltip>
+                <div className="relative">
+                  <Input
+                    id="overlap"
+                    type="number"
+                    step="0.05"
+                    min="0"
+                    max="0.95"
+                    value={datasetSpec.overlap}
+                    onChange={(e) => updateDatasetSpec('overlap', Number.parseFloat(e.target.value))}
+                    className="h-7 text-xs pr-12"
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-primary font-medium pointer-events-none">
+                    {Math.round(datasetSpec.overlap * 100)}%
+                  </span>
                 </div>
               </div>
-
-              {/* Flight Parameters Section */}
-              <div className="space-y-4 flex flex-col h-full">
-                <div className="flex items-center gap-2 pb-2 border-b border-border/50">
-                  <Plane className="w-4 h-4 text-muted-foreground" />
-                  <h3 className="text-sm font-medium text-foreground">Flight Parameters</h3>
-                </div>
-                <div className="flex-1 space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="height" className="text-sm font-medium text-foreground">
-                        Flight Height (meters)
-                      </Label>
-                      <Tooltip content={
-                        <div className="space-y-2">
-                          <p className="font-medium">Flight Height (meters AGL)</p>
-                          <p className="text-sm">Altitude above ground level affecting resolution.</p>
-                          <div className="bg-muted/50 rounded p-2 font-mono text-xs">
-                            <div>GSD = (h × s) / (f × w)</div>
-                            <div>footprint = 2 × h × tan(FOV/2)</div>
-                          </div>
-                          <p className="text-xs text-muted-foreground">Higher altitude = lower resolution, larger coverage</p>
-                        </div>
-                      } side="top">
-                        <Info className="w-3 h-3 text-muted-foreground hover:text-foreground " />
-                      </Tooltip>
-                    </div>
-                    <Input
-                      id="height"
-                      type="number"
-                      min="5"
-                      max="500"
-                      step="0.5"
-                      value={datasetSpec.height}
-                      onChange={(e) => updateDatasetSpec('height', Number.parseFloat(e.target.value))}
-                      className="h-10 bg-background border-input hover:border-primary/50 focus:border-primary transition-colors"
-                      placeholder="e.g., 30.5"
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="exposure" className="text-sm font-medium text-foreground">
-                        Exposure Time (milliseconds)
-                      </Label>
-                      <Tooltip content={
-                        <div className="space-y-2">
-                          <p className="font-medium">Exposure Time (milliseconds)</p>
-                          <p className="text-sm">Shutter speed to prevent motion blur.</p>
-                          <div className="bg-muted/50 rounded p-2 font-mono text-xs">
-                            <div>max_speed = GSD / exposure_time</div>
-                            <div>blur = speed × exposure_time</div>
-                          </div>
-                          <p className="text-xs text-muted-foreground">Lower exposure = higher max flight speed</p>
-                        </div>
-                      } side="top">
-                        <Info className="w-3 h-3 text-muted-foreground hover:text-foreground " />
-                      </Tooltip>
-                    </div>
-                    <Input
-                      id="exposure"
-                      type="number"
-                      min="0.1"
-                      max="100"
-                      step="0.1"
-                      value={datasetSpec.exposure_time_ms}
-                      onChange={(e) => updateDatasetSpec('exposure_time_ms', Number.parseFloat(e.target.value))}
-                      className="h-10 bg-background border-input hover:border-primary/50 focus:border-primary transition-colors"
-                      placeholder="e.g., 2.0"
-                    />
-                  </div>
+              <div>
+                <Tooltip content="Side overlap percentage between adjacent flight lines. Higher values ensure better coverage but increase flight time and data processing.">
+                  <Label htmlFor="sidelap" className="text-xs text-muted-foreground mb-1 block cursor-pointer">
+                    Side Overlap
+                  </Label>
+                </Tooltip>
+                <div className="relative">
+                  <Input
+                    id="sidelap"
+                    type="number"
+                    step="0.05"
+                    min="0"
+                    max="0.95"
+                    value={datasetSpec.sidelap}
+                    onChange={(e) => updateDatasetSpec('sidelap', Number.parseFloat(e.target.value))}
+                    className="h-7 text-xs pr-12"
+                  />
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-primary font-medium pointer-events-none">
+                    {Math.round(datasetSpec.sidelap * 100)}%
+                  </span>
                 </div>
               </div>
-
-              {/* Survey Area Section */}
-              <div className="space-y-4 flex flex-col h-full">
-                <div className="flex items-center gap-2 pb-2 border-b border-border/50">
-                  <Ruler className="w-4 h-4 text-muted-foreground" />
-                  <h3 className="text-sm font-medium text-foreground">Survey Area</h3>
-                </div>
-                <div className="flex-1 space-y-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="scan_x" className="text-sm font-medium text-foreground">
-                        Width (meters)
-                      </Label>
-                      <Tooltip content={
-                        <div className="space-y-2">
-                          <p className="font-medium">Survey Area Width (meters)</p>
-                          <p className="text-sm">East-west dimension of rectangular survey area.</p>
-                          <div className="bg-muted/50 rounded p-2 font-mono text-xs">
-                            <div>n<sub>x</sub> = ⌈width / d<sub>x</sub>⌉ + 1</div>
-                            <div>flight_lines = ⌈height / d<sub>y</sub>⌉ + 1</div>
-                          </div>
-                          <p className="text-xs text-muted-foreground">d = distance between images</p>
-                        </div>
-                      } side="top">
-                        <Info className="w-3 h-3 text-muted-foreground hover:text-foreground " />
-                      </Tooltip>
-                    </div>
-                    <Input
-                      id="scan_x"
-                      type="number"
-                      min="10"
-                      max="10000"
-                      step="1"
-                      value={datasetSpec.scan_dimension_x}
-                      onChange={(e) => updateDatasetSpec('scan_dimension_x', Number.parseFloat(e.target.value))}
-                      className="h-10 bg-background border-input hover:border-primary/50 focus:border-primary transition-colors"
-                      placeholder="e.g., 150"
-                    />
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="scan_y" className="text-sm font-medium text-foreground">
-                        Length (meters)
-                      </Label>
-                      <Tooltip content={
-                        <div className="space-y-2">
-                          <p className="font-medium">Survey Area Length (meters)</p>
-                          <p className="text-sm">North-south dimension of rectangular survey area.</p>
-                          <div className="bg-muted/50 rounded p-2 font-mono text-xs">
-                            <div>total_area = width × length</div>
-                            <div>mission_time ∝ area / footprint</div>
-                          </div>
-                          <p className="text-xs text-muted-foreground">Larger area = longer flight time</p>
-                        </div>
-                      } side="top">
-                        <Info className="w-3 h-3 text-muted-foreground hover:text-foreground " />
-                      </Tooltip>
-                    </div>
-                    <Input
-                      id="scan_y"
-                      type="number"
-                      min="10"
-                      max="10000"
-                      step="1"
-                      value={datasetSpec.scan_dimension_y}
-                      onChange={(e) => updateDatasetSpec('scan_dimension_y', Number.parseFloat(e.target.value))}
-                      className="h-10 bg-background border-input hover:border-primary/50 focus:border-primary transition-colors"
-                      placeholder="e.g., 150"
-                    />
-                  </div>
-                </div>
+              <div>
+                <Tooltip content="Flight altitude above ground level in meters. Higher altitudes cover more area per image but reduce ground sampling distance.">
+                  <Label htmlFor="height" className="text-xs text-muted-foreground mb-1 block cursor-pointer">
+                    Flight Height (m)
+                  </Label>
+                </Tooltip>
+                <Input
+                  id="height"
+                  type="number"
+                  step="0.5"
+                  value={datasetSpec.height}
+                  onChange={(e) => updateDatasetSpec('height', Number.parseFloat(e.target.value))}
+                  className="h-7 text-xs"
+                />
+              </div>
+              
+              {/* Row 2 - Survey Area & Exposure */}
+              <div>
+                <Tooltip content="Width of the survey area in meters. Defines the east-west extent of the mapping mission.">
+                  <Label htmlFor="scan_x" className="text-xs text-muted-foreground mb-1 block cursor-pointer">
+                    Survey Width (m)
+                  </Label>
+                </Tooltip>
+                <Input
+                  id="scan_x"
+                  type="number"
+                  value={datasetSpec.scan_dimension_x}
+                  onChange={(e) => updateDatasetSpec('scan_dimension_x', Number.parseFloat(e.target.value))}
+                  className="h-7 text-xs"
+                />
+              </div>
+              <div>
+                <Tooltip content="Length of the survey area in meters. Defines the north-south extent of the mapping mission.">
+                  <Label htmlFor="scan_y" className="text-xs text-muted-foreground mb-1 block cursor-pointer">
+                    Survey Length (m)
+                  </Label>
+                </Tooltip>
+                <Input
+                  id="scan_y"
+                  type="number"
+                  value={datasetSpec.scan_dimension_y}
+                  onChange={(e) => updateDatasetSpec('scan_dimension_y', Number.parseFloat(e.target.value))}
+                  className="h-7 text-xs"
+                />
+              </div>
+              <div>
+                <Tooltip content="Camera shutter exposure time in milliseconds. Shorter times reduce motion blur but require more light. Typical range: 1-5ms.">
+                  <Label htmlFor="exposure" className="text-xs text-muted-foreground mb-1 block cursor-pointer">
+                    Exposure Time (ms)
+                  </Label>
+                </Tooltip>
+                <Input
+                  id="exposure"
+                  type="number"
+                  step="0.1"
+                  value={datasetSpec.exposure_time_ms}
+                  onChange={(e) => updateDatasetSpec('exposure_time_ms', Number.parseFloat(e.target.value))}
+                  className="h-7 text-xs"
+                />
               </div>
             </div>
           </div>
