@@ -150,34 +150,27 @@ export function CompactMissionStats({ stats, waypoints, simulationState }: Compa
         </div>
 
         {/* Distance & Coverage */}
-        <div className="space-y-4">
-          <div className="flex justify-between items-center py-2 border-b border-border/50">
-            <span className="text-sm text-muted-foreground">Flight Distance</span>
-            <span className="font-medium text-foreground">{(stats.totalDistance / 1000).toFixed(1)} km</span>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-muted/30 rounded-lg p-3 flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground font-medium">Flight Distance</span>
+            <span className="text-lg font-bold text-foreground">{(stats.totalDistance / 1000).toFixed(1)} km</span>
           </div>
-          <div className="flex justify-between items-center py-2 border-b border-border/50">
-            <span className="text-sm text-muted-foreground">Coverage Area</span>
-            <span className="font-medium text-foreground">{(stats.coverageArea / 10000).toFixed(2)} ha</span>
+
+          <div className="bg-muted/30 rounded-lg p-3 flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground font-medium">Coverage Area</span>
+            <span className="text-lg font-bold text-foreground">{(stats.coverageArea / 10000).toFixed(2)} ha</span>
           </div>
-        </div>
-        
-        {/* Camera & Quality Metrics */}
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 pb-2 border-b border-border/50">
-            <Camera className="w-4 h-4 text-muted-foreground" />
-            <h3 className="text-sm font-medium text-foreground">Image Quality</h3>
+
+          <div className="bg-muted/30 rounded-lg p-3 flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground font-medium">Ground Sampling</span>
+            <span className="text-lg font-bold text-foreground">{(stats.gsd * 100).toFixed(1)} cm/px</span>
           </div>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Ground Sampling</span>
-              <span className="font-medium text-foreground">{(stats.gsd * 100).toFixed(1)} cm/px</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Image Footprint</span>
-              <span className="font-medium text-foreground">
-                {stats.imageFootprint[0].toFixed(0)} × {stats.imageFootprint[1].toFixed(0)}m
-              </span>
-            </div>
+
+          <div className="bg-muted/30 rounded-lg p-3 flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground font-medium">Image Footprint</span>
+            <span className="text-lg font-bold text-foreground">
+              {stats.imageFootprint[0].toFixed(0)} × {stats.imageFootprint[1].toFixed(0)}m
+            </span>
           </div>
         </div>
 
