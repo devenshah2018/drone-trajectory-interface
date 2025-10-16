@@ -93,31 +93,32 @@ export function CompactMissionStats({
    * Keep the current waypoint centered in the table container while simulation runs.
    *
    * @remarks
-   * Uses bounding rect checks to determine if the element is outside the table's
-   * visible region and scrolls only the table container to avoid affecting the
-   * overall page scroll position.
+   * Scrolls only the table container itself to avoid affecting the overall page
+   * scroll position. Calculates the optimal scroll position to center the current
+   * waypoint within the visible table area.
    */
   useEffect(() => {
     if (simulationState?.isRunning && currentWaypointRef.current && tableRef.current) {
       const currentElement = currentWaypointRef.current;
       const container = tableRef.current;
 
-      // Calculate if the current waypoint is visible
+      // Get the current element's position relative to the container
       const containerRect = container.getBoundingClientRect();
       const elementRect = currentElement.getBoundingClientRect();
 
-      // Check if element is outside the visible area
-      const isAboveViewport = elementRect.top < containerRect.top;
-      const isBelowViewport = elementRect.bottom > containerRect.bottom;
+      // Calculate the element's position within the container's scroll context
+      const relativeTop = elementRect.top - containerRect.top + container.scrollTop;
+      const elementHeight = elementRect.height;
+      const containerHeight = container.clientHeight;
 
-      if (isAboveViewport || isBelowViewport) {
-        // Smooth scroll to keep current waypoint in view
-        currentElement.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-          inline: "nearest",
-        });
-      }
+      // Calculate the scroll position to center the element
+      const targetScrollTop = relativeTop - containerHeight / 2 + elementHeight / 2;
+
+      // Only scroll the container, not the page
+      container.scrollTo({
+        top: targetScrollTop,
+        behavior: "smooth",
+      });
     }
   }, [simulationState?.currentWaypointIndex, simulationState?.isRunning]);
 
