@@ -60,8 +60,8 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
 
     // Camera presets
     const cameraPresets = {
-      "skydio-vt300l-wide": {
-        name: "Skydio VT300L - Wide",
+      "skydio-x10-vt300l-wide": {
+        name: "Skydio X10 VT300-L Wide",
         description: "Professional mapping camera with wide field of view",
         config: {
           fx: 4938.56,
@@ -72,6 +72,48 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
           sensor_size_y_mm: 9.83,
           image_size_x: 8192,
           image_size_y: 6144,
+        },
+      },
+      "skydio-x10-vt300l-narrow": {
+        name: "Skydio X10 VT300-L Narrow",
+        description: "Narrow field of view camera for detailed imaging",
+        config: {
+          fx: 12668.3474,
+          fy: 12611.0291,
+          cx: 4623.5,
+          cy: 3471.5,
+          sensor_size_x_mm: 7.3984,
+          sensor_size_y_mm: 5.5552,
+          image_size_x: 9248,
+          image_size_y: 6944,
+        },
+      },
+      "skydio-x10-vt300z-telephoto": {
+        name: "Skydio X10 VT300-Z Telephoto",
+        description: "Telephoto camera for long-range detailed surveys",
+        config: {
+          fx: 43741.25,
+          fy: 43724.5833,
+          cx: 3999.5,
+          cy: 2999.5,
+          sensor_size_x_mm: 6.4,
+          sensor_size_y_mm: 4.8,
+          image_size_x: 8000,
+          image_size_y: 6000,
+        },
+      },
+      "skydio-x10-vt300l-thermal": {
+        name: "Skydio X10 VT300-L Thermal",
+        description: "Thermal imaging camera for inspection and analysis",
+        config: {
+          fx: 1135.47,
+          fy: 1141.15,
+          cx: 319.5,
+          cy: 255.5,
+          sensor_size_x_mm: 7.68,
+          sensor_size_y_mm: 6.144,
+          image_size_x: 640,
+          image_size_y: 512,
         },
       },
     };
@@ -87,7 +129,103 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
           height: 30.48, // 100 ft
           scan_dimension_x: 150,
           scan_dimension_y: 150,
-          exposure_time_ms: 2, // 1/500 exposure time
+          exposure_time_ms: 2,
+        },
+      },
+      "high-detail-photogrammetry": {
+        name: "High-Detail Photogrammetry",
+        description: "Urban/archaeology mapping with high overlap for detailed 3D reconstruction",
+        config: {
+          overlap: 0.8,
+          sidelap: 0.8,
+          height: 30.0,
+          scan_dimension_x: 150,
+          scan_dimension_y: 150,
+          exposure_time_ms: 2,
+        },
+      },
+      "large-area-mapping": {
+        name: "Large-Area Mapping",
+        description: "Efficient coverage for large areas with lower ground resolution",
+        config: {
+          overlap: 0.7,
+          sidelap: 0.7,
+          height: 120.0,
+          scan_dimension_x: 1000,
+          scan_dimension_y: 1000,
+          exposure_time_ms: 2,
+        },
+      },
+      "crop-mapping-multispectral": {
+        name: "Crop Mapping (Multispectral)",
+        description: "Agricultural surveys with multispectral sensor and longer exposure",
+        config: {
+          overlap: 0.75,
+          sidelap: 0.7,
+          height: 50.0,
+          scan_dimension_x: 500,
+          scan_dimension_y: 500,
+          exposure_time_ms: 10,
+        },
+      },
+      "thermal-rooftop-inspection": {
+        name: "Thermal Rooftop Inspection",
+        description: "Building inspection with thermal camera, lower overlap, longer exposure",
+        config: {
+          overlap: 0.6,
+          sidelap: 0.6,
+          height: 30.0,
+          scan_dimension_x: 50,
+          scan_dimension_y: 50,
+          exposure_time_ms: 50,
+        },
+      },
+      "linear-corridor": {
+        name: "Linear Corridor Survey",
+        description: "Roads, pipelines, or power lines with high along-track overlap",
+        config: {
+          overlap: 0.85,
+          sidelap: 0.5,
+          height: 40.0,
+          scan_dimension_x: 20,
+          scan_dimension_y: 2000,
+          exposure_time_ms: 5,
+        },
+      },
+      "wildlife-survey": {
+        name: "Wildlife Survey",
+        description: "Non-intrusive surveys at higher altitude for wildlife monitoring",
+        config: {
+          overlap: 0.6,
+          sidelap: 0.6,
+          height: 120.0,
+          scan_dimension_x: 500,
+          scan_dimension_y: 500,
+          exposure_time_ms: 5,
+        },
+      },
+      "fast-coverage": {
+        name: "Fast Coverage",
+        description: "Rapid surveys where resolution is less critical",
+        config: {
+          overlap: 0.6,
+          sidelap: 0.6,
+          height: 80.0,
+          scan_dimension_x: 1000,
+          scan_dimension_y: 1000,
+          exposure_time_ms: 2,
+        },
+      },
+      "close-up-inspection": {
+        name: "Close-Up Inspection",
+        description: "Detailed inspection with very high overlap at low altitude",
+        config: {
+          overlap: 0.9,
+          sidelap: 0.9,
+          height: 10.0,
+          scan_dimension_x: 30,
+          scan_dimension_y: 30,
+          exposure_time_ms: 1,
         },
       },
     };
