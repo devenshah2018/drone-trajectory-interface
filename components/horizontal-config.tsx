@@ -7,16 +7,15 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip } from "@/components/ui/tooltip";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Camera as CameraIcon,
   Settings,
-  Focus,
-  Grid3X3,
-  Layers,
-  Ruler,
-  Plane,
-  Info,
-  Download,
-  HelpCircle,
 } from "lucide-react";
 
 /**
@@ -172,46 +171,48 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
               {/* Camera Preset */}
               <div className="flex items-center gap-2">
                 <Tooltip content="Load predefined camera configurations for common drone models and sensors">
-                  <div className="flex items-center gap-1">
-                    <span className="text-muted-foreground text-xs">Camera Preset:</span>
-                  </div>
+                  <span className="text-muted-foreground text-xs cursor-pointer">Camera:</span>
                 </Tooltip>
-                <select
-                  className="border-input bg-background text-foreground hover:border-primary/50 focus:border-primary h-7 w-44 cursor-pointer appearance-none rounded border px-2 pr-6 text-xs focus:outline-none"
-                  onChange={(e) => {
-                    if (e.target.value) loadCameraPreset(e.target.value);
-                  }}
+                <Select
                   value={selectedPreset}
+                  onValueChange={(value) => {
+                    if (value) loadCameraPreset(value);
+                  }}
                 >
-                  <option value="">Choose camera model...</option>
-                  {Object.entries(cameraPresets).map(([key, preset]) => (
-                    <option key={key} value={key}>
-                      {preset.name}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="w-44 cursor-pointer">
+                    <SelectValue placeholder="Choose camera model..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(cameraPresets).map(([key, preset]) => (
+                      <SelectItem key={key} value={key}>
+                        {preset.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               {/* Mission Preset */}
               <div className="flex items-center gap-2">
                 <Tooltip content="Load predefined mission parameters for common survey scenarios">
-                  <div className="flex items-center gap-1">
-                    <span className="text-muted-foreground text-xs">Mission Preset:</span>
-                  </div>
+                  <span className="text-muted-foreground text-xs cursor-pointer">Mission:</span>
                 </Tooltip>
-                <select
-                  className="border-input bg-background text-foreground hover:border-primary/50 focus:border-primary h-7 w-44 cursor-pointer appearance-none rounded border px-2 pr-6 text-xs focus:outline-none"
-                  onChange={(e) => {
-                    if (e.target.value) loadMissionPreset(e.target.value);
-                  }}
+                <Select
                   value={selectedMissionPreset}
+                  onValueChange={(value) => {
+                    if (value) loadMissionPreset(value);
+                  }}
                 >
-                  <option value="">Choose mission type...</option>
-                  {Object.entries(missionPresets).map(([key, preset]) => (
-                    <option key={key} value={key}>
-                      {preset.name}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="w-44 cursor-pointer">
+                    <SelectValue placeholder="Choose mission type..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(missionPresets).map(([key, preset]) => (
+                      <SelectItem key={key} value={key}>
+                        {preset.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>
