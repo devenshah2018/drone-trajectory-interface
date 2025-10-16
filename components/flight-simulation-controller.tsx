@@ -61,6 +61,8 @@ export const FlightSimulationController = forwardRef<
   const lastTimeRef = useRef<number>(0);
   const startTimeRef = useRef<number>(0);
   const isAnimatingRef = useRef<boolean>(false);
+  const isPausedRef = useRef<boolean>(false);
+  const isRunningRef = useRef<boolean>(false);
 
   // Calculate total distance of the waypoint path.
   const calculateTotalDistance = (waypoints: Waypoint[]): number => {
@@ -195,19 +197,25 @@ export const FlightSimulationController = forwardRef<
     const totalDistance = calculateTotalDistance(waypoints);
 
     // If currently paused, resume without resetting position or progress
-    if (simulationState.isRunning && simulationState.isPaused) {
+    if (isRunningRef.current && isPausedRef.current) {
+      console.log("Resuming from pause - keeping position:", simulationState.currentPosition);
       // Resume timing references but keep elapsed time intact
       lastTimeRef.current = 0;
       isAnimatingRef.current = true;
+      isPausedRef.current = false;
       setSimulationState((prev) => ({ ...prev, isPaused: false }));
       animationRef.current = requestAnimationFrame(animate);
       return;
     }
 
+    console.log("Starting fresh simulation");
+
     // Start a fresh simulation run
     lastTimeRef.current = 0;
     startTimeRef.current = 0;
     isAnimatingRef.current = true;
+    isRunningRef.current = true;
+    isPausedRef.current = false;
 
     setSimulationState({
       isRunning: true,
@@ -226,24 +234,23 @@ export const FlightSimulationController = forwardRef<
   };
 
   /**
-   * Toggle pause state. When paused, the animation loop is stopped but the
-   * current state is preserved so it can be resumed.
+   * Pause the simulation. The animation loop is stopped but the current state
+   * is preserved so it can be resumed via startSimulation.
    */
   const pauseSimulation = () => {
-    // Flip paused flag
-    setSimulationState((prev) => ({ ...prev, isPaused: !prev.isPaused }));
+    // Only pause if currently running and not already paused
+    if (!isRunningRef.current || isPausedRef.current) {
+      return;
+    }
+    
+    // Set paused flag
+    isPausedRef.current = true;
+    setSimulationState((prev) => ({ ...prev, isPaused: true }));
 
-    // If we just set to paused, stop animation frames; otherwise resume
-    if (simulationState.isPaused) {
-      // Resume
-      isAnimatingRef.current = true;
-      animationRef.current = requestAnimationFrame(animate);
-    } else {
-      // Pause
-      isAnimatingRef.current = false;
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
+    // Stop animation frames
+    isAnimatingRef.current = false;
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
     }
   };
 
@@ -253,6 +260,8 @@ export const FlightSimulationController = forwardRef<
    */
   const stopSimulation = () => {
     isAnimatingRef.current = false;
+    isRunningRef.current = false;
+    isPausedRef.current = false;
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
     }
@@ -270,6 +279,8 @@ export const FlightSimulationController = forwardRef<
    */
   const resetSimulation = () => {
     isAnimatingRef.current = false;
+    isRunningRef.current = false;
+    isPausedRef.current = false;
     if (animationRef.current) {
       cancelAnimationFrame(animationRef.current);
     }
@@ -330,22 +341,22 @@ export const FlightSimulationController = forwardRef<
         <div className="flex gap-2">
           <Button
             onClick={startSimulation}
-            disabled={!canSimulate || simulationState.isRunning}
+            disabled={!canSimulate || (simulationState.isRunning && !simulationState.isPaused)}
             className="flex items-center gap-2"
-            variant={simulationState.isRunning ? "secondary" : "default"}
+            variant={simulationState.isRunning && !simulationState.isPaused ? "secondary" : "default"}
           >
             <Play className="h-4 w-4" />
-            Start
+            {simulationState.isPaused ? "Resume" : "Start"}
           </Button>
 
           <Button
             onClick={pauseSimulation}
-            disabled={!simulationState.isRunning}
+            disabled={!simulationState.isRunning || simulationState.isPaused}
             variant="outline"
             className="flex items-center gap-2"
           >
             <Pause className="h-4 w-4" />
-            {simulationState.isPaused ? "Resume" : "Pause"}
+            Pause
           </Button>
 
           <Button

@@ -44,11 +44,6 @@ Notes:
 - Overlap and sidelap are ratios in `[0, 1)`. Values near 1 increase coverage and flight time.
 - Exposure time affects the allowed flight speed for blur-free images.
 
-## Configuration
-
-- Camera and mission fields are on the main screen (no hidden tabs) so the map remains visible.
-- Presets allow loading common camera/mapping setups and can be cleared via the reset control.
-
 ## Simulation controls
 
 - Start: begin a fresh simulation. If paused, the Start control resumes the simulation (no reset).
