@@ -534,7 +534,7 @@ export function CompactMissionStats({
           </div>
         </CardHeader>
         <CardContent>
-          <div className="text-muted-foreground py-8 text-center">
+          <div className="text-muted-foreground py-17 text-center">
             <BarChart3 className="text-muted-foreground/50 mx-auto mb-3 h-12 w-12" />
             <p className="mb-1 text-sm font-medium">No Mission Data</p>
             <p className="text-xs">Generate a flight plan to see statistics</p>
@@ -546,55 +546,47 @@ export function CompactMissionStats({
 
   return (
     <Card className="border-border bg-card shadow-sm">
-      <CardHeader className="pb-4">
+      <CardHeader>
         <div className="flex items-center gap-2">
           <div className="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-lg">
             <BarChart3 className="text-primary h-4 w-4" />
           </div>
-          <CardTitle className="text-foreground text-lg font-semibold">
-            Mission Statistics
-          </CardTitle>
+          <div className="flex items-baseline gap-3">
+            <CardTitle className="text-foreground text-lg font-semibold">Mission Statistics</CardTitle>
+            {/* Duration moved into header next to title with clock icon */}
+            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+              <Clock className="h-4 w-4" aria-hidden />
+              <span aria-label={`Estimated duration ${formatTime(stats?.estimatedTime ?? 0)}`}>{formatTime(stats?.estimatedTime ?? 0)}</span>
+            </div>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Compact two-row mission stats: top row = primary, bottom row = secondary */}
+        {/* Compact stats: show only three metrics (Coverage Area, GSD, Image Footprint) */}
         <div className="w-full">
           <div className="grid grid-cols-3 gap-2 items-center text-center text-xs">
             <div className="p-2">
               <div className="flex items-center justify-center gap-2 text-muted-foreground text-[10px] font-medium">
-                <MapPin className="h-3 w-3" aria-hidden />
-                <span>Waypoints</span>
+                <BarChart3 className="h-3 w-3" aria-hidden />
+                <span>Coverage</span>
               </div>
-              <div className="text-foreground text-sm font-semibold mt-1">{stats.totalWaypoints}</div>
+              <div className="text-foreground text-sm font-semibold mt-1">{(stats.coverageArea / 10000).toFixed(2)} ha</div>
             </div>
+
             <div className="p-2">
               <div className="flex items-center justify-center gap-2 text-muted-foreground text-[10px] font-medium">
                 <Clock className="h-3 w-3" aria-hidden />
-                <span>Duration</span>
+                <span>GSD</span>
               </div>
-              <div className="text-foreground text-sm font-semibold mt-1">{formatTime(stats.estimatedTime)}</div>
+              <div className="text-foreground text-sm font-semibold mt-1">{(stats.gsd * 100).toFixed(1)} cm/px</div>
             </div>
+
             <div className="p-2">
               <div className="flex items-center justify-center gap-2 text-muted-foreground text-[10px] font-medium">
-                <BarChart3 className="h-3 w-3" aria-hidden />
-                <span>Distance</span>
+                <MapPin className="h-3 w-3" aria-hidden />
+                <span>Footprint</span>
               </div>
-              <div className="text-foreground text-sm font-semibold mt-1">{(stats.totalDistance / 1000).toFixed(1)} km</div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2 mt-2 text-center text-xs text-muted-foreground">
-            <div className="p-1">
-              <div className="text-[10px]">Coverage Area</div>
-              <div className="text-foreground text-sm font-medium mt-1">{(stats.coverageArea / 10000).toFixed(2)} ha</div>
-            </div>
-            <div className="p-1">
-              <div className="text-[10px]">GSD</div>
-              <div className="text-foreground text-sm font-medium mt-1">{(stats.gsd * 100).toFixed(1)} cm/px</div>
-            </div>
-            <div className="p-1">
-              <div className="text-[10px]">Image Footprint</div>
-              <div className="text-foreground text-sm font-medium mt-1">{stats.imageFootprint[0].toFixed(0)} × {stats.imageFootprint[1].toFixed(0)}m</div>
+              <div className="text-foreground text-sm font-semibold mt-1">{stats.imageFootprint[0].toFixed(0)} × {stats.imageFootprint[1].toFixed(0)}m</div>
             </div>
           </div>
         </div>
@@ -681,11 +673,14 @@ export function CompactMissionStats({
         {/* Segments Table */}
         {waypoints && waypoints.length > 1 && (
           <div className="space-y-4" role="region" aria-labelledby="segments-heading">
-            <div className="border-border/50 flex items-center gap-2 border-b pb-2">
-              <Navigation className="text-muted-foreground h-4 w-4" aria-hidden="true" />
-              <h3 id="segments-heading" className="text-foreground text-sm font-medium">
-                Flight Segments
-              </h3>
+            <div className="border-border/50 flex items-center gap-2 border-b pb-2 justify-between">
+              <div className="flex items-center gap-2">
+                <Navigation className="text-muted-foreground h-4 w-4" aria-hidden="true" />
+                <h3 id="segments-heading" className="text-foreground text-sm font-medium">Flight Segments</h3>
+              </div>
+              <div className="text-muted-foreground text-xs font-medium">
+                {stats ? `${(stats.totalDistance / 1000).toFixed(1)} km total` : ''}
+              </div>
             </div>
             <div
               ref={segmentsTableRef}
