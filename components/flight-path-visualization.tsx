@@ -277,7 +277,6 @@ export function FlightPathVisualization({
     <Card className={`border-border bg-card ${className || ""}`}>
       <CardHeader>
         <CardTitle className="text-lg font-semibold">Flight Path Visualization</CardTitle>
-        <p className="text-muted-foreground text-sm">{waypoints.length} waypoints in lawn-mower pattern</p>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Flight Controls and Speedometer */}
@@ -427,7 +426,7 @@ export function FlightPathVisualization({
                       <div className="mt-1 flex items-center justify-center gap-2">
                         {simulationState.isPaused ? (
                           <>
-                            <div className="h-2 w-2 rounded-full bg-yellow-500" />
+                            <div className="h-2 w-2 rounded-full bg-gray-500" />
                             <span className="text-muted-foreground text-xs">Paused</span>
                           </>
                         ) : (
