@@ -294,6 +294,121 @@ export function computeTimeBetweenWaypoints(
   }
 }
 
+export function computeSegmentTravelTime(
+  distance: number,
+  vPhoto: number,
+  vMax = 16.0,
+  aMax = 3.5
+): [number, Record<string, any>] {
+  // Degenerate case
+  if (distance <= 0) {
+    return [0.0, { type: "degenerate", distance: distance }];
+  }
+
+  // Candidate peak speed for a pure triangular profile (no v_max limit)
+  const vPeak = Math.sqrt(aMax * distance + vPhoto * vPhoto);
+
+  // Triangular profile: peak reachable without hitting vMax
+  if (vPeak <= vMax) {
+    const tAcc = vPeak > vPhoto ? (vPeak - vPhoto) / aMax : 0.0;
+    const totalTime = 2.0 * tAcc;
+    return [totalTime, { type: "triangular", v_peak: vPeak, t_acc: tAcc }];
+  }
+
+  // Trapezoidal profile: accelerate to vMax, cruise, then decelerate
+  const vCruise = vMax;
+
+  // Distance required for accel (vPhoto -> vCruise) and decel (vCruise -> vPhoto)
+  // sum = (vCruise^2 - vPhoto^2) / aMax
+  const dAccDec = (vCruise * vCruise - vPhoto * vPhoto) / aMax;
+
+  // If accel+decel exceeds distance, fallback to triangular achievable peak
+  if (dAccDec >= distance) {
+    const vPeakFb = Math.sqrt(aMax * distance + vPhoto * vPhoto);
+    const tAccFb = vPeakFb > vPhoto ? (vPeakFb - vPhoto) / aMax : 0.0;
+    const totalTime = 2.0 * tAccFb;
+    return [totalTime, { type: "triangular_fallback", v_peak: vPeakFb, t_acc: tAccFb }];
+  }
+
+  const dCruise = distance - dAccDec;
+  const tAcc = vCruise > vPhoto ? (vCruise - vPhoto) / aMax : 0.0;
+  const tCruise = dCruise > 0 ? dCruise / vCruise : 0.0;
+  const totalTime = 2.0 * tAcc + tCruise;
+
+  return [
+    totalTime,
+    { type: "trapezoidal", v_cruise: vCruise, t_acc: tAcc, t_cruise: tCruise, d_cruise: dCruise },
+  ];
+}
+
+export function computePlanTime(
+  positions: any[],
+  vPhoto: number,
+  exposureTimeS = 0.0,
+  vMax = 16.0,
+  aMax = 3.5
+): [number, Record<string, any>[]] {
+  // Normalize positions into numeric arrays [x,y,z?]
+  const pts: number[][] = positions.map((p) => {
+    if (p && typeof p === "object") {
+      if ("x" in p && "y" in p) {
+        return [Number(p.x), Number(p.y), Number(p.z ?? 0)];
+      }
+      if ("pos" in p && Array.isArray(p.pos)) {
+        return p.pos.map((v: any) => Number(v));
+      }
+      if ("position" in p && Array.isArray(p.position)) {
+        return p.position.map((v: any) => Number(v));
+      }
+    }
+    // assume iterable/array-like
+    return Array.isArray(p) ? (p as number[]).map(Number) : [Number(p)];
+  });
+
+  let totalTime = 0.0;
+  const segments: Record<string, any>[] = [];
+  const n = pts.length;
+  if (n <= 0) return [totalTime, segments];
+
+  // include initial photo dwell
+  totalTime += exposureTimeS;
+
+  for (let i = 0; i < n - 1; i++) {
+    const p0 = pts[i];
+    const p1 = pts[i + 1];
+    // compute Euclidean distance (support 2D or 3D)
+    const dx = (p1[0] ?? 0) - (p0[0] ?? 0);
+    const dy = (p1[1] ?? 0) - (p0[1] ?? 0);
+    const dz = (p1[2] ?? 0) - (p0[2] ?? 0);
+    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+    const [segTime, profile] = computeSegmentTravelTime(dist, vPhoto, vMax, aMax);
+
+    // Clean profile values
+    const profileClean: Record<string, any> = { type: profile.type };
+    if (profile.v_peak !== undefined) profileClean.v_peak = Number(profile.v_peak);
+    if (profile.v_cruise !== undefined) profileClean.v_cruise = Number(profile.v_cruise);
+    if (profile.t_acc !== undefined) profileClean.t_acc = Number(profile.t_acc);
+    if (profile.t_cruise !== undefined) profileClean.t_cruise = Number(profile.t_cruise);
+    if (profile.d_cruise !== undefined) profileClean.d_cruise = Number(profile.d_cruise);
+
+    const captureTime = Number(exposureTimeS);
+
+    const segInfo: Record<string, any> = {
+      index: i,
+      distance: Number(dist),
+      travel_time_s: Number(segTime),
+      profile: profileClean,
+      capture_time_s: captureTime,
+    };
+
+    totalTime += Number(segTime) + captureTime;
+    segments.push(segInfo);
+  }
+
+  return [totalTime, segments];
+}
+
 /**
  * Sum estimated times for the full mission by summing segment times.
  *

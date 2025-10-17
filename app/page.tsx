@@ -229,6 +229,7 @@ export default function Home() {
             <FlightPathVisualization
               waypoints={waypoints}
               simulationState={simulationState || undefined}
+              missionStats={missionStats ?? undefined}
               onStartSimulation={() => flightSimulationRef.current?.startSimulation()}
               onPauseSimulation={() => flightSimulationRef.current?.pauseSimulation()}
               onStopSimulation={() => flightSimulationRef.current?.stopSimulation()}

@@ -5,6 +5,7 @@ import type { Waypoint } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Play, Pause, Square, RotateCcw } from "lucide-react";
+import { computePlanTime } from "@/lib/flight-planner";
 
 /**
  * Live simulation state representing the drone's runtime status.
@@ -18,8 +19,11 @@ export interface SimulationState {
   isPaused: boolean;
   currentPosition: { x: number; y: number; z: number };
   currentSpeed: number;
-  currentWaypointIndex: number;
-  progress: number; // 0-1 between current and next waypoint
+  currentWaypointIndex: number; // index of the waypoint the drone is at or heading from
+  currentSegmentIndex: number; // index of the active segment between waypoints (i -> i+1)
+  progress: number; // 0-1 between current and next waypoint (segment progress)
+  segmentElapsedTime: number; // seconds into the active segment
+  segments?: Record<string, any>[]; // segment profiles computed for UI and simulation
   elapsedTime: number;
   totalDistance: number;
   distanceTraveled: number;
@@ -51,7 +55,9 @@ export const FlightSimulationController = forwardRef<
     currentPosition: { x: 0, y: 0, z: 0 },
     currentSpeed: 0,
     currentWaypointIndex: 0,
+    currentSegmentIndex: 0,
     progress: 0,
+    segmentElapsedTime: 0,
     elapsedTime: 0,
     totalDistance: 0,
     distanceTraveled: 0,
@@ -63,6 +69,12 @@ export const FlightSimulationController = forwardRef<
   const isAnimatingRef = useRef<boolean>(false);
   const isPausedRef = useRef<boolean>(false);
   const isRunningRef = useRef<boolean>(false);
+
+  // Keep segment profiles and distances in refs for fast access in RAF loop
+  const segmentsRef = useRef<Record<string, any>[]>([]);
+  const segmentDistancesRef = useRef<number[]>([]);
+  const segmentElapsedRef = useRef<number>(0);
+  const prevSpeedRef = useRef<number>(0);
 
   // Calculate total distance of the waypoint path.
   const calculateTotalDistance = (waypoints: Waypoint[]): number => {
@@ -77,12 +89,64 @@ export const FlightSimulationController = forwardRef<
     return total;
   };
 
+  // Prepare segments (profiles and distances) when waypoints change
+  useEffect(() => {
+    if (!waypoints || waypoints.length < 2) {
+      segmentsRef.current = [];
+      segmentDistancesRef.current = [];
+      return;
+    }
+
+    // Use waypoint positions to compute profiles; vPhoto is taken from first waypoint speed
+    const positions = waypoints.map((w) => [w.x, w.y, w.z]);
+    const vPhoto = waypoints[0]?.speed ?? 0;
+    const [totalTime, segments] = computePlanTime(positions, vPhoto, 0.0);
+
+    segmentsRef.current = segments;
+    segmentDistancesRef.current = segments.map((s) => Number(s.distance) || 0);
+
+    // Attach segments into the public simulation state so UI can render them
+    setSimulationState((prev) => ({ ...prev, segments }));
+  }, [waypoints]);
+
   // Compute distance between two waypoints.
   const getDistance = (wp1: Waypoint, wp2: Waypoint): number => {
     const dx = wp2.x - wp1.x;
     const dy = wp2.y - wp1.y;
     const dz = wp2.z - wp1.z;
     return Math.sqrt(dx * dx + dy * dy + dz * dz);
+  };
+
+  const getInstantaneousSpeedForProfile = (
+    profile: Record<string, any>,
+    t: number,
+    vPhoto: number,
+    aMax: number
+  ) => {
+    if (!profile || profile.type === "degenerate") return vPhoto;
+
+    if (profile.type === "triangular" || profile.type === "triangular_fallback") {
+      const vPeak = Number(profile.v_peak || 0);
+      const tAcc = Number(profile.t_acc || 0);
+      if (t <= 0) return vPhoto;
+      if (t < tAcc) return vPhoto + aMax * t;
+      // decel phase
+      const tDec = t - tAcc;
+      return Math.max(0, vPeak - aMax * tDec);
+    }
+
+    if (profile.type === "trapezoidal") {
+      const vCruise = Number(profile.v_cruise || vPhoto);
+      const tAcc = Number(profile.t_acc || 0);
+      const tCruise = Number(profile.t_cruise || 0);
+      if (t <= 0) return vPhoto;
+      if (t < tAcc) return vPhoto + aMax * t;
+      if (t < tAcc + tCruise) return vCruise;
+      const tDec = t - tAcc - tCruise;
+      return Math.max(0, vCruise - aMax * tDec);
+    }
+
+    return vPhoto;
   };
 
   // Linear interpolation between two 3D waypoints.
@@ -109,6 +173,7 @@ export const FlightSimulationController = forwardRef<
     if (lastTimeRef.current === 0) {
       lastTimeRef.current = currentTime;
       startTimeRef.current = currentTime;
+      prevSpeedRef.current = simulationState.currentSpeed || 0;
     }
 
     // Compute frame delta in seconds
@@ -122,11 +187,11 @@ export const FlightSimulationController = forwardRef<
       // Respect running/paused flags
       if (!prevState.isRunning || prevState.isPaused) return prevState;
 
-      const currentWP = waypoints[prevState.currentWaypointIndex];
-      const nextWPIndex = prevState.currentWaypointIndex + 1;
+      const wpIndex = prevState.currentWaypointIndex;
+      const segIndex = prevState.currentSegmentIndex >= 0 ? prevState.currentSegmentIndex : wpIndex;
 
       // If at end of the path, stop animation and mark progress complete
-      if (nextWPIndex >= waypoints.length) {
+      if (wpIndex >= waypoints.length - 1) {
         isAnimatingRef.current = false;
         return {
           ...prevState,
@@ -136,24 +201,43 @@ export const FlightSimulationController = forwardRef<
         };
       }
 
-      const nextWP = waypoints[nextWPIndex];
-      const segmentDistance = getDistance(currentWP, nextWP);
+      const currentWP = waypoints[wpIndex];
+      const nextWP = waypoints[wpIndex + 1];
+      const segmentDistance = segmentDistancesRef.current[segIndex] ?? getDistance(currentWP, nextWP);
 
-      // Use safe speed (min of segment endpoints) to avoid unrealistic jumps
-      const currentSpeed = Math.min(currentWP.speed, nextWP.speed);
+      // Get profile for active segment
+      const profile = segmentsRef.current[segIndex] || { type: "degenerate" };
+      const vPhoto = currentWP.speed;
 
-      // Distance covered this frame (meters)
-      const distanceThisFrame = currentSpeed * deltaTime;
+      // Advance segment elapsed time
+      const newSegmentElapsed = (prevState.segmentElapsedTime ?? 0) + deltaTime;
+
+      // Compute instantaneous speed at segment time t (s)
+      const instSpeed = getInstantaneousSpeedForProfile(profile.profile ?? profile, newSegmentElapsed, vPhoto, 3.5);
+
+      // Approximate distance covered this frame using trapezoidal integration of speeds
+      const prevSpeed = prevSpeedRef.current ?? instSpeed;
+      const avgSpeed = (prevSpeed + instSpeed) / 2;
+      const distanceThisFrame = avgSpeed * deltaTime;
+      prevSpeedRef.current = instSpeed;
+
+      // Progress increment along segment
       const progressIncrement = segmentDistance > 0 ? distanceThisFrame / segmentDistance : 1;
 
       let newProgress = prevState.progress + progressIncrement;
       let newWaypointIndex = prevState.currentWaypointIndex;
+      let newSegmentIndex = segIndex;
       let newDistanceTraveled = prevState.distanceTraveled + distanceThisFrame;
+      let resetSegmentElapsed = newSegmentElapsed;
 
-      // When segment completes, advance waypoint index and reset progress
+      // When segment completes, advance waypoint index and reset segment elapsed
       if (newProgress >= 1) {
+        // Carry over leftover time into the next segment
+        const overflow = (newProgress - 1) * segmentDistance; // meters overflow
         newProgress = 0;
-        newWaypointIndex = nextWPIndex;
+        newWaypointIndex = wpIndex + 1;
+        newSegmentIndex = newWaypointIndex; // next segment corresponds to arrival index
+        resetSegmentElapsed = 0;
       }
 
       // Compute interpolated position along active segment
@@ -166,9 +250,11 @@ export const FlightSimulationController = forwardRef<
       return {
         ...prevState,
         currentPosition,
-        currentSpeed,
+        currentSpeed: instSpeed,
         currentWaypointIndex: newWaypointIndex,
+        currentSegmentIndex: newSegmentIndex,
         progress: newProgress,
+        segmentElapsedTime: resetSegmentElapsed,
         elapsedTime: (currentTime - startTimeRef.current) / 1000,
         distanceTraveled: newDistanceTraveled,
       };
@@ -192,7 +278,12 @@ export const FlightSimulationController = forwardRef<
    * If not running, starts from the first waypoint and resets timing.
    */
   const startSimulation = () => {
-    if (waypoints.length < 2) return;
+    const maxWaypoints = 5000;
+    if (waypoints.length < 2 || waypoints.length > maxWaypoints) {
+      // Prevent starting simulation if there are too few or too many waypoints.
+      console.warn(`Simulation cannot start: waypoints=${waypoints.length} (allowed 2..${maxWaypoints})`);
+      return;
+    }
 
     const totalDistance = calculateTotalDistance(waypoints);
 
@@ -223,7 +314,9 @@ export const FlightSimulationController = forwardRef<
       currentPosition: { x: waypoints[0].x, y: waypoints[0].y, z: waypoints[0].z },
       currentSpeed: waypoints[0].speed,
       currentWaypointIndex: 0,
+      currentSegmentIndex: 0,
       progress: 0,
+      segmentElapsedTime: 0,
       elapsedTime: 0,
       totalDistance,
       distanceTraveled: 0,
@@ -296,7 +389,9 @@ export const FlightSimulationController = forwardRef<
           : { x: 0, y: 0, z: 0 },
       currentSpeed: 0,
       currentWaypointIndex: 0,
+      currentSegmentIndex: 0,
       progress: 0,
+      segmentElapsedTime: 0,
       elapsedTime: 0,
       totalDistance: calculateTotalDistance(waypoints),
       distanceTraveled: 0,
@@ -329,7 +424,48 @@ export const FlightSimulationController = forwardRef<
     resetSimulation();
   }, [waypoints]);
 
-  const canSimulate = waypoints.length >= 2;
+  const WAYPOINT_LIMIT = 5000; // single canonical limit
+  const canSimulate = waypoints.length >= 2 && waypoints.length <= WAYPOINT_LIMIT;
+  const isTooManyWaypoints = waypoints.length > WAYPOINT_LIMIT;
+  console.log("FlightSimulationController render - waypoints:", waypoints.length, "canSimulate:", canSimulate);
+
+  // Defensive early return: if we detect too many waypoints, render only the disclaimer
+  if (isTooManyWaypoints) {
+    console.warn(`FlightSimulationController: rendering disclaimer - waypoints=${waypoints.length} exceeds limit=${WAYPOINT_LIMIT}`);
+    return (
+      <Card className={`border-border bg-card ${className || ""}`}>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg font-semibold">Flight Simulation</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Debug badge: visible indicator of what this component sees (helps diagnose visibility mismatches) */}
+          <div className="text-xs text-muted-foreground mb-2" data-testid="flight-sim-debug">
+            Debug: waypoints={waypoints.length} • limit={WAYPOINT_LIMIT} • canSimulate={String(canSimulate)} • tooMany={String(isTooManyWaypoints)}
+          </div>
+
+          <div className="w-full rounded-lg border border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 mt-1 text-yellow-600">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path d="M10.29 3.86L1.82 18a1 1 0 0 0 .87 1.5h18.62a1 1 0 0 0 .87-1.5L13.71 3.86a1 1 0 0 0-1.42 0z" fill="currentColor" />
+                  <rect x="11" y="8" width="2" height="6" fill="white" />
+                  <rect x="11" y="15" width="2" height="2" fill="white" />
+                </svg>
+              </div>
+              <div>
+                <div className="text-foreground font-semibold">Simulation disabled for large plans</div>
+                <p className="text-muted-foreground text-sm mt-1">
+                  This flight plan contains <span className="font-medium">{waypoints.length}</span> waypoints, which exceeds the simulation limit of <span className="font-medium">{WAYPOINT_LIMIT}</span>.
+                  Running a browser-based simulation with very large waypoint counts may cause performance problems.
+                </p>
+                <p className="text-muted-foreground text-sm mt-2">Reduce the number of waypoints or run an offline simulation tool for large-scale plans.</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className={`border-border bg-card ${className || ""}`}>
@@ -337,43 +473,70 @@ export const FlightSimulationController = forwardRef<
         <CardTitle className="text-lg font-semibold">Flight Simulation</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Control Buttons */}
-        <div className="flex gap-2">
-          <Button
-            onClick={startSimulation}
-            disabled={!canSimulate || (simulationState.isRunning && !simulationState.isPaused)}
-            className="flex items-center gap-2"
-            variant={simulationState.isRunning && !simulationState.isPaused ? "secondary" : "default"}
-          >
-            <Play className="h-4 w-4" />
-            {simulationState.isPaused ? "Resume" : "Start"}
-          </Button>
-
-          <Button
-            onClick={pauseSimulation}
-            disabled={!simulationState.isRunning || simulationState.isPaused}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <Pause className="h-4 w-4" />
-            Pause
-          </Button>
-
-          <Button
-            onClick={stopSimulation}
-            disabled={!simulationState.isRunning}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <Square className="h-4 w-4" />
-            Stop
-          </Button>
-
-          <Button onClick={resetSimulation} variant="outline" className="flex items-center gap-2">
-            <RotateCcw className="h-4 w-4" />
-            Reset
-          </Button>
+        {/* Debug badge: visible indicator of what this component sees (helps diagnose visibility mismatches) */}
+        <div className="text-xs text-muted-foreground mb-2" data-testid="flight-sim-debug">
+          Debug: waypoints={waypoints.length} • limit={WAYPOINT_LIMIT} • canSimulate={String(canSimulate)} • tooMany={String(isTooManyWaypoints)}
         </div>
+
+        {/* Control Buttons */}
+        { !isTooManyWaypoints ? (
+          <div className="flex gap-2" data-controls-visible="true">
+            <Button
+              onClick={startSimulation}
+              disabled={isTooManyWaypoints || !canSimulate || (simulationState.isRunning && !simulationState.isPaused)}
+              className="flex items-center gap-2"
+              variant={simulationState.isRunning && !simulationState.isPaused ? "secondary" : "default"}
+            >
+              <Play className="h-4 w-4" />
+              {simulationState.isPaused ? "Resume" : "Start"}
+            </Button>
+
+            <Button
+              onClick={pauseSimulation}
+              disabled={!simulationState.isRunning || simulationState.isPaused}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Pause className="h-4 w-4" />
+              Pause
+            </Button>
+
+            <Button
+              onClick={stopSimulation}
+              disabled={!simulationState.isRunning}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Square className="h-4 w-4" />
+              Stop
+            </Button>
+
+            <Button onClick={resetSimulation} variant="outline" className="flex items-center gap-2">
+              <RotateCcw className="h-4 w-4" />
+              Reset
+            </Button>
+          </div>
+        ) : (
+          <div className="w-full rounded-lg border border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 mt-1 text-yellow-600">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path d="M10.29 3.86L1.82 18a1 1 0 0 0 .87 1.5h18.62a1 1 0 0 0 .87-1.5L13.71 3.86a1 1 0 0 0-1.42 0z" fill="currentColor" />
+                  <rect x="11" y="8" width="2" height="6" fill="white" />
+                  <rect x="11" y="15" width="2" height="2" fill="white" />
+                </svg>
+              </div>
+              <div>
+                <div className="text-foreground font-semibold">Simulation disabled for large plans</div>
+                <p className="text-muted-foreground text-sm mt-1">
+                  This flight plan contains <span className="font-medium">{waypoints.length}</span> waypoints, which exceeds the simulation limit of <span className="font-medium">{WAYPOINT_LIMIT}</span>.
+                  Running a browser-based simulation with very large waypoint counts may cause performance problems.
+                </p>
+                <p className="text-muted-foreground text-sm mt-2">Reduce the number of waypoints or run an offline simulation tool for large-scale plans.</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Simulation Stats */}
         <div className="grid grid-cols-2 gap-4 text-sm">
@@ -439,7 +602,7 @@ export const FlightSimulationController = forwardRef<
           </div>
         </div>
 
-        {!canSimulate && (
+        {!canSimulate && waypoints.length < 2 && (
           <div className="text-muted-foreground bg-muted/30 rounded-lg p-4 text-center text-sm">
             Generate a flight plan with at least 2 waypoints to start simulation
           </div>
