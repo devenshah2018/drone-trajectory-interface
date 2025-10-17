@@ -298,14 +298,14 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
     return (
       <Card className="border-border bg-card shadow-sm">
         <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-3">
               <CardTitle className="text-foreground text-lg font-semibold">Configuration</CardTitle>
               <CardDescription className="text-muted-foreground text-xs">
                 Configure camera and mission parameters
               </CardDescription>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
               {/* Camera Preset */}
               <div className="flex items-center gap-2">
                 <Tooltip content="Load predefined camera configurations for common drone models and sensors">
@@ -317,7 +317,7 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                     if (value) loadCameraPreset(value);
                   }}
                 >
-                  <SelectTrigger className="w-44 cursor-pointer">
+                  <SelectTrigger className="w-full sm:w-44 cursor-pointer text-left">
                     <SelectValue placeholder="Choose camera model..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -340,7 +340,7 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                     if (value) loadMissionPreset(value);
                   }}
                 >
-                  <SelectTrigger className="w-44 cursor-pointer">
+                  <SelectTrigger className="w-full sm:w-44 cursor-pointer text-left">
                     <SelectValue placeholder="Choose mission type..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -356,7 +356,7 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
           </div>
         </CardHeader>
         <CardContent className="pt-0 pb-3">
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {/* Camera Settings */}
             <div>
               <div className="border-border/30 mb-3 flex items-center gap-2 border-b pb-2">
@@ -365,7 +365,7 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                 </div>
                 <h3 className="text-md text-foreground font-semibold">Camera Settings</h3>
               </div>
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {/* Row 1 - Focal Length & Principal Point */}
                 <div>
                   <Tooltip content="Focal length in X direction (pixels). Determines horizontal field of view and image scale.">
@@ -522,7 +522,7 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                 </div>
                 <h3 className="text-md text-foreground font-semibold">Mission Parameters</h3>
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 {/* Row 1 - Overlap & Height */}
                 <div>
                   <Tooltip content="Forward overlap percentage between consecutive images in flight direction. Higher values ensure better reconstruction quality but increase flight time.">

@@ -163,31 +163,33 @@ export default function Home() {
     <div className="bg-background min-h-screen">
       {/* Header: app title, docs link, and user profile */}
       <header className="border-border bg-card/50 sticky top-0 z-40 border-b backdrop-blur-sm">
-        <div className="container mx-auto px-6 py-3">
-          <div className="flex min-h-[60px] items-center justify-between">
-            {/* Left Side - Logo and Title */}
-            <div className="flex items-center gap-4">
-              <div className="bg-primary flex h-11 w-11 items-center justify-center rounded-lg shadow-sm">
-                <Plane className="text-primary-foreground h-6 w-6" />
+        <div className="container mx-auto px-4 py-4 sm:px-6 sm:py-3">
+          <div className="flex min-h-[64px] items-center justify-between gap-4">
+            {/* Left Side - compact logo + title (responsive, single-row friendly) */}
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              {/* Logo hidden on very small screens to maximize header space */}
+              <div className="hidden sm:flex bg-primary h-9 w-9 items-center justify-center rounded-lg shadow-sm flex-shrink-0">
+                <Plane className="text-primary-foreground h-5 w-5" />
               </div>
-              <div className="flex flex-col justify-center">
-                <h1 className="text-foreground text-2xl leading-tight font-bold">
+              <div className="flex flex-col justify-center min-w-0">
+                <h1 className="text-foreground text-base sm:text-lg md:text-2xl leading-tight font-bold whitespace-nowrap">
                   Drone Flight Planner
                 </h1>
-                <p className="text-muted-foreground text-sm leading-tight">
+                {/* subtitle hidden on very small screens to keep header compact */}
+                <p className="text-muted-foreground text-xs md:text-sm leading-tight hidden sm:block">
                   Mission Planning System
                 </p>
               </div>
             </div>
 
-            {/* Right Side - Navigation */}
-            <div className="flex items-center gap-3">
+            {/* Right Side - Navigation (compact on mobile; stays on one row) */}
+            <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0 whitespace-nowrap">
               {/* Technical Documentation Link */}
               <a
                 href="https://github.com/devenshah2018/drone-trajectory"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border/50 flex items-center gap-2.5 rounded-lg border border-transparent px-4 py-2.5 text-sm font-medium transition-all duration-200"
+                className="text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border/50 flex items-center gap-2 rounded-lg border border-transparent px-3 py-2 text-sm sm:px-4 sm:py-2.5 transition-all duration-200"
               >
                 <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                   <path
@@ -196,20 +198,21 @@ export default function Home() {
                     clipRule="evenodd"
                   />
                 </svg>
-                <span>Technical Docs</span>
-                <ExternalLink className="h-3.5 w-3.5 opacity-60" />
+                <span className="ml-1 hidden xs:inline-block sm:inline-block">Technical Docs</span>
               </a>
 
               {/* Divider */}
-              <div className="bg-border/50 h-6 w-px"></div>
+              <div className="bg-border/50 h-6 w-px mx-2"></div>
 
               {/* Author Profile with Dropdown */}
-              <div className="flex items-center">
+              <div className="flex items-center ml-1">
                 <AuthorProfile />
               </div>
             </div>
           </div>
         </div>
+
+        {/* Mobile stacked panel removed — header now displays all controls inline on one row for small screens */}
       </header>
 
       <main className="container mx-auto space-y-6 px-6 py-6">
