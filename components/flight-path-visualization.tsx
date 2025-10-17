@@ -4,8 +4,9 @@ import type { Waypoint } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Play, Pause, Square, RotateCcw } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import type { SimulationState } from "./flight-simulation-controller";
+import type { MissionStats } from "@/lib/types";
 
 /**
  * Props for FlightPathVisualization component.
@@ -21,6 +22,7 @@ import type { SimulationState } from "./flight-simulation-controller";
 interface FlightPathVisualizationProps {
   waypoints: Waypoint[];
   simulationState?: SimulationState;
+  missionStats?: MissionStats;
   onStartSimulation?: () => void;
   onPauseSimulation?: () => void;
   onStopSimulation?: () => void;
@@ -200,6 +202,25 @@ export function FlightPathVisualization({
   onResetSimulation,
   className,
 }: FlightPathVisualizationProps) {
+  const svgRef = useRef<SVGSVGElement | null>(null);
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    const onHover = (e: Event) => {
+      const ev = e as CustomEvent;
+      const idx = typeof ev.detail?.index === 'number' ? ev.detail.index : null;
+      setHoveredIdx(idx);
+    };
+    const onUnhover = () => setHoveredIdx(null);
+    window.addEventListener('waypoint-hover', onHover as EventListener);
+    window.addEventListener('waypoint-unhover', onUnhover as EventListener);
+    return () => {
+      window.removeEventListener('waypoint-hover', onHover as EventListener);
+      window.removeEventListener('waypoint-unhover', onUnhover as EventListener);
+    };
+  }, []);
+
   // If no waypoints, render an informative empty state
   if (waypoints.length === 0) {
     return (
@@ -418,6 +439,7 @@ export function FlightPathVisualization({
 
         <div className="relative flex w-full justify-center">
           <svg
+            ref={svgRef}
             width="100%"
             height={height}
             viewBox={`0 0 ${width} ${height}`}
@@ -469,33 +491,73 @@ export function FlightPathVisualization({
             })}
 
             {/* Waypoint markers */}
-            {waypoints.map((waypoint, i) => (
-              <g key={i}>
-                <circle
-                  cx={scaleX(waypoint.x)}
-                  cy={scaleY(waypoint.y)}
-                  r={i === 0 ? 6 : i === waypoints.length - 1 ? 6 : 3}
-                  fill="currentColor"
-                  className={
-                    i === 0
-                      ? "text-accent"
-                      : i === waypoints.length - 1
-                        ? "text-destructive"
-                        : "text-primary"
-                  }
-                />
-                {(i === 0 || i === waypoints.length - 1) && (
-                  <text
-                    x={scaleX(waypoint.x)}
-                    y={scaleY(waypoint.y) - 12}
-                    textAnchor="middle"
-                    className="fill-foreground font-mono text-xs"
-                  >
-                    {i === 0 ? "START" : "END"}
-                  </text>
-                )}
-              </g>
-            ))}
+            {waypoints.map((waypoint, i) => {
+              const cxPos = scaleX(waypoint.x);
+              const cyPos = scaleY(waypoint.y);
+              const isInteractive = !simulationState?.isRunning;
+              const markerClass = i === 0 ? "text-accent" : i === waypoints.length - 1 ? "text-destructive" : "text-primary";
+              const isHovered = i === hoveredIdx;
+              const rHit = 12; // larger invisible hit radius for easier hovering
+
+              return (
+                <g key={i}>
+                  {/* Invisible larger hit target to make hovering easier without changing visuals */}
+                  <circle
+                    cx={cxPos}
+                    cy={cyPos}
+                    r={rHit}
+                    fill="transparent"
+                    onMouseEnter={(ev) => {
+                      if (!isInteractive) return;
+                      const event = new CustomEvent('waypoint-hover', { detail: { index: i, source: 'svg' } });
+                      window.dispatchEvent(event);
+                      if (svgRef.current) {
+                        const screenPt = svgRef.current.createSVGPoint();
+                        screenPt.x = cxPos; screenPt.y = cyPos;
+                        const screenCTM = svgRef.current.getScreenCTM();
+                        const containerRect = svgRef.current.getBoundingClientRect();
+                        if (screenCTM && containerRect) {
+                          const transformed = screenPt.matrixTransform(screenCTM);
+                          setTooltipPos({ x: transformed.x - containerRect.left, y: transformed.y - containerRect.top });
+                        }
+                      }
+                    }}
+                    onMouseLeave={() => {
+                      if (!isInteractive) return;
+                      window.dispatchEvent(new CustomEvent('waypoint-unhover'));
+                      setTooltipPos(null);
+                    }}
+                    onMouseMove={(ev) => {
+                      if (!isInteractive || !svgRef.current) return;
+                      const containerRect = svgRef.current.getBoundingClientRect();
+                      setTooltipPos({ x: ev.clientX - containerRect.left, y: ev.clientY - containerRect.top });
+                    }}
+                    style={{ cursor: isInteractive ? 'pointer' : 'default' }}
+                    aria-hidden
+                  />
+
+                  {/* Visible marker (unchanged visual size) */}
+                  <circle
+                    cx={cxPos}
+                    cy={cyPos}
+                    r={i === 0 ? 6 : i === waypoints.length - 1 ? 6 : 3}
+                    fill="currentColor"
+                    className={markerClass + (isHovered ? ' opacity-100 scale-110' : '')}
+                    style={{ transition: 'transform 160ms ease, opacity 160ms ease', transformOrigin: `${cxPos}px ${cyPos}px` }}
+                  />
+                  {(i === 0 || i === waypoints.length - 1) && (
+                    <text
+                      x={cxPos}
+                      y={cyPos - 12}
+                      textAnchor="middle"
+                      className="fill-foreground font-mono text-xs"
+                    >
+                      {i === 0 ? "START" : "END"}
+                    </text>
+                  )}
+                </g>
+              );
+            })}
 
             {/* Drone Position - only show during simulation */}
             {simulationState?.isRunning && (
@@ -586,6 +648,20 @@ export function FlightPathVisualization({
                 );
               })}
           </svg>
+          {tooltipPos && hoveredIdx !== null && (
+            <div
+              className="absolute bg-black text-white text-xs rounded py-1 px-2"
+              style={{
+                left: tooltipPos.x + 12,
+                top: tooltipPos.y + 12,
+                pointerEvents: "none",
+              }}
+            >
+              <div className="font-mono text-[11px]">Waypoint {hoveredIdx + 1}</div>
+              <div className="font-mono text-[11px]">x: {waypoints[hoveredIdx].x.toFixed(2)} m</div>
+              <div className="font-mono text-[11px]">y: {waypoints[hoveredIdx].y.toFixed(2)} m</div>
+            </div>
+          )}
         </div>
         <div className="text-muted-foreground flex items-center justify-center gap-6 text-sm">
           <div className="flex items-center gap-2">

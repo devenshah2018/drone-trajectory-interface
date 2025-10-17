@@ -4,7 +4,7 @@ import type { MissionStats, Waypoint } from "@/lib/types";
 import type { SimulationState } from "./flight-simulation-controller";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart3, Clock, MapPin, Camera, Navigation } from "lucide-react";
-import { useCallback, useRef, useEffect } from "react";
+import { useCallback, useRef, useEffect, useState } from "react";
 import { computePlanTime } from "@/lib/flight-planner";
 
 /**
@@ -44,6 +44,93 @@ export function CompactMissionStats({
   const prevWaypointIndexRef = useRef<number | null>(null);
   // Timeout ref for delayed segment scrolls
   const segmentScrollTimeoutRef = useRef<number | null>(null);
+  const [hoveredWaypoint, setHoveredWaypoint] = useState<number | null>(null);
+
+  // Listen for cross-component hover events (custom DOM events) so the
+  // visualization and table can highlight each other without changing props.
+  useEffect(() => {
+    const onWaypointHover = (e: Event) => {
+      const ev = e as CustomEvent;
+      const idx = typeof ev.detail?.index === 'number' ? ev.detail.index : null;
+      setHoveredWaypoint(idx);
+    };
+    const onWaypointUnhover = () => setHoveredWaypoint(null);
+
+    window.addEventListener('waypoint-hover', onWaypointHover as EventListener);
+    window.addEventListener('waypoint-unhover', onWaypointUnhover as EventListener);
+    return () => {
+      window.removeEventListener('waypoint-hover', onWaypointHover as EventListener);
+      window.removeEventListener('waypoint-unhover', onWaypointUnhover as EventListener);
+    };
+  }, []);
+
+  // Helper: find the nearest scrollable ancestor (same as used in the running autoscroll)
+  const findScrollParent = (node: HTMLElement | null): HTMLElement | null => {
+    let n: HTMLElement | null = node;
+    while (n && n !== document.body && n !== document.documentElement) {
+      const style = window.getComputedStyle(n);
+      const overflowY = style.overflowY;
+      if ((overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay') && n.scrollHeight > n.clientHeight) {
+        return n;
+      }
+      n = n.parentElement;
+    }
+    return null;
+  };
+
+  // Scroll an element so it is centered within the provided container (or its nearest scroll parent)
+  const scrollElementIntoContainer = (el: HTMLElement | null, containerFallback: HTMLElement | null, triedRAF = false) => {
+    if (!el || !containerFallback) return;
+    const discovered = findScrollParent(el);
+    const scrollParent = discovered || containerFallback;
+    const containerEl = (scrollParent === document.body || scrollParent === document.documentElement) ? containerFallback : (scrollParent as HTMLElement);
+    if (!containerEl) return;
+
+    const containerHeight = containerEl.clientHeight;
+    if (!containerHeight) {
+      if (!triedRAF) {
+        requestAnimationFrame(() => scrollElementIntoContainer(el, containerFallback, true));
+      }
+      return;
+    }
+
+    const containerRect = containerEl.getBoundingClientRect();
+    const elementRect = el.getBoundingClientRect();
+    const elementHeight = elementRect.height || 0;
+    const relativeTop = elementRect.top - containerRect.top + containerEl.scrollTop;
+
+    const sticky = containerEl.querySelector('.sticky') as HTMLElement | null;
+    const stickyHeight = sticky ? sticky.getBoundingClientRect().height : 0;
+    let targetScrollTop = relativeTop - (containerHeight - stickyHeight) / 2 + elementHeight / 2;
+    const maxScrollTop = Math.max(0, containerEl.scrollHeight - containerHeight);
+    targetScrollTop = Math.max(0, Math.min(targetScrollTop, maxScrollTop));
+
+    if (Math.abs(containerEl.scrollTop - targetScrollTop) > 2) {
+      containerEl.scrollTo({ top: targetScrollTop, behavior: 'smooth' });
+    }
+  };
+
+  // When a waypoint is hovered (and simulation is not running) center it in the waypoints table
+  useEffect(() => {
+    if (simulationState?.isRunning) return; // don't interfere while running
+    if (hoveredWaypoint === null) return;
+    const wpContainer = tableRef.current;
+    if (!wpContainer) return;
+
+    const idx = hoveredWaypoint;
+    const selector = `[aria-label="Waypoint ${idx + 1}"] [tabindex="0"]`;
+    let el = wpContainer.querySelector(selector) as HTMLElement | null;
+    if (!el) {
+      // retry once on RAF to handle timing/layout
+      requestAnimationFrame(() => {
+        const retry = wpContainer.querySelector(selector) as HTMLElement | null;
+        if (retry) scrollElementIntoContainer(retry, wpContainer);
+      });
+      return;
+    }
+
+    scrollElementIntoContainer(el, wpContainer);
+  }, [hoveredWaypoint, simulationState?.isRunning]);
 
   /**
    * Handle keyboard navigation inside the waypoint table.
@@ -286,12 +373,16 @@ export function CompactMissionStats({
     const rows: React.ReactNode[] = [];
 
     waypoints.forEach((waypoint, index) => {
+      const isHovered = !simulationState?.isRunning && hoveredWaypoint === index;
       const isCurrent = simulationState?.isRunning && index === simulationState.currentWaypointIndex;
       const isCompleted = simulationState?.isRunning && index < simulationState.currentWaypointIndex;
       const isUpcoming = simulationState?.isRunning && index > simulationState.currentWaypointIndex;
       const isInactive = !simulationState?.isRunning;
 
       let rowClasses = "grid grid-cols-3 gap-2 p-3 text-xs font-mono relative";
+      if (isHovered) {
+        rowClasses += " ring-2 ring-primary/40 bg-primary/5";
+      }
       if (isCurrent) {
         rowClasses += " bg-emerald-50/60 dark:bg-emerald-950/25 border-l-3 border-emerald-500/70 ring-1 ring-emerald-200/40 ring-inset";
       } else if (isCompleted) {
@@ -310,6 +401,18 @@ export function CompactMissionStats({
           aria-rowindex={index + 1}
           tabIndex={-1}
           aria-label={isCurrent ? `Current waypoint ${index + 1}` : isCompleted ? `Completed waypoint ${index + 1}` : `Waypoint ${index + 1}`}
+          onMouseEnter={() => {
+            // Only send hover events when simulation is not running
+            if (!simulationState?.isRunning) {
+              const ev = new CustomEvent('waypoint-hover', { detail: { index, source: 'table' } });
+              window.dispatchEvent(ev);
+            }
+          }}
+          onMouseLeave={() => {
+            if (!simulationState?.isRunning) {
+              window.dispatchEvent(new CustomEvent('waypoint-unhover'));
+            }
+          }}
         >
           <div ref={isCurrent ? currentWaypointRef : undefined} role="cell" className="text-muted-foreground focus:ring-primary/50 flex items-center gap-2 rounded px-1 focus:ring-2 focus:outline-none" aria-label={`Waypoint ${index + 1}`} tabIndex={0}>
             <span className="flex-shrink-0">#{index + 1}</span>
