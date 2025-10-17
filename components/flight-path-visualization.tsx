@@ -34,161 +34,35 @@ interface FlightPathVisualizationProps {
  * Small inline speedometer used inside the visualization.
  *
  * @param props.speed - Current speed to display (m/s)
- * @param props.maxSpeed - Maximum gauge value
  * @param props.size - Visual size (px) of the gauge container
- * @returns A small SVG-based speed gauge element
+ * @returns A small numeric-based speed gauge element
  */
 const SpeedometerGauge = ({
   speed,
-  maxSpeed = 20,
   size = 140,
 }: {
   speed: number;
-  maxSpeed?: number;
   size?: number;
 }) => {
-  const safeSpeed = Math.max(0, Math.min(speed, maxSpeed));
-  const speedPercentage = maxSpeed > 0 ? safeSpeed / maxSpeed : 0;
 
-  // SVG sizing and geometry (kept in viewBox units for easy responsive scaling)
-  const viewBoxWidth = 200;
-  const viewBoxHeight = 120;
-  const cx = 100;
-  const cy = 100;
-  const radius = 70;
-  const startAngle = -90;
-  const endAngle = 90;
-  const semicircumference = Math.PI * radius; // length of semicircle arc
-
-  const polarToCartesian = (cx: number, cy: number, r: number, angleDeg: number) => {
-    const angleRad = ((angleDeg - 90) * Math.PI) / 180.0;
-    return { x: cx + r * Math.cos(angleRad), y: cy + r * Math.sin(angleRad) };
-  };
-
-  const describeArc = (cx: number, cy: number, r: number, startAngle: number, endAngle: number) => {
-    const start = polarToCartesian(cx, cy, r, endAngle);
-    const end = polarToCartesian(cx, cy, r, startAngle);
-    const largeArcFlag = Math.abs(endAngle - startAngle) <= 180 ? "0" : "1";
-    return `M ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`;
-  };
-
-  const arcPath = describeArc(cx, cy, radius, startAngle, endAngle);
-
-  // Needle geometry
-  const needleAngle = startAngle + speedPercentage * (endAngle - startAngle); // -90..90
-  const needleLength = radius - 14;
-
-  // Ticks
-  const majorTicks = 5;
-  const ticks = Array.from({ length: majorTicks + 1 }, (_, i) => {
-    const t = i / majorTicks;
-    const angle = startAngle + t * (endAngle - startAngle);
-    const outer = polarToCartesian(cx, cy, radius, angle);
-    const inner = polarToCartesian(cx, cy, radius - (i % 1 === 0 ? 12 : 8), angle);
-    return { angle, outer, inner, value: Math.round(t * maxSpeed) };
-  });
-
+  // Simplified numeric readout (replaces the previous SVG-based gauge)
   return (
     <div
       className="bg-card/90 border-border rounded-lg border p-3 backdrop-blur-sm"
-      // allow the card layout to control sizing but prevent overflow
       style={{ width: size, maxWidth: "100%", boxSizing: "border-box", display: "inline-block" }}
       aria-hidden={false}
+      role="status"
+      aria-label={`Current speed ${speed.toFixed(1)} meters per second`}
     >
       <div className="mb-2 text-center">
         <h3 className="text-foreground text-sm font-semibold">Speed</h3>
       </div>
 
-      {/* Make the SVG responsive: use width:100% and an appropriate aspect ratio */}
-      <svg
-        width="100%"
-        height="auto"
-        viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
-        preserveAspectRatio="xMidYMid meet"
-        role="img"
-        aria-label={`Current speed ${safeSpeed.toFixed(1)} meters per second`}
-      >
-        <title>Speedometer</title>
-
-        {/* Background arc */}
-        <path
-          d={arcPath}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="8"
-          strokeLinecap="round"
-          className="text-muted-foreground/40"
-        />
-
-        {/* Progress arc (using semicircumference to compute dash lengths) */}
-        <path
-          d={arcPath}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="8"
-          strokeLinecap="round"
-          strokeDasharray={`${semicircumference * speedPercentage} ${semicircumference}`}
-          strokeDashoffset={0}
-          className="text-primary"
-          style={{ transition: "stroke-dasharray 280ms ease" }}
-        />
-
-        {/* Tick marks & labels */}
-        {ticks.map((tick, i) => (
-          <g key={i}>
-            <line
-              x1={tick.inner.x}
-              y1={tick.inner.y}
-              x2={tick.outer.x}
-              y2={tick.outer.y}
-              stroke="currentColor"
-              strokeWidth={2}
-              className="text-muted-foreground"
-              strokeLinecap="round"
-            />
-            <text
-              x={polarToCartesian(cx, cy, radius + 16, tick.angle).x}
-              y={polarToCartesian(cx, cy, radius + 16, tick.angle).y + 4}
-              textAnchor="middle"
-              className="fill-foreground font-mono text-xs"
-            >
-              {tick.value}
-            </text>
-          </g>
-        ))}
-
-        {/* Needle (rotates around center) */}
-        <g
-          transform={`rotate(${needleAngle} ${cx} ${cy})`}
-          style={{ transition: "transform 300ms cubic-bezier(.2,.9,.2,1)" }}
-        >
-          <line
-            x1={cx}
-            y1={cy - 6}
-            x2={cx}
-            y2={cy - needleLength}
-            stroke="currentColor"
-            strokeWidth="3"
-            strokeLinecap="round"
-            className="text-destructive"
-          />
-          <circle cx={cx} cy={cy} r={6} fill="currentColor" className="text-destructive" />
-        </g>
-
-        {/* Center cap */}
-        <circle cx={cx} cy={cy} r={3} fill="currentColor" className="text-foreground" />
-
-        {/* Speed numeric readout */}
-        <text
-          x={cx}
-          y={cy + 20}
-          textAnchor="middle"
-          className="fill-foreground text-sm font-bold"
-          aria-live="polite"
-        >
-          {safeSpeed.toFixed(1)} m/s
-        </text>
-      </svg>
+      <div className="text-center">
+        <div className="font-mono text-xl font-bold text-foreground" aria-live="polite">
+          {speed.toFixed(1)} m/s
+        </div>
+      </div>
     </div>
   );
 };
