@@ -480,41 +480,80 @@ export const FlightSimulationController = forwardRef<
 
         {/* Control Buttons */}
         { !isTooManyWaypoints ? (
-          <div className="flex gap-2" data-controls-visible="true">
-            <Button
-              onClick={startSimulation}
-              disabled={isTooManyWaypoints || !canSimulate || (simulationState.isRunning && !simulationState.isPaused)}
-              className="flex items-center gap-2"
-              variant={simulationState.isRunning && !simulationState.isPaused ? "secondary" : "default"}
-            >
-              <Play className="h-4 w-4" />
-              {simulationState.isPaused ? "Resume" : "Start"}
-            </Button>
+          <div className="w-full" data-controls-visible="true">
+            {/* Mobile: 2x2-ish simplified controls (Start | Pause on first row, Reset full-width second row). Hide Stop on mobile. */}
+            <div className="md:hidden">
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  onClick={startSimulation}
+                  disabled={isTooManyWaypoints || !canSimulate || (simulationState.isRunning && !simulationState.isPaused)}
+                  className="h-12 w-full text-center flex items-center justify-center gap-2"
+                  variant={simulationState.isRunning && !simulationState.isPaused ? "secondary" : "default"}
+                >
+                  <Play className="h-5 w-5" />
+                  <span className="font-medium">{simulationState.isPaused ? "Resume" : "Start"}</span>
+                </Button>
 
-            <Button
-              onClick={pauseSimulation}
-              disabled={!simulationState.isRunning || simulationState.isPaused}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Pause className="h-4 w-4" />
-              Pause
-            </Button>
+                <Button
+                  onClick={pauseSimulation}
+                  disabled={!simulationState.isRunning || simulationState.isPaused}
+                  variant="outline"
+                  className="h-12 w-full text-center flex items-center justify-center gap-2"
+                >
+                  <Pause className="h-5 w-5" />
+                  <span className="font-medium">Pause</span>
+                </Button>
+              </div>
 
-            <Button
-              onClick={stopSimulation}
-              disabled={!simulationState.isRunning}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Square className="h-4 w-4" />
-              Stop
-            </Button>
+              <div className="mt-2">
+                <Button
+                  onClick={resetSimulation}
+                  variant="outline"
+                  className="h-12 w-full text-center flex items-center justify-center gap-2"
+                >
+                  <RotateCcw className="h-5 w-5" />
+                  <span className="font-medium">Reset</span>
+                </Button>
+              </div>
+            </div>
 
-            <Button onClick={resetSimulation} variant="outline" className="flex items-center gap-2">
-              <RotateCcw className="h-4 w-4" />
-              Reset
-            </Button>
+            {/* Desktop / tablet: full control set in a row (Start, Pause, Stop, Reset) */}
+            <div className="hidden md:flex md:items-center md:gap-3">
+              <Button
+                onClick={startSimulation}
+                disabled={isTooManyWaypoints || !canSimulate || (simulationState.isRunning && !simulationState.isPaused)}
+                className="md:w-auto flex items-center justify-center gap-2"
+                variant={simulationState.isRunning && !simulationState.isPaused ? "secondary" : "default"}
+              >
+                <Play className="h-4 w-4" />
+                {simulationState.isPaused ? "Resume" : "Start"}
+              </Button>
+
+              <Button
+                onClick={pauseSimulation}
+                disabled={!simulationState.isRunning || simulationState.isPaused}
+                variant="outline"
+                className="md:w-auto flex items-center justify-center gap-2"
+              >
+                <Pause className="h-4 w-4" />
+                Pause
+              </Button>
+
+              <Button
+                onClick={stopSimulation}
+                disabled={!simulationState.isRunning}
+                variant="outline"
+                className="md:w-auto flex items-center justify-center gap-2"
+              >
+                <Square className="h-4 w-4" />
+                Stop
+              </Button>
+
+              <Button onClick={resetSimulation} variant="outline" className="md:w-auto flex items-center justify-center gap-2">
+                <RotateCcw className="h-4 w-4" />
+                Reset
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="w-full rounded-lg border border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20 p-4">
