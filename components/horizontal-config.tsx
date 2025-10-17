@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useImperativeHandle, forwardRef } from "react";
+import { useState, useImperativeHandle, forwardRef, useEffect } from "react";
 import type { Camera, DatasetSpec } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -16,6 +17,7 @@ import {
 import {
   Camera as CameraIcon,
   Settings,
+  ChevronDown,
 } from "lucide-react";
 
 /**
@@ -31,6 +33,9 @@ interface HorizontalConfigProps {
   datasetSpec: DatasetSpec;
   onCameraChange: (camera: Camera) => void;
   onDatasetSpecChange: (datasetSpec: DatasetSpec) => void;
+  // Optional drone kinematic limits and change handler
+  droneConfig?: { vMax?: number; aMax?: number };
+  onDroneChange?: (drone: { vMax: number; aMax: number }) => void;
 }
 
 /**
@@ -54,9 +59,44 @@ export interface HorizontalConfigRef {
  * @remarks Client component using forwardRef to expose resetPresets to parents.
  */
 export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfigProps>(
-  ({ camera, datasetSpec, onCameraChange, onDatasetSpecChange }, ref) => {
+  ({ camera, datasetSpec, onCameraChange, onDatasetSpecChange, droneConfig, onDroneChange }, ref) => {
+    // Collapsible state for compact UI
+    const [isCollapsed, setIsCollapsed] = useState(false);
+    const contentId = "horizontal-config-content";
+    const toggleCollapsed = () => setIsCollapsed((v) => !v);
     const [selectedPreset, setSelectedPreset] = useState("");
     const [selectedMissionPreset, setSelectedMissionPreset] = useState("");
+
+    // Drone presets & state: allow selecting a template and editing vMax / aMax
+    const dronePresets = {
+      default: { name: 'Default', config: { vMax: 16, aMax: 3.5 } },
+    } as const;
+
+    const [selectedDrone, setSelectedDrone] = useState<string>('default');
+    const [droneVMax, setDroneVMax] = useState<number>(droneConfig?.vMax ?? dronePresets.default.config.vMax);
+    const [droneAMax, setDroneAMax] = useState<number>(droneConfig?.aMax ?? dronePresets.default.config.aMax);
+
+    // Sync local inputs when parent droneConfig prop changes (two-way binding)
+    useEffect(() => {
+      if (typeof droneConfig?.vMax === 'number') setDroneVMax(droneConfig.vMax);
+      if (typeof droneConfig?.aMax === 'number') setDroneAMax(droneConfig.aMax);
+    }, [droneConfig]);
+
+    const loadDronePreset = (key: string) => {
+      const preset = (dronePresets as any)[key];
+      if (!preset) return;
+      setSelectedDrone(key);
+      setDroneVMax(preset.config.vMax);
+      setDroneAMax(preset.config.aMax);
+      // notify parent
+      onDroneChange?.({ vMax: preset.config.vMax, aMax: preset.config.aMax });
+    };
+
+    const updateDrone = (field: 'vMax' | 'aMax', value: number) => {
+      if (field === 'vMax') setDroneVMax(value);
+      else setDroneAMax(value);
+      onDroneChange?.({ vMax: field === 'vMax' ? value : droneVMax, aMax: field === 'aMax' ? value : droneAMax });
+    };
 
     // Camera presets
     const cameraPresets = {
@@ -289,6 +329,11 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
           // Clear selected preset values without modifying parent camera/dataset state
           setSelectedPreset("");
           setSelectedMissionPreset("");
+          // reset drone UI to preset and notify parent
+          setSelectedDrone('default');
+          setDroneVMax(dronePresets.default.config.vMax);
+          setDroneAMax(dronePresets.default.config.aMax);
+          onDroneChange?.({ vMax: dronePresets.default.config.vMax, aMax: dronePresets.default.config.aMax });
         },
       }),
       []
@@ -297,369 +342,438 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
     // --- Render: compact two-column layout with clear section headers ---
     return (
       <Card className="border-border bg-card shadow-sm">
-        <CardHeader className="pb-2">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <CardHeader className="px-3">
+          <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-3">
               <CardTitle className="text-foreground text-lg font-semibold">Configuration</CardTitle>
-              <CardDescription className="text-muted-foreground text-xs">
-                Configure camera and mission parameters
-              </CardDescription>
             </div>
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
-              {/* Camera Preset */}
-              <div className="flex items-center gap-2">
-                <Tooltip content="Load predefined camera configurations for common drone models and sensors">
-                  <span className="text-muted-foreground text-xs cursor-pointer">Camera:</span>
-                </Tooltip>
-                <Select
-                  value={selectedPreset}
-                  onValueChange={(value) => {
-                    if (value) loadCameraPreset(value);
-                  }}
-                >
-                  <SelectTrigger className="w-full sm:w-44 cursor-pointer text-left">
-                    <SelectValue placeholder="Choose camera model..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(cameraPresets).map(([key, preset]) => (
-                      <SelectItem key={key} value={key}>
-                        {preset.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {/* Drone Configuration (top-right) */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3">
+          {/* Model select with label on the left */}
+          <div className="flex items-center gap-2">
+            <Label htmlFor="hdr-drone" className="text-muted-foreground text-xs">
+              Model
+            </Label>
+            <Select
+              value={selectedDrone}
+              onValueChange={(value) => {
+                if (value) loadDronePreset(value);
+              }}
+            >
+              <SelectTrigger id="hdr-drone" className="w-36 cursor-pointer text-left text-xs h-8">
+                <SelectValue placeholder="Drone" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(dronePresets).map(([key, preset]) => (
+            <SelectItem key={key} value={key}>
+              {preset.name}
+            </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* vMax and aMax with labels to the left */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="hdr-vmax" className="text-muted-foreground text-xs">
+                Max vel (m/s)
+              </Label>
+              <Input
+                id="hdr-vmax"
+                aria-label="Drone maximum speed vMax meters per second"
+                type="number"
+                step="0.1"
+                min="0"
+                value={droneVMax}
+                onChange={(e) => updateDrone("vMax", Number.parseFloat(e.target.value || "0"))}
+                className="h-8 w-20 text-xs"
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Label htmlFor="hdr-amax" className="text-muted-foreground text-xs">
+                Max acc (m/s²)
+              </Label>
+              <Input
+                id="hdr-amax"
+                aria-label="Drone maximum acceleration aMax meters per second squared"
+                type="number"
+                step="0.1"
+                min="0"
+                value={droneAMax}
+                onChange={(e) => updateDrone("aMax", Number.parseFloat(e.target.value || "0"))}
+                className="h-8 w-20 text-xs"
+              />
+            </div>
+          </div>
               </div>
-              {/* Mission Preset */}
-              <div className="flex items-center gap-2">
-                <Tooltip content="Load predefined mission parameters for common survey scenarios">
-                  <span className="text-muted-foreground text-xs cursor-pointer">Mission:</span>
-                </Tooltip>
-                <Select
-                  value={selectedMissionPreset}
-                  onValueChange={(value) => {
-                    if (value) loadMissionPreset(value);
-                  }}
-                >
-                  <SelectTrigger className="w-full sm:w-44 cursor-pointer text-left">
-                    <SelectValue placeholder="Choose mission type..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(missionPresets).map(([key, preset]) => (
-                      <SelectItem key={key} value={key}>
-                        {preset.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+
+              <Button
+          onClick={toggleCollapsed}
+          aria-expanded={!isCollapsed}
+          aria-controls={contentId}
+          size="sm"
+          variant="ghost"
+          className="h-8 w-8 p-1 cursor-pointer"
+          title={isCollapsed ? 'Expand configuration' : 'Collapse configuration'}
+              >
+          <ChevronDown className={`h-4 w-4 transition-transform ${!isCollapsed ? 'rotate-180' : ''}`} />
+          <span className="sr-only">{isCollapsed ? 'Expand configuration' : 'Collapse configuration'}</span>
+              </Button>
             </div>
           </div>
         </CardHeader>
-        <CardContent className="pt-0 pb-3">
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {/* Camera Settings */}
-            <div>
-              <div className="border-border/30 mb-3 flex items-center gap-2 border-b pb-2">
-                <div className="flex h-4 w-4 items-center justify-center rounded bg-blue-100 dark:bg-blue-900/30">
-                  <CameraIcon className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <h3 className="text-md text-foreground font-semibold">Camera Settings</h3>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                {/* Row 1 - Focal Length & Principal Point */}
-                <div>
-                  <Tooltip content="Focal length in X direction (pixels). Determines horizontal field of view and image scale.">
-                    <Label
-                      htmlFor="fx"
-                      className="text-muted-foreground mb-1 block cursor-pointer text-xs"
+        { !isCollapsed && (
+          <CardContent id={contentId} className="py-2 px-3">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              {/* Camera Settings */}
+              <div>
+                <div className="border-border/30 mb-3 flex items-center justify-between gap-2 border-b pb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-4 w-4 items-center justify-center rounded bg-blue-100 dark:bg-blue-900/30">
+                      <CameraIcon className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <h3 className="text-md text-foreground font-semibold">Camera Settings</h3>
+                  </div>
+                  <div>
+                    <Select
+                      value={selectedPreset}
+                      onValueChange={(value) => {
+                        if (value) loadCameraPreset(value);
+                      }}
                     >
-                      Focal Length X (px)
-                    </Label>
-                  </Tooltip>
-                  <Input
-                    id="fx"
-                    type="number"
-                    value={camera.fx}
-                    onChange={(e) => updateCamera("fx", Number.parseFloat(e.target.value))}
-                    className="h-7 text-xs"
-                  />
+                      <SelectTrigger className="w-36 cursor-pointer text-left text-xs">
+                        <SelectValue placeholder="Camera preset" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(cameraPresets).map(([key, preset]) => (
+                          <SelectItem key={key} value={key}>
+                            {preset.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div>
-                  <Tooltip content="Focal length in Y direction (pixels). Determines vertical field of view and image scale.">
-                    <Label
-                      htmlFor="fy"
-                      className="text-muted-foreground mb-1 block cursor-pointer text-xs"
-                    >
-                      Focal Length Y (px)
-                    </Label>
-                  </Tooltip>
-                  <Input
-                    id="fy"
-                    type="number"
-                    value={camera.fy}
-                    onChange={(e) => updateCamera("fy", Number.parseFloat(e.target.value))}
-                    className="h-7 text-xs"
-                  />
-                </div>
-                <div>
-                  <Tooltip content="Principal point X coordinate (pixels). The X-coordinate of the optical center on the image sensor.">
-                    <Label
-                      htmlFor="cx"
-                      className="text-muted-foreground mb-1 block cursor-pointer text-xs"
-                    >
-                      Principal Point X (px)
-                    </Label>
-                  </Tooltip>
-                  <Input
-                    id="cx"
-                    type="number"
-                    value={camera.cx}
-                    onChange={(e) => updateCamera("cx", Number.parseFloat(e.target.value))}
-                    className="h-7 text-xs"
-                  />
-                </div>
-                <div>
-                  <Tooltip content="Principal point Y coordinate (pixels). The Y-coordinate of the optical center on the image sensor.">
-                    <Label
-                      htmlFor="cy"
-                      className="text-muted-foreground mb-1 block cursor-pointer text-xs"
-                    >
-                      Principal Point Y (px)
-                    </Label>
-                  </Tooltip>
-                  <Input
-                    id="cy"
-                    type="number"
-                    value={camera.cy}
-                    onChange={(e) => updateCamera("cy", Number.parseFloat(e.target.value))}
-                    className="h-7 text-xs"
-                  />
-                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {/* Row 1 - Focal Length & Principal Point */}
+                  <div>
+                    <Tooltip content="Focal length in X direction (pixels). Determines horizontal field of view and image scale.">
+                      <Label
+                        htmlFor="fx"
+                        className="text-muted-foreground mb-1 block cursor-pointer text-xs"
+                      >
+                        Focal Length X (px)
+                      </Label>
+                    </Tooltip>
+                    <Input
+                      id="fx"
+                      type="number"
+                      value={camera.fx}
+                      onChange={(e) => updateCamera("fx", Number.parseFloat(e.target.value))}
+                      className="h-7 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <Tooltip content="Focal length in Y direction (pixels). Determines vertical field of view and image scale.">
+                      <Label
+                        htmlFor="fy"
+                        className="text-muted-foreground mb-1 block cursor-pointer text-xs"
+                      >
+                        Focal Length Y (px)
+                      </Label>
+                    </Tooltip>
+                    <Input
+                      id="fy"
+                      type="number"
+                      value={camera.fy}
+                      onChange={(e) => updateCamera("fy", Number.parseFloat(e.target.value))}
+                      className="h-7 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <Tooltip content="Principal point X coordinate (pixels). The X-coordinate of the optical center on the image sensor.">
+                      <Label
+                        htmlFor="cx"
+                        className="text-muted-foreground mb-1 block cursor-pointer text-xs"
+                      >
+                        Principal Point X (px)
+                      </Label>
+                    </Tooltip>
+                    <Input
+                      id="cx"
+                      type="number"
+                      value={camera.cx}
+                      onChange={(e) => updateCamera("cx", Number.parseFloat(e.target.value))}
+                      className="h-7 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <Tooltip content="Principal point Y coordinate (pixels). The Y-coordinate of the optical center on the image sensor.">
+                      <Label
+                        htmlFor="cy"
+                        className="text-muted-foreground mb-1 block cursor-pointer text-xs"
+                      >
+                        Principal Point Y (px)
+                      </Label>
+                    </Tooltip>
+                    <Input
+                      id="cy"
+                      type="number"
+                      value={camera.cy}
+                      onChange={(e) => updateCamera("cy", Number.parseFloat(e.target.value))}
+                      className="h-7 text-xs"
+                    />
+                  </div>
 
-                {/* Row 2 - Sensor & Image Size */}
-                <div>
-                  <Tooltip content="Physical width of the camera sensor in millimeters. Used to calculate ground sampling distance.">
-                    <Label
-                      htmlFor="sensor_x"
-                      className="text-muted-foreground mb-1 block cursor-pointer text-xs"
-                    >
-                      Sensor Width (mm)
-                    </Label>
-                  </Tooltip>
-                  <Input
-                    id="sensor_x"
-                    type="number"
-                    step="0.1"
-                    value={camera.sensor_size_x_mm}
-                    onChange={(e) =>
-                      updateCamera("sensor_size_x_mm", Number.parseFloat(e.target.value))
-                    }
-                    className="h-7 text-xs"
-                  />
+                  {/* Row 2 - Sensor & Image Size */}
+                  <div>
+                    <Tooltip content="Physical width of the camera sensor in millimeters. Used to calculate ground sampling distance.">
+                      <Label
+                        htmlFor="sensor_x"
+                        className="text-muted-foreground mb-1 block cursor-pointer text-xs"
+                      >
+                        Sensor Width (mm)
+                      </Label>
+                    </Tooltip>
+                    <Input
+                      id="sensor_x"
+                      type="number"
+                      step="0.1"
+                      value={camera.sensor_size_x_mm}
+                      onChange={(e) =>
+                        updateCamera("sensor_size_x_mm", Number.parseFloat(e.target.value))
+                      }
+                      className="h-7 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <Tooltip content="Physical height of the camera sensor in millimeters. Used to calculate ground sampling distance.">
+                      <Label
+                        htmlFor="sensor_y"
+                        className="text-muted-foreground mb-1 block cursor-pointer text-xs"
+                      >
+                        Sensor Height (mm)
+                      </Label>
+                    </Tooltip>
+                    <Input
+                      id="sensor_y"
+                      type="number"
+                      step="0.1"
+                      value={camera.sensor_size_y_mm}
+                      onChange={(e) =>
+                        updateCamera("sensor_size_y_mm", Number.parseFloat(e.target.value))
+                      }
+                      className="h-7 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <Tooltip content="Image width in pixels. The horizontal resolution of captured images.">
+                      <Label
+                        htmlFor="image_x"
+                        className="text-muted-foreground mb-1 block cursor-pointer text-xs"
+                      >
+                        Image Width (px)
+                      </Label>
+                    </Tooltip>
+                    <Input
+                      id="image_x"
+                      type="number"
+                      value={camera.image_size_x}
+                      onChange={(e) => updateCamera("image_size_x", Number.parseInt(e.target.value))}
+                      className="h-7 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <Tooltip content="Image height in pixels. The vertical resolution of captured images.">
+                      <Label
+                        htmlFor="image_y"
+                        className="text-muted-foreground mb-1 block cursor-pointer text-xs"
+                      >
+                        Image Height (px)
+                      </Label>
+                    </Tooltip>
+                    <Input
+                      id="image_y"
+                      type="number"
+                      value={camera.image_size_y}
+                      onChange={(e) => updateCamera("image_size_y", Number.parseInt(e.target.value))}
+                      className="h-7 text-xs"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <Tooltip content="Physical height of the camera sensor in millimeters. Used to calculate ground sampling distance.">
-                    <Label
-                      htmlFor="sensor_y"
-                      className="text-muted-foreground mb-1 block cursor-pointer text-xs"
+              </div>
+
+              {/* Mission Parameters */}
+              <div>
+                <div className="border-border/30 mb-3 flex items-center justify-between gap-2 border-b pb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-4 w-4 items-center justify-center rounded bg-emerald-100 dark:bg-emerald-900/30">
+                      <Settings className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <h3 className="text-md text-foreground font-semibold">Mission Parameters</h3>
+                  </div>
+                  <div>
+                    <Select
+                      value={selectedMissionPreset}
+                      onValueChange={(value) => {
+                        if (value) loadMissionPreset(value);
+                      }}
                     >
-                      Sensor Height (mm)
-                    </Label>
-                  </Tooltip>
-                  <Input
-                    id="sensor_y"
-                    type="number"
-                    step="0.1"
-                    value={camera.sensor_size_y_mm}
-                    onChange={(e) =>
-                      updateCamera("sensor_size_y_mm", Number.parseFloat(e.target.value))
-                    }
-                    className="h-7 text-xs"
-                  />
+                      <SelectTrigger className="w-36 cursor-pointer text-left text-xs">
+                        <SelectValue placeholder="Mission preset" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(missionPresets).map(([key, preset]) => (
+                          <SelectItem key={key} value={key}>
+                            {preset.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div>
-                  <Tooltip content="Image width in pixels. The horizontal resolution of captured images.">
-                    <Label
-                      htmlFor="image_x"
-                      className="text-muted-foreground mb-1 block cursor-pointer text-xs"
-                    >
-                      Image Width (px)
-                    </Label>
-                  </Tooltip>
-                  <Input
-                    id="image_x"
-                    type="number"
-                    value={camera.image_size_x}
-                    onChange={(e) => updateCamera("image_size_x", Number.parseInt(e.target.value))}
-                    className="h-7 text-xs"
-                  />
-                </div>
-                <div>
-                  <Tooltip content="Image height in pixels. The vertical resolution of captured images.">
-                    <Label
-                      htmlFor="image_y"
-                      className="text-muted-foreground mb-1 block cursor-pointer text-xs"
-                    >
-                      Image Height (px)
-                    </Label>
-                  </Tooltip>
-                  <Input
-                    id="image_y"
-                    type="number"
-                    value={camera.image_size_y}
-                    onChange={(e) => updateCamera("image_size_y", Number.parseInt(e.target.value))}
-                    className="h-7 text-xs"
-                  />
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {/* Row 1 - Overlap & Height */}
+                  <div>
+                    <Tooltip content="Forward overlap percentage between consecutive images in flight direction. Higher values ensure better reconstruction quality but increase flight time.">
+                      <Label
+                        htmlFor="overlap"
+                        className="text-muted-foreground mb-1 block cursor-pointer text-xs"
+                      >
+                        Forward Overlap
+                      </Label>
+                    </Tooltip>
+                    <div className="relative">
+                      <Input
+                        id="overlap"
+                        type="number"
+                        step="0.05"
+                        min="0"
+                        max="0.95"
+                        value={datasetSpec.overlap}
+                        onChange={(e) =>
+                          updateDatasetSpec("overlap", Number.parseFloat(e.target.value))
+                        }
+                        className="h-7 pr-12 text-xs"
+                      />
+                      <span className="text-primary pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-xs font-medium">
+                        {Math.round(datasetSpec.overlap * 100)}%
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <Tooltip content="Side overlap percentage between adjacent flight lines. Higher values ensure better coverage but increase flight time and data processing.">
+                      <Label
+                        htmlFor="sidelap"
+                        className="text-muted-foreground mb-1 block cursor-pointer text-xs"
+                      >
+                        Side Overlap
+                      </Label>
+                    </Tooltip>
+                    <div className="relative">
+                      <Input
+                        id="sidelap"
+                        type="number"
+                        step="0.05"
+                        min="0"
+                        max="0.95"
+                        value={datasetSpec.sidelap}
+                        onChange={(e) =>
+                          updateDatasetSpec("sidelap", Number.parseFloat(e.target.value))
+                        }
+                        className="h-7 pr-12 text-xs"
+                      />
+                      <span className="text-primary pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-xs font-medium">
+                        {Math.round(datasetSpec.sidelap * 100)}%
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <Tooltip content="Flight altitude above ground level in meters. Higher altitudes cover more area per image but reduce ground sampling distance.">
+                      <Label
+                        htmlFor="height"
+                        className="text-muted-foreground mb-1 block cursor-pointer text-xs"
+                      >
+                        Flight Height (m)
+                      </Label>
+                    </Tooltip>
+                    <Input
+                      id="height"
+                      type="number"
+                      step="0.5"
+                      value={datasetSpec.height}
+                      onChange={(e) => updateDatasetSpec("height", Number.parseFloat(e.target.value))}
+                      className="h-7 text-xs"
+                    />
+                  </div>
+
+                  {/* Row 2 - Survey Area & Exposure */}
+                  <div>
+                    <Tooltip content="Width of the survey area in meters. Defines the east-west extent of the mapping mission.">
+                      <Label
+                        htmlFor="scan_x"
+                        className="text-muted-foreground mb-1 block cursor-pointer text-xs"
+                      >
+                        Survey Width (m)
+                      </Label>
+                    </Tooltip>
+                    <Input
+                      id="scan_x"
+                      type="number"
+                      value={datasetSpec.scan_dimension_x}
+                      onChange={(e) =>
+                        updateDatasetSpec("scan_dimension_x", Number.parseFloat(e.target.value))
+                      }
+                      className="h-7 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <Tooltip content="Length of the survey area in meters. Defines the north-south extent of the mapping mission.">
+                      <Label
+                        htmlFor="scan_y"
+                        className="text-muted-foreground mb-1 block cursor-pointer text-xs"
+                      >
+                        Survey Length (m)
+                      </Label>
+                    </Tooltip>
+                    <Input
+                      id="scan_y"
+                      type="number"
+                      value={datasetSpec.scan_dimension_y}
+                      onChange={(e) =>
+                        updateDatasetSpec("scan_dimension_y", Number.parseFloat(e.target.value))
+                      }
+                      className="h-7 text-xs"
+                    />
+                  </div>
+                  <div>
+                    <Tooltip content="Camera shutter exposure time in milliseconds. Shorter times reduce motion blur but require more light. Typical range: 1-5ms.">
+                      <Label
+                        htmlFor="exposure"
+                        className="text-muted-foreground mb-1 block cursor-pointer text-xs"
+                      >
+                        Exposure Time (ms)
+                      </Label>
+                    </Tooltip>
+                    <Input
+                      id="exposure"
+                      type="number"
+                      step="0.1"
+                      value={datasetSpec.exposure_time_ms}
+                      onChange={(e) =>
+                        updateDatasetSpec("exposure_time_ms", Number.parseFloat(e.target.value))
+                      }
+                      className="h-7 text-xs"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
-
-            {/* Mission Parameters */}
-            <div>
-              <div className="border-border/30 mb-3 flex items-center gap-2 border-b pb-2">
-                <div className="flex h-4 w-4 items-center justify-center rounded bg-emerald-100 dark:bg-emerald-900/30">
-                  <Settings className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                </div>
-                <h3 className="text-md text-foreground font-semibold">Mission Parameters</h3>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {/* Row 1 - Overlap & Height */}
-                <div>
-                  <Tooltip content="Forward overlap percentage between consecutive images in flight direction. Higher values ensure better reconstruction quality but increase flight time.">
-                    <Label
-                      htmlFor="overlap"
-                      className="text-muted-foreground mb-1 block cursor-pointer text-xs"
-                    >
-                      Forward Overlap
-                    </Label>
-                  </Tooltip>
-                  <div className="relative">
-                    <Input
-                      id="overlap"
-                      type="number"
-                      step="0.05"
-                      min="0"
-                      max="0.95"
-                      value={datasetSpec.overlap}
-                      onChange={(e) =>
-                        updateDatasetSpec("overlap", Number.parseFloat(e.target.value))
-                      }
-                      className="h-7 pr-12 text-xs"
-                    />
-                    <span className="text-primary pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-xs font-medium">
-                      {Math.round(datasetSpec.overlap * 100)}%
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <Tooltip content="Side overlap percentage between adjacent flight lines. Higher values ensure better coverage but increase flight time and data processing.">
-                    <Label
-                      htmlFor="sidelap"
-                      className="text-muted-foreground mb-1 block cursor-pointer text-xs"
-                    >
-                      Side Overlap
-                    </Label>
-                  </Tooltip>
-                  <div className="relative">
-                    <Input
-                      id="sidelap"
-                      type="number"
-                      step="0.05"
-                      min="0"
-                      max="0.95"
-                      value={datasetSpec.sidelap}
-                      onChange={(e) =>
-                        updateDatasetSpec("sidelap", Number.parseFloat(e.target.value))
-                      }
-                      className="h-7 pr-12 text-xs"
-                    />
-                    <span className="text-primary pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-xs font-medium">
-                      {Math.round(datasetSpec.sidelap * 100)}%
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <Tooltip content="Flight altitude above ground level in meters. Higher altitudes cover more area per image but reduce ground sampling distance.">
-                    <Label
-                      htmlFor="height"
-                      className="text-muted-foreground mb-1 block cursor-pointer text-xs"
-                    >
-                      Flight Height (m)
-                    </Label>
-                  </Tooltip>
-                  <Input
-                    id="height"
-                    type="number"
-                    step="0.5"
-                    value={datasetSpec.height}
-                    onChange={(e) => updateDatasetSpec("height", Number.parseFloat(e.target.value))}
-                    className="h-7 text-xs"
-                  />
-                </div>
-
-                {/* Row 2 - Survey Area & Exposure */}
-                <div>
-                  <Tooltip content="Width of the survey area in meters. Defines the east-west extent of the mapping mission.">
-                    <Label
-                      htmlFor="scan_x"
-                      className="text-muted-foreground mb-1 block cursor-pointer text-xs"
-                    >
-                      Survey Width (m)
-                    </Label>
-                  </Tooltip>
-                  <Input
-                    id="scan_x"
-                    type="number"
-                    value={datasetSpec.scan_dimension_x}
-                    onChange={(e) =>
-                      updateDatasetSpec("scan_dimension_x", Number.parseFloat(e.target.value))
-                    }
-                    className="h-7 text-xs"
-                  />
-                </div>
-                <div>
-                  <Tooltip content="Length of the survey area in meters. Defines the north-south extent of the mapping mission.">
-                    <Label
-                      htmlFor="scan_y"
-                      className="text-muted-foreground mb-1 block cursor-pointer text-xs"
-                    >
-                      Survey Length (m)
-                    </Label>
-                  </Tooltip>
-                  <Input
-                    id="scan_y"
-                    type="number"
-                    value={datasetSpec.scan_dimension_y}
-                    onChange={(e) =>
-                      updateDatasetSpec("scan_dimension_y", Number.parseFloat(e.target.value))
-                    }
-                    className="h-7 text-xs"
-                  />
-                </div>
-                <div>
-                  <Tooltip content="Camera shutter exposure time in milliseconds. Shorter times reduce motion blur but require more light. Typical range: 1-5ms.">
-                    <Label
-                      htmlFor="exposure"
-                      className="text-muted-foreground mb-1 block cursor-pointer text-xs"
-                    >
-                      Exposure Time (ms)
-                    </Label>
-                  </Tooltip>
-                  <Input
-                    id="exposure"
-                    type="number"
-                    step="0.1"
-                    value={datasetSpec.exposure_time_ms}
-                    onChange={(e) =>
-                      updateDatasetSpec("exposure_time_ms", Number.parseFloat(e.target.value))
-                    }
-                    className="h-7 text-xs"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
+          </CardContent>
+        )}
       </Card>
     );
   }

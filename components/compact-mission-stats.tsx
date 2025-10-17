@@ -13,11 +13,13 @@ import { computePlanTime } from "@/lib/flight-planner";
  * @param stats - Mission statistics or null when no mission is available
  * @param waypoints - Array of waypoints that define the flight path
  * @param simulationState - Optional live simulation state used to drive row highlighting and progress indicators
+ * @param droneConfig - Optional drone kinematic limits (vMax m/s, aMax m/s^2)
  */
 interface CompactMissionStatsProps {
   stats: MissionStats | null;
   waypoints: Waypoint[];
   simulationState?: SimulationState;
+  droneConfig?: { vMax?: number; aMax?: number };
 }
 
 /**
@@ -27,12 +29,14 @@ interface CompactMissionStatsProps {
  * @param props.stats - Mission statistics or null when not available
  * @param props.waypoints - Flight path waypoints to display in the table
  * @param props.simulationState - Optional simulation state for highlighting/progress
+ * @param props.droneConfig - Optional drone kinematic limits
  * @returns A Card element containing mission metrics and the waypoint table
  */
 export function CompactMissionStats({
   stats,
   waypoints,
   simulationState,
+  droneConfig,
 }: CompactMissionStatsProps) {
   const tableRef = useRef<HTMLDivElement>(null);
   const currentWaypointRef = useRef<HTMLDivElement>(null);
@@ -456,8 +460,11 @@ export function CompactMissionStats({
       if (simulationState?.segments && (simulationState.segments.length ?? 0) > 0) return null;
       if (!waypoints || waypoints.length < 2) return [];
       const positions = waypoints.map((w) => [w.x, w.y, w.z]);
-      const vPhoto = waypoints[0]?.speed ?? 0;
-      const [, segs] = computePlanTime(positions, vPhoto, 0.0);
+      const vPhotoBase = waypoints[0]?.speed ?? 0;
+      const vMax = typeof droneConfig?.vMax === 'number' ? droneConfig.vMax : 16.0;
+      const vPhoto = typeof droneConfig?.vMax === 'number' ? Math.min(vPhotoBase, droneConfig.vMax) : vPhotoBase;
+      const aMax = droneConfig?.aMax ?? 3.5;
+      const [, segs] = computePlanTime(positions, vPhoto, 0.0, vMax, aMax);
       return segs || [];
     } catch (e) {
       return [];

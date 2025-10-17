@@ -53,6 +53,9 @@ export default function Home() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [simulationState, setSimulationState] = useState<SimulationState | null>(null);
 
+  // Drone kinematic config (vMax m/s, aMax m/s^2)
+  const [droneConfig, setDroneConfig] = useState<{ vMax?: number; aMax?: number }>({ vMax: 16, aMax: 3.5 });
+
   // --- Refs to control child components imperatively ---
   // Controls the hidden FlightSimulationController (start/pause/stop/reset)
   const flightSimulationRef = useRef<FlightSimulationRef>(null);
@@ -76,8 +79,9 @@ export default function Home() {
 
     try {
       // Core flight plan generation and stats computation
-      const generatedWaypoints = generatePhotoPlaneOnGrid(camera, datasetSpec);
-      const stats = computeMissionStats(generatedWaypoints, camera, datasetSpec);
+      // Pass droneConfig so waypoints receive correctly-clamped speeds at generation time
+      const generatedWaypoints = generatePhotoPlaneOnGrid(camera, datasetSpec, droneConfig);
+      const stats = computeMissionStats(generatedWaypoints, camera, datasetSpec, droneConfig);
 
       // Persist outputs for visualization and summary
       setWaypoints(generatedWaypoints);
@@ -223,6 +227,8 @@ export default function Home() {
           datasetSpec={datasetSpec}
           onCameraChange={setCamera}
           onDatasetSpecChange={setDatasetSpec}
+          droneConfig={droneConfig}
+          onDroneChange={(cfg) => setDroneConfig(cfg)}
         />
 
         {/* Main content grid: map visual (2 cols) + stats (1 col) */}
@@ -246,6 +252,7 @@ export default function Home() {
               stats={missionStats}
               waypoints={waypoints}
               simulationState={simulationState || undefined}
+              droneConfig={droneConfig}
             />
           </div>
         </div>
@@ -257,6 +264,7 @@ export default function Home() {
               waypoints={waypoints}
               onSimulationUpdate={handleSimulationUpdate}
               ref={flightSimulationRef}
+              droneConfig={droneConfig}
             />
           </div>
         )}

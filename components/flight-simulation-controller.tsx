@@ -43,12 +43,14 @@ interface FlightSimulationControllerProps {
   waypoints: Waypoint[];
   onSimulationUpdate: (state: SimulationState) => void;
   className?: string;
+  // Optional drone kinematic limits
+  droneConfig?: { vMax?: number; aMax?: number };
 }
 
 export const FlightSimulationController = forwardRef<
   FlightSimulationRef,
   FlightSimulationControllerProps
->(({ waypoints, onSimulationUpdate, className }, ref) => {
+>(({ waypoints, onSimulationUpdate, className, droneConfig }, ref) => {
   const [simulationState, setSimulationState] = useState<SimulationState>({
     isRunning: false,
     isPaused: false,
@@ -99,15 +101,22 @@ export const FlightSimulationController = forwardRef<
 
     // Use waypoint positions to compute profiles; vPhoto is taken from first waypoint speed
     const positions = waypoints.map((w) => [w.x, w.y, w.z]);
-    const vPhoto = waypoints[0]?.speed ?? 0;
-    const [totalTime, segments] = computePlanTime(positions, vPhoto, 0.0);
+    const vPhotoBase = waypoints[0]?.speed ?? 0;
+    // If a drone vMax is configured, use it as an upper bound for both starting speed
+    // and cruise speed passed into the planner. Otherwise use waypoint speed as vPhoto.
+    const vMax = typeof droneConfig?.vMax === 'number' ? droneConfig.vMax : 16.0;
+    const vPhoto = typeof droneConfig?.vMax === 'number' ? Math.min(vPhotoBase, droneConfig.vMax) : vPhotoBase;
+    const aMax = droneConfig?.aMax ?? 3.5;
+
+    // computePlanTime signature: (positions, vPhoto, exposureTimeS, vMax, aMax)
+    const [totalTime, segments] = computePlanTime(positions, vPhoto, 0.0, vMax, aMax);
 
     segmentsRef.current = segments;
     segmentDistancesRef.current = segments.map((s) => Number(s.distance) || 0);
 
     // Attach segments into the public simulation state so UI can render them
     setSimulationState((prev) => ({ ...prev, segments }));
-  }, [waypoints]);
+  }, [waypoints, droneConfig]);
 
   // Compute distance between two waypoints.
   const getDistance = (wp1: Waypoint, wp2: Waypoint): number => {
@@ -207,13 +216,19 @@ export const FlightSimulationController = forwardRef<
 
       // Get profile for active segment
       const profile = segmentsRef.current[segIndex] || { type: "degenerate" };
-      const vPhoto = currentWP.speed;
+      // Respect drone-configured vMax for the instantaneous profile calculation. Use the
+      // waypoint's nominal speed but clamp to droneConfig.vMax when present so the
+      // starting speed used in profile interpolation doesn't exceed the selected limit.
+      const vPhoto = typeof droneConfig?.vMax === 'number' ? Math.min(currentWP.speed, droneConfig.vMax) : currentWP.speed;
 
       // Advance segment elapsed time
       const newSegmentElapsed = (prevState.segmentElapsedTime ?? 0) + deltaTime;
 
       // Compute instantaneous speed at segment time t (s)
-      const instSpeed = getInstantaneousSpeedForProfile(profile.profile ?? profile, newSegmentElapsed, vPhoto, 3.5);
+      const aMaxUsed = typeof profile?.a_max === 'number' ? profile.a_max : (droneConfig?.aMax ?? 3.5);
+      let instSpeed = getInstantaneousSpeedForProfile(profile.profile ?? profile, newSegmentElapsed, vPhoto, aMaxUsed);
+      // Never exceed configured drone vMax if present
+      if (typeof droneConfig?.vMax === 'number') instSpeed = Math.min(instSpeed, droneConfig.vMax);
 
       // Approximate distance covered this frame using trapezoidal integration of speeds
       const prevSpeed = prevSpeedRef.current ?? instSpeed;
@@ -278,7 +293,7 @@ export const FlightSimulationController = forwardRef<
    * If not running, starts from the first waypoint and resets timing.
    */
   const startSimulation = () => {
-    const maxWaypoints = 5000;
+    const maxWaypoints = 1000;
     if (waypoints.length < 2 || waypoints.length > maxWaypoints) {
       // Prevent starting simulation if there are too few or too many waypoints.
       console.warn(`Simulation cannot start: waypoints=${waypoints.length} (allowed 2..${maxWaypoints})`);
@@ -312,7 +327,7 @@ export const FlightSimulationController = forwardRef<
       isRunning: true,
       isPaused: false,
       currentPosition: { x: waypoints[0].x, y: waypoints[0].y, z: waypoints[0].z },
-      currentSpeed: waypoints[0].speed,
+      currentSpeed: typeof droneConfig?.vMax === 'number' ? Math.min(waypoints[0].speed, droneConfig.vMax) : waypoints[0].speed,
       currentWaypointIndex: 0,
       currentSegmentIndex: 0,
       progress: 0,
@@ -424,7 +439,7 @@ export const FlightSimulationController = forwardRef<
     resetSimulation();
   }, [waypoints]);
 
-  const WAYPOINT_LIMIT = 5000; // single canonical limit
+  const WAYPOINT_LIMIT = 1000; // single canonical limit
   const canSimulate = waypoints.length >= 2 && waypoints.length <= WAYPOINT_LIMIT;
   const isTooManyWaypoints = waypoints.length > WAYPOINT_LIMIT;
   console.log("FlightSimulationController render - waypoints:", waypoints.length, "canSimulate:", canSimulate);
