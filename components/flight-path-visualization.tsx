@@ -281,7 +281,7 @@ export function FlightPathVisualization({
       <CardContent className="space-y-4">
         {/* Flight Controls and Speedometer */}
         {(() => {
-          const WAYPOINT_LIMIT = 5000;
+          const WAYPOINT_LIMIT = 1000;
           const isTooManyWaypoints = waypoints.length > WAYPOINT_LIMIT;
           console.log("FlightPathVisualization render - waypoints:", waypoints.length, "isTooMany:", isTooManyWaypoints);
 

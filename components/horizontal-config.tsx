@@ -31,6 +31,9 @@ interface HorizontalConfigProps {
   datasetSpec: DatasetSpec;
   onCameraChange: (camera: Camera) => void;
   onDatasetSpecChange: (datasetSpec: DatasetSpec) => void;
+  // Optional drone kinematic limits and change handler
+  droneConfig?: { vMax?: number; aMax?: number };
+  onDroneChange?: (drone: { vMax: number; aMax: number }) => void;
 }
 
 /**
@@ -54,9 +57,34 @@ export interface HorizontalConfigRef {
  * @remarks Client component using forwardRef to expose resetPresets to parents.
  */
 export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfigProps>(
-  ({ camera, datasetSpec, onCameraChange, onDatasetSpecChange }, ref) => {
+  ({ camera, datasetSpec, onCameraChange, onDatasetSpecChange, droneConfig, onDroneChange }, ref) => {
     const [selectedPreset, setSelectedPreset] = useState("");
     const [selectedMissionPreset, setSelectedMissionPreset] = useState("");
+
+    // Drone presets & state: allow selecting a template and editing vMax / aMax
+    const dronePresets = {
+      default: { name: 'Default', config: { vMax: 16, aMax: 3.5 } },
+    } as const;
+
+    const [selectedDrone, setSelectedDrone] = useState<string>('default');
+    const [droneVMax, setDroneVMax] = useState<number>(droneConfig?.vMax ?? dronePresets.default.config.vMax);
+    const [droneAMax, setDroneAMax] = useState<number>(droneConfig?.aMax ?? dronePresets.default.config.aMax);
+
+    const loadDronePreset = (key: string) => {
+      const preset = (dronePresets as any)[key];
+      if (!preset) return;
+      setSelectedDrone(key);
+      setDroneVMax(preset.config.vMax);
+      setDroneAMax(preset.config.aMax);
+      // notify parent
+      onDroneChange?.({ vMax: preset.config.vMax, aMax: preset.config.aMax });
+    };
+
+    const updateDrone = (field: 'vMax' | 'aMax', value: number) => {
+      if (field === 'vMax') setDroneVMax(value);
+      else setDroneAMax(value);
+      onDroneChange?.({ vMax: field === 'vMax' ? value : droneVMax, aMax: field === 'aMax' ? value : droneAMax });
+    };
 
     // Camera presets
     const cameraPresets = {
@@ -289,6 +317,11 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
           // Clear selected preset values without modifying parent camera/dataset state
           setSelectedPreset("");
           setSelectedMissionPreset("");
+          // reset drone UI to preset and notify parent
+          setSelectedDrone('default');
+          setDroneVMax(dronePresets.default.config.vMax);
+          setDroneAMax(dronePresets.default.config.aMax);
+          onDroneChange?.({ vMax: dronePresets.default.config.vMax, aMax: dronePresets.default.config.aMax });
         },
       }),
       []
@@ -301,11 +334,53 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center gap-3">
               <CardTitle className="text-foreground text-lg font-semibold">Configuration</CardTitle>
-              <CardDescription className="text-muted-foreground text-xs">
-                Configure camera and mission parameters
-              </CardDescription>
             </div>
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
+              {/* Drone Preset & kinematic inputs */}
+              <div className="flex items-center gap-2">
+                <Tooltip content="Select drone template and set kinematic limits (vMax m/s, aMax m/s^2)">
+                  <span className="text-muted-foreground text-xs cursor-pointer">Drone:</span>
+                </Tooltip>
+                <Select
+                  value={selectedDrone}
+                  onValueChange={(value) => {
+                    if (value) loadDronePreset(value);
+                  }}
+                >
+                  <SelectTrigger className="w-full sm:w-36 cursor-pointer text-left">
+                    <SelectValue placeholder="Skydio" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(dronePresets).map(([key, preset]) => (
+                      <SelectItem key={key} value={key}>
+                        {preset.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <div className="flex items-center gap-2">
+                  <div className="text-muted-foreground text-xs">vMax</div>
+                  <Input
+                    id="vmax"
+                    type="number"
+                    step="0.1"
+                    value={droneVMax}
+                    onChange={(e) => updateDrone('vMax', Number.parseFloat(e.target.value || '0'))}
+                    className="h-7 w-20 text-xs"
+                  />
+                  <div className="text-muted-foreground text-xs">aMax</div>
+                  <Input
+                    id="amax"
+                    type="number"
+                    step="0.1"
+                    value={droneAMax}
+                    onChange={(e) => updateDrone('aMax', Number.parseFloat(e.target.value || '0'))}
+                    className="h-7 w-20 text-xs"
+                  />
+                </div>
+              </div>
+             
               {/* Camera Preset */}
               <div className="flex items-center gap-2">
                 <Tooltip content="Load predefined camera configurations for common drone models and sensors">

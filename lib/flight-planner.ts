@@ -449,13 +449,15 @@ export function computeTotalMissionTime(
  * @param datasetSpec - Mission parameters including survey dimensions and overlaps
  * @returns Array of generated waypoints with x,y,z coordinates and nominal speed
  */
-export function generatePhotoPlaneOnGrid(camera: Camera, datasetSpec: DatasetSpec): Waypoint[] {
+export function generatePhotoPlaneOnGrid(camera: Camera, datasetSpec: DatasetSpec, droneConfig?: { vMax?: number; aMax?: number }): Waypoint[] {
   // Compute nominal spacing between image centers
   const distances = computeDistanceBetweenImages(camera, datasetSpec);
   const [dx, dy] = distances;
 
   // Nominal cruise speed to satisfy exposure constraints
-  const max_speed = computeSpeedDuringPhotoCapture(camera, datasetSpec);
+  const exposureLimitedSpeed = computeSpeedDuringPhotoCapture(camera, datasetSpec);
+  // If drone vMax provided, do not exceed exposure-limited speed
+  const max_speed = typeof droneConfig?.vMax === 'number' ? Math.min(droneConfig.vMax, exposureLimitedSpeed) : exposureLimitedSpeed;
 
   // Estimate number of images required along each axis
   const num_images_x = Math.ceil(datasetSpec.scan_dimension_x / dx) + 1;
@@ -486,6 +488,7 @@ export function generatePhotoPlaneOnGrid(camera: Camera, datasetSpec: DatasetSpe
         x,
         y,
         z,
+        // Assign waypoint speed at generation time using the selected drone limits
         speed: max_speed,
       });
     }
@@ -505,7 +508,9 @@ export function generatePhotoPlaneOnGrid(camera: Camera, datasetSpec: DatasetSpe
 export function computeMissionStats(
   waypoints: Waypoint[],
   camera: Camera,
-  datasetSpec: DatasetSpec
+  datasetSpec: DatasetSpec,
+  // optional drone kinematic limits: vMax (m/s) and aMax (m/s^2)
+  droneConfig?: { vMax?: number; aMax?: number }
 ): MissionStats {
   // Calculate total distance by summing Euclidean distances between consecutive waypoints
   let totalDistance = 0;
@@ -516,11 +521,14 @@ export function computeMissionStats(
     totalDistance += Math.sqrt(dx * dx + dy * dy + dz * dz);
   }
 
-  // Use time calculation that accounts for acceleration/deceleration
-  const estimatedTime = computeTotalMissionTime(
-    waypoints,
-    computeSpeedDuringPhotoCapture(camera, datasetSpec)
-  );
+  // Determine exposure-limited speed to avoid motion blur
+  const exposureLimitedSpeed = computeSpeedDuringPhotoCapture(camera, datasetSpec);
+  // Use drone-provided vMax if present but do not exceed exposure limit
+  const vMax = typeof droneConfig?.vMax === 'number' ? Math.min(droneConfig.vMax, exposureLimitedSpeed) : exposureLimitedSpeed;
+  const aMax = typeof droneConfig?.aMax === 'number' ? droneConfig.aMax : 3.5;
+
+  // Use time calculation that accounts for acceleration/deceleration and drone kinematics
+  const estimatedTime = computeTotalMissionTime(waypoints, vMax, aMax);
 
   const coverageArea = datasetSpec.scan_dimension_x * datasetSpec.scan_dimension_y;
   const gsd = computeGroundSamplingDistance(camera, datasetSpec.height);
