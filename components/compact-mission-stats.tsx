@@ -125,7 +125,7 @@ export function CompactMissionStats({
       while (n && n !== document.body && n !== document.documentElement) {
         const style = window.getComputedStyle(n);
         const overflowY = style.overflowY;
-        if ((overflowY === 'auto' || overflowY === 'scroll' || overflowY === 'overlay') && n.scrollHeight > n.clientHeight) {
+        if ((overflowY === 'auto' || overflowY === 'scroll' || 'overlay') && n.scrollHeight > n.clientHeight) {
           return n;
         }
         n = n.parentElement;
@@ -291,7 +291,7 @@ export function CompactMissionStats({
       const isUpcoming = simulationState?.isRunning && index > simulationState.currentWaypointIndex;
       const isInactive = !simulationState?.isRunning;
 
-      let rowClasses = "grid grid-cols-4 gap-2 p-3 text-xs font-mono relative";
+      let rowClasses = "grid grid-cols-3 gap-2 p-3 text-xs font-mono relative";
       if (isCurrent) {
         rowClasses += " bg-emerald-50/60 dark:bg-emerald-950/25 border-l-3 border-emerald-500/70 ring-1 ring-emerald-200/40 ring-inset";
       } else if (isCompleted) {
@@ -326,9 +326,9 @@ export function CompactMissionStats({
             {waypoint.y.toFixed(1)}
           </div>
 
-          <div role="cell" className={`focus:ring-primary/50 rounded px-1 focus:ring-2 focus:outline-none ${isCurrent ? "text-foreground font-semibold" : isCompleted ? "text-muted-foreground/80" : "text-foreground"}`} aria-label={`Flight speed: ${waypoint.speed.toFixed(1)} meters per second`} tabIndex={0}>
+          {/* <div role="cell" className={`focus:ring-primary/50 rounded px-1 focus:ring-2 focus:outline-none ${isCurrent ? "text-foreground font-semibold" : isCompleted ? "text-muted-foreground/80" : "text-foreground"}`} aria-label={`Flight speed: ${waypoint.speed.toFixed(1)} meters per second`} tabIndex={0}>
             {waypoint.speed.toFixed(1)}
-          </div>
+          </div> */}
 
           {isCurrent && (
             <>
@@ -370,20 +370,36 @@ export function CompactMissionStats({
     segments.forEach((seg: any, idx: number) => {
       const isActive = simulationState?.isRunning && simulationState.currentSegmentIndex === idx;
       const isCompleted = simulationState?.isRunning && idx < (simulationState?.currentSegmentIndex ?? -1);
-      const segType = seg?.profile?.type ?? seg?.type ?? "n/a";
-      const v0 = waypoints[idx]?.speed ?? 0;
-      const vPeak = Number(seg?.profile?.v_peak ?? 0);
-      const vCruise = Number(seg?.profile?.v_cruise ?? 0);
+      const segType = seg?.profile?.type ?? seg?.type ?? null;
 
       let rowClasses = "grid grid-cols-6 gap-2 p-3 text-xs font-mono relative border-t";
       if (isActive) rowClasses += " bg-sky-50/60 border-l-3 border-sky-500/70";
       else if (isCompleted) rowClasses += " bg-muted/40";
       else rowClasses += " bg-muted/10";
 
+      // Render a compact visual for the profile: triangle glyph for triangular,
+      // a small trapezoid SVG for trapezoidal, or a short fallback string.
+      const profileText = segType ? String(segType) : '-';
+      const profileIcon: React.ReactNode = (() => {
+        if (!segType) return <span className="text-muted-foreground">—</span>;
+        const st = String(segType).toLowerCase();
+        if (st.includes('triang')) {
+          return <span title="Triangular" aria-label="Triangular" className="text-muted-foreground">△</span>;
+        }
+        if (st.includes('trapezoid') || st.includes('trapezoidal')) {
+          return (
+            <svg width="14" height="10" viewBox="0 0 14 10" fill="none" xmlns="http://www.w3.org/2000/svg" className="inline-block text-muted-foreground" aria-hidden>
+              <path d="M2 2 H12 L10 8 H4 L2 2 Z" fill="currentColor" />
+            </svg>
+          );
+        }
+        return <span title={profileText} aria-label={profileText} className="text-muted-foreground">{profileText}</span>;
+      })();
+
       rows.push(
         <div
           key={`seg-${idx}`}
-          className={rowClasses}
+          className={rowClasses.replace('grid-cols-6', 'grid-cols-5')}
           role="row"
           aria-rowindex={idx + 1}
           tabIndex={0}
@@ -392,8 +408,7 @@ export function CompactMissionStats({
           <div ref={isActive ? currentSegmentRef : undefined} role="cell" className="text-muted-foreground px-1 text-xs font-medium">Segment {idx + 1}→{idx + 2}</div>
           <div role="cell" className="px-1 text-xs">{Number(seg.distance ?? 0).toFixed(1)} m</div>
           <div role="cell" className="px-1 text-xs">{Number(seg.travel_time_s ?? 0).toFixed(1)} s</div>
-          <div role="cell" className="px-1 text-xs">{v0.toFixed(1)} m/s</div>
-          <div role="cell" className="px-1 text-xs">{segType === "trapezoidal" ? `cruise ${vCruise.toFixed(1)} m/s` : segType.includes("triang") ? `peak ${vPeak.toFixed(1)} m/s` : "-"}</div>
+          <div role="cell" className="px-1 text-xs" title={profileText} aria-label={`Profile: ${profileText}`}>{profileIcon}</div>
           <div role="cell" className="px-1 text-xs">{isActive ? Number(simulationState?.currentSpeed ?? 0).toFixed(1) + " m/s" : "-"}</div>
         </div>
       );
@@ -484,11 +499,16 @@ export function CompactMissionStats({
         {/* Waypoints Table */}
         {waypoints && waypoints.length > 0 && (
           <div className="space-y-4" role="region" aria-labelledby="waypoints-heading">
-            <div className="border-border/50 flex items-center gap-2 border-b pb-2">
-              <Navigation className="text-muted-foreground h-4 w-4" aria-hidden="true" />
-              <h3 id="waypoints-heading" className="text-foreground text-sm font-medium">
-                Waypoint Positions
-              </h3>
+            <div className="border-border/50 flex items-center gap-2 border-b pb-2 justify-between">
+              <div className="flex items-center gap-2">
+                <Navigation className="text-muted-foreground h-4 w-4" aria-hidden="true" />
+                <h3 id="waypoints-heading" className="text-foreground text-sm font-medium">
+                  Waypoint Positions
+                </h3>
+              </div>
+              <div className="text-muted-foreground text-xs font-medium">
+                {stats ? `${stats.totalWaypoints} waypoints` : ''}
+              </div>
             </div>
             <div
               ref={tableRef}
@@ -506,7 +526,7 @@ export function CompactMissionStats({
                 aria-label="Table headers"
               >
                 <div
-                  className="text-muted-foreground grid grid-cols-4 gap-2 p-3 text-xs font-medium"
+                  className="text-muted-foreground grid grid-cols-3 gap-2 p-3 text-xs font-medium"
                   role="row"
                 >
                   <div
@@ -527,12 +547,12 @@ export function CompactMissionStats({
                   >
                     Y (m)
                   </div>
-                  <div
+                  {/* <div
                     role="columnheader"
                     className="focus:ring-primary/50 rounded px-1 focus:ring-2 focus:outline-none"
                   >
                     Speed (m/s)
-                  </div>
+                  </div> */}
                 </div>
               </div>
               <div className="divide-border/30 divide-y" role="rowgroup" aria-label="Table data">
@@ -541,71 +561,7 @@ export function CompactMissionStats({
             </div>
 
             {/* Legend for simulation highlighting */}
-            {simulationState?.isRunning && (
-              <div className="bg-muted/20 border-border/30 mt-4 rounded-lg border p-3">
-                <div className="mb-2 flex items-center justify-between">
-                  <h4 className="text-foreground text-xs font-medium">Flight Progress</h4>
-                  <div className="text-muted-foreground font-mono text-xs">
-                    {simulationState.isPaused ? (
-                      <span className="text-muted-foreground">⏸ Paused</span>
-                    ) : (
-                      <span className="text-primary">▶ Active</span>
-                    )}
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-3">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-3 w-3 items-center justify-center rounded-sm bg-emerald-500">
-                      <svg
-                        className="h-1.5 w-1.5 text-white"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </div>
-                    <span className="text-muted-foreground">Current Position</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="bg-muted-foreground/60 flex h-3 w-3 items-center justify-center rounded-sm">
-                      <svg
-                        className="h-1.5 w-1.5 text-white"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </div>
-                    <span className="text-muted-foreground">Completed</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="bg-muted-foreground/30 h-2 w-2 rounded-full" />
-                    <span className="text-muted-foreground">Upcoming</span>
-                  </div>
-                </div>
-                {simulationState.currentWaypointIndex < waypoints.length && (
-                  <div className="border-border/30 mt-2 border-t pt-2">
-                    <div className="text-muted-foreground text-xs">
-                      Flying to waypoint {simulationState.currentWaypointIndex + 2}/
-                      {waypoints.length}
-                      {simulationState.progress > 0 && (
-                        <span className="ml-2">
-                          ({(simulationState.progress * 100).toFixed(0)}% complete)
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+
 
             <div id="waypoints-description" className="sr-only" aria-live="polite">
               Table showing {waypoints.length} flight path waypoints with their coordinates and
@@ -636,51 +592,13 @@ export function CompactMissionStats({
               role="table"
               aria-label={`Flight segments table with ${segmentsRows.length} segments`}
             >
-              <div
-                className="bg-card/95 border-border/50 sticky top-0 z-30 border-b pr-3 backdrop-blur-sm"
-                role="rowgroup"
-                aria-label="Table headers"
-              >
-                <div
-                  className="text-muted-foreground grid grid-cols-6 gap-2 p-3 text-xs font-medium"
-                  role="row"
-                >
-                  <div
-                    role="columnheader"
-                    className="focus:ring-primary/50 rounded px-1 focus:ring-2 focus:outline-none"
-                  >
-                    Segment
-                  </div>
-                  <div
-                    role="columnheader"
-                    className="focus:ring-primary/50 rounded px-1 focus:ring-2 focus:outline-none"
-                  >
-                    Distance (m)
-                  </div>
-                  <div
-                    role="columnheader"
-                    className="focus:ring-primary/50 rounded px-1 focus:ring-2 focus:outline-none"
-                  >
-                    Time (s)
-                  </div>
-                  <div
-                    role="columnheader"
-                    className="focus:ring-primary/50 rounded px-1 focus:ring-2 focus:outline-none"
-                  >
-                    v₀ (m/s)
-                  </div>
-                  <div
-                    role="columnheader"
-                    className="focus:ring-primary/50 rounded px-1 focus:ring-2 focus:outline-none"
-                  >
-                    vₚₑₐₖ/vₐ (m/s)
-                  </div>
-                  <div
-                    role="columnheader"
-                    className="focus:ring-primary/50 rounded px-1 focus:ring-2 focus:outline-none"
-                  >
-                    Current Speed
-                  </div>
+              <div className="bg-card/95 border-border/50 sticky top-0 z-30 border-b pr-2 backdrop-blur-sm" role="rowgroup" aria-label="Table headers">
+                <div className="text-muted-foreground grid grid-cols-5 gap-1 p-2 text-xs font-medium items-center" role="row">
+                  <div role="columnheader" className="px-1 py-0.5 text-left leading-tight">Segment</div>
+                  <div role="columnheader" className="px-1 py-0.5 text-center leading-tight">Distance</div>
+                  <div role="columnheader" className="px-1 py-0.5 text-center leading-tight">Time</div>
+                  <div role="columnheader" className="px-1 py-0.5 text-center leading-tight">Profile</div>
+                  <div role="columnheader" className="px-1 py-0.5 text-center leading-tight">Speed</div>
                 </div>
               </div>
               <div className="divide-border/30 divide-y" role="rowgroup" aria-label="Table data">
@@ -693,6 +611,34 @@ export function CompactMissionStats({
             </div>
           </div>
         )}
+
+                    {simulationState?.isRunning && (
+              <div className="bg-muted/20 border-border/30 mt-4 rounded-lg border p-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <h4 className="text-foreground text-xs font-medium">Flight Progress</h4>
+                  <div className="text-muted-foreground font-mono text-xs">
+                    {simulationState.isPaused ? (
+                      <span className="text-muted-foreground">⏸ Paused</span>
+                    ) : (
+                      <span className="text-primary">▶ Active</span>
+                    )}
+                  </div>
+                </div>
+                {simulationState.currentWaypointIndex < waypoints.length && (
+                  <div className="border-border/30 mt-2 border-t pt-2">
+                    <div className="text-muted-foreground text-xs">
+                      Flying to waypoint {simulationState.currentWaypointIndex + 2}/
+                      {waypoints.length}
+                      {simulationState.progress > 0 && (
+                        <span className="ml-2">
+                          ({(simulationState.progress * 100).toFixed(0)}% complete)
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
       </CardContent>
     </Card>
   );
