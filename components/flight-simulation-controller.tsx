@@ -278,7 +278,12 @@ export const FlightSimulationController = forwardRef<
    * If not running, starts from the first waypoint and resets timing.
    */
   const startSimulation = () => {
-    if (waypoints.length < 2) return;
+    const maxWaypoints = 5000;
+    if (waypoints.length < 2 || waypoints.length > maxWaypoints) {
+      // Prevent starting simulation if there are too few or too many waypoints.
+      console.warn(`Simulation cannot start: waypoints=${waypoints.length} (allowed 2..${maxWaypoints})`);
+      return;
+    }
 
     const totalDistance = calculateTotalDistance(waypoints);
 
@@ -419,7 +424,48 @@ export const FlightSimulationController = forwardRef<
     resetSimulation();
   }, [waypoints]);
 
-  const canSimulate = waypoints.length >= 2;
+  const WAYPOINT_LIMIT = 5000; // single canonical limit
+  const canSimulate = waypoints.length >= 2 && waypoints.length <= WAYPOINT_LIMIT;
+  const isTooManyWaypoints = waypoints.length > WAYPOINT_LIMIT;
+  console.log("FlightSimulationController render - waypoints:", waypoints.length, "canSimulate:", canSimulate);
+
+  // Defensive early return: if we detect too many waypoints, render only the disclaimer
+  if (isTooManyWaypoints) {
+    console.warn(`FlightSimulationController: rendering disclaimer - waypoints=${waypoints.length} exceeds limit=${WAYPOINT_LIMIT}`);
+    return (
+      <Card className={`border-border bg-card ${className || ""}`}>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg font-semibold">Flight Simulation</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Debug badge: visible indicator of what this component sees (helps diagnose visibility mismatches) */}
+          <div className="text-xs text-muted-foreground mb-2" data-testid="flight-sim-debug">
+            Debug: waypoints={waypoints.length} • limit={WAYPOINT_LIMIT} • canSimulate={String(canSimulate)} • tooMany={String(isTooManyWaypoints)}
+          </div>
+
+          <div className="w-full rounded-lg border border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 mt-1 text-yellow-600">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path d="M10.29 3.86L1.82 18a1 1 0 0 0 .87 1.5h18.62a1 1 0 0 0 .87-1.5L13.71 3.86a1 1 0 0 0-1.42 0z" fill="currentColor" />
+                  <rect x="11" y="8" width="2" height="6" fill="white" />
+                  <rect x="11" y="15" width="2" height="2" fill="white" />
+                </svg>
+              </div>
+              <div>
+                <div className="text-foreground font-semibold">Simulation disabled for large plans</div>
+                <p className="text-muted-foreground text-sm mt-1">
+                  This flight plan contains <span className="font-medium">{waypoints.length}</span> waypoints, which exceeds the simulation limit of <span className="font-medium">{WAYPOINT_LIMIT}</span>.
+                  Running a browser-based simulation with very large waypoint counts may cause performance problems.
+                </p>
+                <p className="text-muted-foreground text-sm mt-2">Reduce the number of waypoints or run an offline simulation tool for large-scale plans.</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className={`border-border bg-card ${className || ""}`}>
@@ -427,43 +473,70 @@ export const FlightSimulationController = forwardRef<
         <CardTitle className="text-lg font-semibold">Flight Simulation</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Control Buttons */}
-        <div className="flex gap-2">
-          <Button
-            onClick={startSimulation}
-            disabled={!canSimulate || (simulationState.isRunning && !simulationState.isPaused)}
-            className="flex items-center gap-2"
-            variant={simulationState.isRunning && !simulationState.isPaused ? "secondary" : "default"}
-          >
-            <Play className="h-4 w-4" />
-            {simulationState.isPaused ? "Resume" : "Start"}
-          </Button>
-
-          <Button
-            onClick={pauseSimulation}
-            disabled={!simulationState.isRunning || simulationState.isPaused}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <Pause className="h-4 w-4" />
-            Pause
-          </Button>
-
-          <Button
-            onClick={stopSimulation}
-            disabled={!simulationState.isRunning}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <Square className="h-4 w-4" />
-            Stop
-          </Button>
-
-          <Button onClick={resetSimulation} variant="outline" className="flex items-center gap-2">
-            <RotateCcw className="h-4 w-4" />
-            Reset
-          </Button>
+        {/* Debug badge: visible indicator of what this component sees (helps diagnose visibility mismatches) */}
+        <div className="text-xs text-muted-foreground mb-2" data-testid="flight-sim-debug">
+          Debug: waypoints={waypoints.length} • limit={WAYPOINT_LIMIT} • canSimulate={String(canSimulate)} • tooMany={String(isTooManyWaypoints)}
         </div>
+
+        {/* Control Buttons */}
+        { !isTooManyWaypoints ? (
+          <div className="flex gap-2" data-controls-visible="true">
+            <Button
+              onClick={startSimulation}
+              disabled={isTooManyWaypoints || !canSimulate || (simulationState.isRunning && !simulationState.isPaused)}
+              className="flex items-center gap-2"
+              variant={simulationState.isRunning && !simulationState.isPaused ? "secondary" : "default"}
+            >
+              <Play className="h-4 w-4" />
+              {simulationState.isPaused ? "Resume" : "Start"}
+            </Button>
+
+            <Button
+              onClick={pauseSimulation}
+              disabled={!simulationState.isRunning || simulationState.isPaused}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Pause className="h-4 w-4" />
+              Pause
+            </Button>
+
+            <Button
+              onClick={stopSimulation}
+              disabled={!simulationState.isRunning}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Square className="h-4 w-4" />
+              Stop
+            </Button>
+
+            <Button onClick={resetSimulation} variant="outline" className="flex items-center gap-2">
+              <RotateCcw className="h-4 w-4" />
+              Reset
+            </Button>
+          </div>
+        ) : (
+          <div className="w-full rounded-lg border border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 mt-1 text-yellow-600">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path d="M10.29 3.86L1.82 18a1 1 0 0 0 .87 1.5h18.62a1 1 0 0 0 .87-1.5L13.71 3.86a1 1 0 0 0-1.42 0z" fill="currentColor" />
+                  <rect x="11" y="8" width="2" height="6" fill="white" />
+                  <rect x="11" y="15" width="2" height="2" fill="white" />
+                </svg>
+              </div>
+              <div>
+                <div className="text-foreground font-semibold">Simulation disabled for large plans</div>
+                <p className="text-muted-foreground text-sm mt-1">
+                  This flight plan contains <span className="font-medium">{waypoints.length}</span> waypoints, which exceeds the simulation limit of <span className="font-medium">{WAYPOINT_LIMIT}</span>.
+                  Running a browser-based simulation with very large waypoint counts may cause performance problems.
+                </p>
+                <p className="text-muted-foreground text-sm mt-2">Reduce the number of waypoints or run an offline simulation tool for large-scale plans.</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Simulation Stats */}
         <div className="grid grid-cols-2 gap-4 text-sm">
@@ -529,7 +602,7 @@ export const FlightSimulationController = forwardRef<
           </div>
         </div>
 
-        {!canSimulate && (
+        {!canSimulate && waypoints.length < 2 && (
           <div className="text-muted-foreground bg-muted/30 rounded-lg p-4 text-center text-sm">
             Generate a flight plan with at least 2 waypoints to start simulation
           </div>

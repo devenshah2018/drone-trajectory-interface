@@ -249,142 +249,172 @@ export function FlightPathVisualization({
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Flight Controls and Speedometer */}
-        {waypoints.length > 0 && (
-          <div className="bg-muted/30 flex items-start justify-between gap-4 rounded-lg p-4">
-            {/* Left side: Flight Controls and Status */}
-            <div className="flex flex-col gap-3">
-              {/* Flight Control Buttons */}
-              <div className="flex items-center gap-2">
-                <Button
-                  onClick={onStartSimulation}
-                  disabled={simulationState?.isRunning && !simulationState?.isPaused}
-                  size="sm"
-                  variant={
-                    simulationState?.isRunning && !simulationState?.isPaused
-                      ? "secondary"
-                      : "default"
-                  }
-                  className="cursor-pointer"
-                >
-                  <Play className="mr-1 h-4 w-4" />
-                  {simulationState?.isRunning && !simulationState?.isPaused ? "Running" : "Start"}
-                </Button>
+        {(() => {
+          const WAYPOINT_LIMIT = 5000;
+          const isTooManyWaypoints = waypoints.length > WAYPOINT_LIMIT;
+          console.log("FlightPathVisualization render - waypoints:", waypoints.length, "isTooMany:", isTooManyWaypoints);
 
-                <Button
-                  onClick={onPauseSimulation}
-                  disabled={!simulationState?.isRunning || simulationState?.isPaused}
-                  size="sm"
-                  variant="outline"
-                  className="cursor-pointer"
-                >
-                  <Pause className="mr-1 h-4 w-4" />
-                  Pause
-                </Button>
-
-                <Button
-                  onClick={onStopSimulation}
-                  disabled={!simulationState?.isRunning}
-                  size="sm"
-                  variant="outline"
-                  className="cursor-pointer"
-                >
-                  <Square className="mr-1 h-4 w-4" />
-                  Stop
-                </Button>
-
-                <Button
-                  onClick={onResetSimulation}
-                  size="sm"
-                  variant="outline"
-                  className="cursor-pointer"
-                >
-                  <RotateCcw className="mr-1 h-4 w-4" />
-                  Reset
-                </Button>
+          if (isTooManyWaypoints) {
+            return (
+              <div className="w-full rounded-lg border border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 mt-1 text-yellow-600">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+                      <path d="M10.29 3.86L1.82 18a1 1 0 0 0 .87 1.5h18.62a1 1 0 0 0 .87-1.5L13.71 3.86a1 1 0 0 0-1.42 0z" fill="currentColor" />
+                      <rect x="11" y="8" width="2" height="6" fill="white" />
+                      <rect x="11" y="15" width="2" height="2" fill="white" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="text-foreground font-semibold">Simulation disabled for large plans</div>
+                    <p className="text-muted-foreground text-sm mt-1">
+                      This flight plan contains <span className="font-medium">{waypoints.length}</span> waypoints, which exceeds the simulation limit of <span className="font-medium">{WAYPOINT_LIMIT}</span>.
+                      Running a browser-based simulation with very large waypoint counts may cause performance problems.
+                    </p>
+                    <p className="text-muted-foreground text-sm mt-2">Reduce the number of waypoints or run an offline simulation tool for large-scale plans.</p>
+                  </div>
+                </div>
               </div>
+            );
+          }
 
-              {/* Flight Progress Metrics - Under buttons */}
-              {simulationState?.isRunning && (
-                <div className="text-md grid grid-cols-4 gap-8">
-                  <div className="text-center">
-                    <p className="text-muted-foreground text-sm">Mission Time</p>
-                    <p className="font-mono text-lg font-bold">
-                      {(() => {
-                        const totalSeconds = Math.floor(simulationState.elapsedTime);
-                        const hours = Math.floor(totalSeconds / 3600);
-                        const minutes = Math.floor((totalSeconds % 3600) / 60);
-                        const seconds = totalSeconds % 60;
+          return (
+            <div className="bg-muted/30 flex items-start justify-between gap-4 rounded-lg p-4">
+              {/* Left side: Flight Controls and Status */}
+              <div className="flex flex-col gap-3">
+                {/* Flight Control Buttons */}
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={onStartSimulation}
+                    disabled={isTooManyWaypoints || (simulationState?.isRunning && !simulationState?.isPaused)}
+                    size="sm"
+                    variant={
+                      simulationState?.isRunning && !simulationState?.isPaused
+                        ? "secondary"
+                        : "default"
+                    }
+                    className="cursor-pointer"
+                  >
+                    <Play className="mr-1 h-4 w-4" />
+                    {simulationState?.isRunning && !simulationState?.isPaused ? "Running" : "Start"}
+                  </Button>
 
-                        if (hours > 0) {
-                          return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-                        }
-                        return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-                      })()}
-                    </p>
-                    <div className="mt-1 flex items-center justify-center gap-1">
-                      {simulationState.isPaused ? (
-                        <>
-                          <div className="h-2 w-2 rounded-full bg-yellow-500" />
-                          <span className="text-muted-foreground text-xs">Paused</span>
-                        </>
-                      ) : (
-                        <>
-                          <div className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
-                          <span className="text-muted-foreground text-xs">Running</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
+                  <Button
+                    onClick={onPauseSimulation}
+                    disabled={!simulationState?.isRunning || simulationState?.isPaused}
+                    size="sm"
+                    variant="outline"
+                    className="cursor-pointer"
+                  >
+                    <Pause className="mr-1 h-4 w-4" />
+                    Pause
+                  </Button>
 
-                  <div className="text-center">
-                    <p className="text-muted-foreground text-sm">Waypoint</p>
-                    <p className="font-mono font-bold">
-                      {simulationState.currentWaypointIndex + 1} / {waypoints.length}
-                    </p>
-                  </div>
+                  <Button
+                    onClick={onStopSimulation}
+                    disabled={!simulationState?.isRunning}
+                    size="sm"
+                    variant="outline"
+                    className="cursor-pointer"
+                  >
+                    <Square className="mr-1 h-4 w-4" />
+                    Stop
+                  </Button>
 
-                  <div className="text-center">
-                    <p className="text-muted-foreground text-sm">Photos Taken</p>
-                    <p className="font-mono font-bold text-green-600">
-                      {simulationState.currentWaypointIndex + 1}
-                    </p>
-                  </div>
+                  <Button
+                    onClick={onResetSimulation}
+                    size="sm"
+                    variant="outline"
+                    className="cursor-pointer"
+                  >
+                    <RotateCcw className="mr-1 h-4 w-4" />
+                    Reset
+                  </Button>
+                </div>
 
-                  <div className="text-center">
-                    <p className="text-muted-foreground mb-2 text-sm">Mission Progress</p>
-                    <div className="space-y-2">
-                      <p className="font-mono font-bold">
-                        {Math.round(
-                          (simulationState.currentWaypointIndex / (waypoints.length - 1)) * 100
-                        )}
-                        %
+                {/* Flight Progress Metrics - Under buttons */}
+                {simulationState?.isRunning && (
+                  <div className="text-md grid grid-cols-4 gap-8">
+                    <div className="text-center">
+                      <p className="text-muted-foreground text-sm">Mission Time</p>
+                      <p className="font-mono text-lg font-bold">
+                        {(() => {
+                          const totalSeconds = Math.floor(simulationState.elapsedTime);
+                          const hours = Math.floor(totalSeconds / 3600);
+                          const minutes = Math.floor((totalSeconds % 3600) / 60);
+                          const seconds = totalSeconds % 60;
+
+                          if (hours > 0) {
+                            return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+                          }
+                          return `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+                        })()}
                       </p>
-                      <div className="bg-muted mx-auto h-2 w-full rounded-full">
-                        <div
-                          className="bg-primary h-2 rounded-full transition-all duration-500 ease-out"
-                          style={{
-                            width: `${Math.round((simulationState.currentWaypointIndex / (waypoints.length - 1)) * 100)}%`,
-                          }}
-                        />
+                      <div className="mt-1 flex items-center justify-center gap-1">
+                        {simulationState.isPaused ? (
+                          <>
+                            <div className="h-2 w-2 rounded-full bg-yellow-500" />
+                            <span className="text-muted-foreground text-xs">Paused</span>
+                          </>
+                        ) : (
+                          <>
+                            <div className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
+                            <span className="text-muted-foreground text-xs">Running</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="text-center">
+                      <p className="text-muted-foreground text-sm">Waypoint</p>
+                      <p className="font-mono font-bold">
+                        {simulationState.currentWaypointIndex + 1} / {waypoints.length}
+                      </p>
+                    </div>
+
+                    <div className="text-center">
+                      <p className="text-muted-foreground text-sm">Photos Taken</p>
+                      <p className="font-mono font-bold text-green-600">
+                        {simulationState.currentWaypointIndex + 1}
+                      </p>
+                    </div>
+
+                    <div className="text-center">
+                      <p className="text-muted-foreground mb-2 text-sm">Mission Progress</p>
+                      <div className="space-y-2">
+                        <p className="font-mono font-bold">
+                          {Math.round(
+                            (simulationState.currentWaypointIndex / (waypoints.length - 1)) * 100
+                          )}
+                          %
+                        </p>
+                        <div className="bg-muted mx-auto h-2 w-full rounded-full">
+                          <div
+                            className="bg-primary h-2 rounded-full transition-all duration-500 ease-out"
+                            style={{
+                              width: `${Math.round((simulationState.currentWaypointIndex / (waypoints.length - 1)) * 100)}%`,
+                            }}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {!simulationState?.isRunning && (
-                <div className="text-muted-foreground text-sm">
-                  <p>{waypoints.length} waypoints loaded • Ready to simulate</p>
-                </div>
+                {!simulationState?.isRunning && (
+                  <div className="text-muted-foreground text-sm">
+                    <p>{waypoints.length} waypoints loaded • Ready to simulate</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Right side: Speedometer */}
+              {simulationState?.isRunning && (
+                <SpeedometerGauge speed={simulationState.currentSpeed} />
               )}
             </div>
-
-            {/* Right side: Speedometer */}
-            {simulationState?.isRunning && (
-              <SpeedometerGauge speed={simulationState.currentSpeed} />
-            )}
-          </div>
-        )}
+          );
+        })()}
 
         <div className="relative flex w-full justify-center">
           <svg
