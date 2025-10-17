@@ -4,6 +4,7 @@ import type { Waypoint } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Play, Pause, Square, RotateCcw } from "lucide-react";
+import React, { useState } from "react";
 import type { SimulationState } from "./flight-simulation-controller";
 
 /**
@@ -244,9 +245,7 @@ export function FlightPathVisualization({
     <Card className={`border-border bg-card ${className || ""}`}>
       <CardHeader>
         <CardTitle className="text-lg font-semibold">Flight Path Visualization</CardTitle>
-        <p className="text-muted-foreground text-sm">
-          {waypoints.length} waypoints in lawn-mower pattern
-        </p>
+        <p className="text-muted-foreground text-sm">{waypoints.length} waypoints in lawn-mower pattern</p>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Flight Controls and Speedometer */}
