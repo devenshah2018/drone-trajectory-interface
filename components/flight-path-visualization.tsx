@@ -78,6 +78,7 @@ export function FlightPathVisualization({
 }: FlightPathVisualizationProps) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [hoveredSegmentIdx, setHoveredSegmentIdx] = useState<number | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
 
   // Responsive helper: detect mobile viewport so we can reduce vertical space
@@ -96,11 +97,23 @@ export function FlightPathVisualization({
       setHoveredIdx(idx);
     };
     const onUnhover = () => setHoveredIdx(null);
+    
+    const onSegmentHover = (e: Event) => {
+      const ev = e as CustomEvent;
+      const idx = typeof ev.detail?.index === 'number' ? ev.detail.index : null;
+      setHoveredSegmentIdx(idx);
+    };
+    const onSegmentUnhover = () => setHoveredSegmentIdx(null);
+    
     window.addEventListener('waypoint-hover', onHover as EventListener);
     window.addEventListener('waypoint-unhover', onUnhover as EventListener);
+    window.addEventListener('segment-hover', onSegmentHover as EventListener);
+    window.addEventListener('segment-unhover', onSegmentUnhover as EventListener);
     return () => {
       window.removeEventListener('waypoint-hover', onHover as EventListener);
       window.removeEventListener('waypoint-unhover', onUnhover as EventListener);
+      window.removeEventListener('segment-hover', onSegmentHover as EventListener);
+      window.removeEventListener('segment-unhover', onSegmentUnhover as EventListener);
     };
   }, []);
 
@@ -399,17 +412,41 @@ export function FlightPathVisualization({
             {waypoints.map((waypoint, i) => {
               if (i === waypoints.length - 1) return null;
               const next = waypoints[i + 1];
+              const isInteractive = !simulationState?.isRunning;
+              const isHovered = isInteractive && hoveredSegmentIdx === i;
+              
               return (
-                <line
-                  key={i}
-                  x1={scaleX(waypoint.x)}
-                  y1={scaleY(waypoint.y)}
-                  x2={scaleX(next.x)}
-                  y2={scaleY(next.y)}
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="text-primary"
-                />
+                <g key={i}>
+                  {/* Main visible line */}
+                  <line
+                    x1={scaleX(waypoint.x)}
+                    y1={scaleY(waypoint.y)}
+                    x2={scaleX(next.x)}
+                    y2={scaleY(next.y)}
+                    stroke="currentColor"
+                    strokeWidth={isHovered ? "3" : "2"}
+                    className={isHovered ? "text-orange-500" : "text-primary"}
+                  />
+                  {/* Invisible wider hit target for easier hovering */}
+                  <line
+                    x1={scaleX(waypoint.x)}
+                    y1={scaleY(waypoint.y)}
+                    x2={scaleX(next.x)}
+                    y2={scaleY(next.y)}
+                    stroke="transparent"
+                    strokeWidth="12"
+                    style={{ cursor: isInteractive ? 'pointer' : 'default' }}
+                    onMouseEnter={() => {
+                      if (!isInteractive) return;
+                      const event = new CustomEvent('segment-hover', { detail: { index: i, source: 'svg' } });
+                      window.dispatchEvent(event);
+                    }}
+                    onMouseLeave={() => {
+                      if (!isInteractive) return;
+                      window.dispatchEvent(new CustomEvent('segment-unhover'));
+                    }}
+                  />
+                </g>
               );
             })}
 
