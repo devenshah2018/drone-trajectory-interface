@@ -122,7 +122,8 @@ export function computeGroundSamplingDistance(
   const gsd_y = footprint[1] / camera.image_size_y;
 
   // Return the smaller GSD (best resolution)
-  return Math.min(gsd_x, gsd_y);
+  const gsd = Math.min(gsd_x, gsd_y);
+  return gsd;
 }
 
 /**

@@ -49,6 +49,7 @@ export function CompactMissionStats({
   // Timeout ref for delayed segment scrolls
   const segmentScrollTimeoutRef = useRef<number | null>(null);
   const [hoveredWaypoint, setHoveredWaypoint] = useState<number | null>(null);
+  const [hoveredSegment, setHoveredSegment] = useState<number | null>(null);
 
   // Listen for cross-component hover events (custom DOM events) so the
   // visualization and table can highlight each other without changing props.
@@ -60,11 +61,22 @@ export function CompactMissionStats({
     };
     const onWaypointUnhover = () => setHoveredWaypoint(null);
 
+    const onSegmentHover = (e: Event) => {
+      const ev = e as CustomEvent;
+      const idx = typeof ev.detail?.index === 'number' ? ev.detail.index : null;
+      setHoveredSegment(idx);
+    };
+    const onSegmentUnhover = () => setHoveredSegment(null);
+
     window.addEventListener('waypoint-hover', onWaypointHover as EventListener);
     window.addEventListener('waypoint-unhover', onWaypointUnhover as EventListener);
+    window.addEventListener('segment-hover', onSegmentHover as EventListener);
+    window.addEventListener('segment-unhover', onSegmentUnhover as EventListener);
     return () => {
       window.removeEventListener('waypoint-hover', onWaypointHover as EventListener);
       window.removeEventListener('waypoint-unhover', onWaypointUnhover as EventListener);
+      window.removeEventListener('segment-hover', onSegmentHover as EventListener);
+      window.removeEventListener('segment-unhover', onSegmentUnhover as EventListener);
     };
   }, []);
 
@@ -677,47 +689,400 @@ export function CompactMissionStats({
           </div>
         )}
 
-        {/* Segments Table */}
+        {/* Speed Profile Chart - Show during simulation OR as preview of first segment */}
         {waypoints && waypoints.length > 1 && (
-          <div className="space-y-4" role="region" aria-labelledby="segments-heading">
+          <div className="space-y-4" role="region" aria-labelledby="speed-profile-heading">
             <div className="border-border/50 flex items-center gap-2 border-b pb-2 justify-between">
               <div className="flex items-center gap-2">
                 <Navigation className="text-muted-foreground h-4 w-4" aria-hidden="true" />
-                <h3 id="segments-heading" className="text-foreground text-sm font-medium">Flight Segments</h3>
+                <h3 id="speed-profile-heading" className="text-foreground text-sm font-medium">
+                  Speed Profile
+                </h3>
               </div>
               <div className="text-muted-foreground text-xs font-medium">
-                {stats ? `${(stats.totalDistance / 1000).toFixed(1)} km total` : ''}
+                {simulationState?.isRunning ? (
+                  <>Segment {(simulationState.currentSegmentIndex ?? 0) + 1} → {(simulationState.currentSegmentIndex ?? 0) + 2}</>
+                ) : hoveredSegment !== null ? (
+                  <>Segment {hoveredSegment + 1} → {hoveredSegment + 2}</>
+                ) : (
+                  <>Preview: Segment 1 → 2</>
+                )}
               </div>
             </div>
-            <div
-              ref={segmentsTableRef}
-              tabIndex={0}
-              style={{ WebkitOverflowScrolling: 'touch' }}
-              className="border-border/50 focus-within:ring-primary/50 max-h-80 overflow-y-auto rounded-lg border [scrollbar-gutter:stable] focus-within:ring-2 touch-auto"
-              role="table"
-              aria-label={`Flight segments table with ${segmentsRows.length} segments`}
-            >
-              <div className="bg-card/95 border-border/50 sticky top-0 z-30 border-b pr-2 backdrop-blur-sm" role="rowgroup" aria-label="Table headers">
-                <div className="text-muted-foreground grid grid-cols-5 gap-1 p-2 text-xs font-medium items-center" role="row">
-                  <div role="columnheader" className="px-1 py-0.5 text-left leading-tight">Segment</div>
-                  <div role="columnheader" className="px-1 py-0.5 text-center leading-tight">Distance</div>
-                  <div role="columnheader" className="px-1 py-0.5 text-center leading-tight">Time</div>
-                  <div role="columnheader" className="px-1 py-0.5 text-center leading-tight">Profile</div>
-                  <div role="columnheader" className="px-1 py-0.5 text-center leading-tight">Speed</div>
+
+            {/* Speed Profile SVG Chart */}
+            <div className="bg-muted/10 border-border/30 relative rounded-lg border p-4">
+              {(() => {
+                const segments = (simulationState?.segments && (simulationState.segments.length ?? 0) > 0)
+                  ? simulationState.segments
+                  : (previewSegments ?? []);
+                
+                // If running, use current segment; if not running and hovering, use hovered segment; otherwise show first segment
+                const currentSegIdx = simulationState?.isRunning 
+                  ? (simulationState.currentSegmentIndex ?? 0)
+                  : (hoveredSegment ?? 0);
+                const segment = segments[currentSegIdx];
+                
+                if (!segment) {
+                  return (
+                    <div className="text-muted-foreground text-center text-xs py-8">
+                      No segment data available
+                    </div>
+                  );
+                }
+
+                const profile = segment?.profile ?? segment;
+                const segType = profile?.type ?? 'degenerate';
+                const tTotal = Number(segment.travel_time_s ?? 0);
+                const distance = Number(segment.distance ?? 0);
+                
+                // Only use live values if simulation is running
+                const segElapsed = simulationState?.isRunning 
+                  ? (simulationState.segmentElapsedTime ?? 0)
+                  : 0;
+                const currentSpeed = simulationState?.isRunning 
+                  ? (simulationState.currentSpeed ?? 0)
+                  : 0;
+
+                // Chart dimensions
+                const width = 400;
+                const height = 180;
+                const padding = { top: 20, right: 40, bottom: 30, left: 50 };
+                const chartWidth = width - padding.left - padding.right;
+                const chartHeight = height - padding.top - padding.bottom;
+
+                // Get profile parameters
+                let vPhoto = 0;
+                let vPeak = 0;
+                let vCruise = 0;
+                let tAcc = 0;
+                let tCruise = 0;
+                let tDec = 0;
+
+                if (segType === 'triangular' || segType === 'triangular_fallback') {
+                  vPhoto = Number(profile.v_photo ?? 0);
+                  vPeak = Number(profile.v_peak ?? 0);
+                  tAcc = Number(profile.t_acc ?? 0);
+                  tDec = Number(profile.t_dec ?? tAcc);
+                } else if (segType === 'trapezoidal') {
+                  vPhoto = Number(profile.v_photo ?? 0);
+                  vCruise = Number(profile.v_cruise ?? 0);
+                  tAcc = Number(profile.t_acc ?? 0);
+                  tCruise = Number(profile.t_cruise ?? 0);
+                  tDec = Number(profile.t_dec ?? tAcc);
+                }
+
+                const vMax = Math.max(vPeak, vCruise, vPhoto, currentSpeed, 1);
+                const timeMax = Math.max(tTotal, 0.1);
+
+                // Scale functions
+                const scaleX = (t: number) => padding.left + (t / timeMax) * chartWidth;
+                const scaleY = (v: number) => height - padding.bottom - (v / vMax) * chartHeight;
+
+                // Build path for velocity profile
+                let pathData = '';
+                
+                if (segType === 'triangular' || segType === 'triangular_fallback') {
+                  // Triangular: accel to peak, then decel
+                  pathData = `M ${scaleX(0)},${scaleY(vPhoto)} L ${scaleX(tAcc)},${scaleY(vPeak)} L ${scaleX(tAcc + tDec)},${scaleY(vPhoto)}`;
+                } else if (segType === 'trapezoidal') {
+                  // Trapezoidal: accel, cruise, decel
+                  pathData = `M ${scaleX(0)},${scaleY(vPhoto)} L ${scaleX(tAcc)},${scaleY(vCruise)} L ${scaleX(tAcc + tCruise)},${scaleY(vCruise)} L ${scaleX(tAcc + tCruise + tDec)},${scaleY(vPhoto)}`;
+                } else {
+                  // Degenerate: flat line
+                  pathData = `M ${scaleX(0)},${scaleY(vPhoto)} L ${scaleX(timeMax)},${scaleY(vPhoto)}`;
+                }
+
+                // Calculate the actual speed at current elapsed time based on profile
+                let speedAtTime = vPhoto;
+                if (segType === 'triangular' || segType === 'triangular_fallback') {
+                  if (segElapsed <= tAcc) {
+                    // Acceleration phase: v = v_photo + (v_peak - v_photo) * (t / t_acc)
+                    speedAtTime = vPhoto + (vPeak - vPhoto) * (segElapsed / tAcc);
+                  } else if (segElapsed <= tAcc + tDec) {
+                    // Deceleration phase: v = v_peak - (v_peak - v_photo) * ((t - t_acc) / t_dec)
+                    const tSincePeak = segElapsed - tAcc;
+                    speedAtTime = vPeak - (vPeak - vPhoto) * (tSincePeak / tDec);
+                  } else {
+                    speedAtTime = vPhoto;
+                  }
+                } else if (segType === 'trapezoidal') {
+                  if (segElapsed <= tAcc) {
+                    // Acceleration phase
+                    speedAtTime = vPhoto + (vCruise - vPhoto) * (segElapsed / tAcc);
+                  } else if (segElapsed <= tAcc + tCruise) {
+                    // Cruise phase
+                    speedAtTime = vCruise;
+                  } else if (segElapsed <= tAcc + tCruise + tDec) {
+                    // Deceleration phase
+                    const tSinceCruise = segElapsed - tAcc - tCruise;
+                    speedAtTime = vCruise - (vCruise - vPhoto) * (tSinceCruise / tDec);
+                  } else {
+                    speedAtTime = vPhoto;
+                  }
+                }
+
+                // Current position on chart
+                const droneX = scaleX(segElapsed);
+                const droneY = scaleY(speedAtTime);
+
+                // Generate time ticks (every 0.5s or smart intervals)
+                const timeInterval = timeMax > 5 ? 1 : 0.5;
+                const timeTicks: number[] = [];
+                for (let t = 0; t <= timeMax; t += timeInterval) {
+                  timeTicks.push(t);
+                }
+
+                // Generate speed ticks
+                const speedInterval = vMax > 10 ? 5 : vMax > 5 ? 2 : 1;
+                const speedTicks: number[] = [];
+                for (let v = 0; v <= vMax; v += speedInterval) {
+                  speedTicks.push(v);
+                }
+
+                return (
+                  <svg
+                    width="100%"
+                    height={height}
+                    viewBox={`0 0 ${width} ${height}`}
+                    className="max-w-full"
+                    aria-label="Real-time speed profile chart showing velocity over time"
+                  >
+                    {/* Grid lines */}
+                    <g className="text-muted-foreground/20">
+                      {timeTicks.map((t, i) => (
+                        <line
+                          key={`time-grid-${i}`}
+                          x1={scaleX(t)}
+                          y1={padding.top}
+                          x2={scaleX(t)}
+                          y2={height - padding.bottom}
+                          stroke="currentColor"
+                          strokeWidth="0.5"
+                          strokeDasharray="2,2"
+                        />
+                      ))}
+                      {speedTicks.map((v, i) => (
+                        <line
+                          key={`speed-grid-${i}`}
+                          x1={padding.left}
+                          y1={scaleY(v)}
+                          x2={width - padding.right}
+                          y2={scaleY(v)}
+                          stroke="currentColor"
+                          strokeWidth="0.5"
+                          strokeDasharray="2,2"
+                        />
+                      ))}
+                    </g>
+
+                    {/* Axes */}
+                    <line
+                      x1={padding.left}
+                      y1={height - padding.bottom}
+                      x2={width - padding.right}
+                      y2={height - padding.bottom}
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      className="text-foreground/40"
+                    />
+                    <line
+                      x1={padding.left}
+                      y1={padding.top}
+                      x2={padding.left}
+                      y2={height - padding.bottom}
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      className="text-foreground/40"
+                    />
+
+                    {/* Axis labels */}
+                    <text
+                      x={width / 2}
+                      y={height - 5}
+                      textAnchor="middle"
+                      className="fill-muted-foreground text-[10px] font-medium"
+                    >
+                      Time (s)
+                    </text>
+                    <text
+                      x={10}
+                      y={height / 2}
+                      textAnchor="middle"
+                      className="fill-muted-foreground text-[10px] font-medium"
+                      transform={`rotate(-90, 10, ${height / 2})`}
+                    >
+                      Speed (m/s)
+                    </text>
+
+                    {/* Time tick labels */}
+                    {timeTicks.map((t, i) => (
+                      <text
+                        key={`time-label-${i}`}
+                        x={scaleX(t)}
+                        y={height - padding.bottom + 15}
+                        textAnchor="middle"
+                        className="fill-muted-foreground text-[9px]"
+                      >
+                        {t.toFixed(1)}
+                      </text>
+                    ))}
+
+                    {/* Speed tick labels */}
+                    {speedTicks.map((v, i) => (
+                      <text
+                        key={`speed-label-${i}`}
+                        x={padding.left - 8}
+                        y={scaleY(v)}
+                        textAnchor="end"
+                        dominantBaseline="middle"
+                        className="fill-muted-foreground text-[9px]"
+                      >
+                        {v.toFixed(0)}
+                      </text>
+                    ))}
+
+                    {/* Fill area under curve */}
+                    <path
+                      d={`${pathData} L ${scaleX(timeMax)},${scaleY(0)} L ${scaleX(0)},${scaleY(0)} Z`}
+                      fill="currentColor"
+                      className="text-primary/10"
+                    />
+
+                    {/* Velocity profile curve */}
+                    <path
+                      d={pathData}
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      className="text-primary"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+
+
+
+                    {/* Current position indicator - drone on curve - only show when running */}
+                    {simulationState?.isRunning && segElapsed <= tTotal && (
+                      <g className="animate-pulse">
+                        {/* Vertical line from axis to drone */}
+                        <line
+                          x1={droneX}
+                          y1={droneY}
+                          x2={droneX}
+                          y2={height - padding.bottom}
+                          stroke="currentColor"
+                          strokeWidth="1"
+                          strokeDasharray="3,3"
+                          className="text-orange-500/40"
+                        />
+                        
+                        {/* Drone marker circle */}
+                        <circle
+                          cx={droneX}
+                          cy={droneY}
+                          r="6"
+                          fill="currentColor"
+                          className="text-orange-500"
+                          stroke="white"
+                          strokeWidth="2"
+                        />
+                        
+                        {/* Inner dot */}
+                        <circle
+                          cx={droneX}
+                          cy={droneY}
+                          r="2.5"
+                          fill="white"
+                        />
+
+                        {/* Speed label */}
+                        <text
+                          x={droneX}
+                          y={droneY - 12}
+                          textAnchor="middle"
+                          className="fill-foreground text-[10px] font-semibold"
+                        >
+                          {speedAtTime.toFixed(1)} m/s
+                        </text>
+                      </g>
+                    )}
+                  </svg>
+                );
+              })()}
+            </div>
+
+            {/* Segment info below chart */}
+            <div className="bg-muted/20 border-border/30 rounded-lg border p-3">
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <div className="text-muted-foreground font-medium mb-1">
+                    {simulationState?.isRunning ? 'Progress' : 'Duration'}
+                  </div>
+                  <div className="font-mono text-foreground">
+                    {simulationState?.isRunning ? (
+                      <>
+                        {simulationState.segmentElapsedTime?.toFixed(2) ?? 0}s / {
+                          (() => {
+                            const segments = (simulationState?.segments && (simulationState.segments.length ?? 0) > 0)
+                              ? simulationState.segments
+                              : (previewSegments ?? []);
+                            const seg = segments[simulationState.currentSegmentIndex ?? 0];
+                            return Number(seg?.travel_time_s ?? 0).toFixed(2);
+                          })()
+                        }s
+                      </>
+                    ) : (
+                      <>
+                        {
+                          (() => {
+                            const segments = previewSegments ?? [];
+                            const seg = segments[0];
+                            return Number(seg?.travel_time_s ?? 0).toFixed(2);
+                          })()
+                        }s
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <div className="divide-border/30 divide-y" role="rowgroup" aria-label="Table data">
-                {segmentsRows.length > 0 ? (
-                  segmentsRows
-                ) : (
-                  <div className="p-4 text-xs text-muted-foreground">No segment data available yet. Generate a flight plan to populate segments.</div>
-                )}
+                <div>
+                  <div className="text-muted-foreground font-medium mb-1">
+                    {simulationState?.isRunning ? 'Distance Covered' : 'Distance'}
+                  </div>
+                  <div className="font-mono text-foreground">
+                    {simulationState?.isRunning ? (
+                      <>
+                        {((simulationState.progress ?? 0) * 
+                          (() => {
+                            const segments = (simulationState?.segments && (simulationState.segments.length ?? 0) > 0)
+                              ? simulationState.segments
+                              : (previewSegments ?? []);
+                            const seg = segments[simulationState.currentSegmentIndex ?? 0];
+                            return Number(seg?.distance ?? 0);
+                          })()
+                        ).toFixed(1)}m
+                      </>
+                    ) : (
+                      <>
+                        {
+                          (() => {
+                            const segments = previewSegments ?? [];
+                            const seg = segments[0];
+                            return Number(seg?.distance ?? 0).toFixed(1);
+                          })()
+                        }m
+                      </>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         )}
 
-                    {simulationState?.isRunning && (
+
+        {/* Flight Progress Panel - Only show during simulation */}
+        {simulationState?.isRunning && (
               <div className="bg-muted/20 border-border/30 mt-4 rounded-lg border p-3">
                 <div className="mb-2 flex items-center justify-between">
                   <h4 className="text-foreground text-xs font-medium">Flight Progress</h4>
