@@ -68,6 +68,7 @@ export const FlightSimulationController = forwardRef<
   const animationRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
   const startTimeRef = useRef<number>(0);
+  const pauseTimeRef = useRef<number>(0); // Track when pause started
   const isAnimatingRef = useRef<boolean>(false);
   const isPausedRef = useRef<boolean>(false);
   const isRunningRef = useRef<boolean>(false);
@@ -305,7 +306,12 @@ export const FlightSimulationController = forwardRef<
     // If currently paused, resume without resetting position or progress
     if (isRunningRef.current && isPausedRef.current) {
       console.log("Resuming from pause - keeping position:", simulationState.currentPosition);
-      // Resume timing references but keep elapsed time intact
+      
+      // Calculate how long we were paused and adjust startTimeRef to account for it
+      const pauseDuration = performance.now() - pauseTimeRef.current;
+      startTimeRef.current += pauseDuration;
+      
+      // Resume timing: reset lastTimeRef so deltaTime calculation starts fresh
       lastTimeRef.current = 0;
       isAnimatingRef.current = true;
       isPausedRef.current = false;
@@ -350,6 +356,9 @@ export const FlightSimulationController = forwardRef<
     if (!isRunningRef.current || isPausedRef.current) {
       return;
     }
+    
+    // Record the pause time so we can adjust startTimeRef on resume
+    pauseTimeRef.current = performance.now();
     
     // Set paused flag
     isPausedRef.current = true;
