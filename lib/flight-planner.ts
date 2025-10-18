@@ -521,14 +521,33 @@ export function computeMissionStats(
     totalDistance += Math.sqrt(dx * dx + dy * dy + dz * dz);
   }
 
-  // Determine exposure-limited speed to avoid motion blur
+  // Determine exposure-limited speed to avoid motion blur (this is v_photo - speed AT waypoints)
   const exposureLimitedSpeed = computeSpeedDuringPhotoCapture(camera, datasetSpec);
-  // Use drone-provided vMax if present but do not exceed exposure limit
-  const vMax = typeof droneConfig?.vMax === 'number' ? Math.min(droneConfig.vMax, exposureLimitedSpeed) : exposureLimitedSpeed;
+  
+  // v_photo: speed during photo capture (exposure-limited)
+  const vPhoto = exposureLimitedSpeed;
+  
+  // v_max: drone's actual maximum speed capability (default 16.0 m/s)
+  // This is the speed limit during transit BETWEEN waypoints, not at capture points
+  const vMaxDrone = typeof droneConfig?.vMax === 'number' ? droneConfig.vMax : 16.0;
+  
   const aMax = typeof droneConfig?.aMax === 'number' ? droneConfig.aMax : 3.5;
 
-  // Use time calculation that accounts for acceleration/deceleration and drone kinematics
-  const estimatedTime = computeTotalMissionTime(waypoints, vMax, aMax);
+  // Use computePlanTime (matches Python reference) which accounts for:
+  // - Photo capture dwell time at each waypoint
+  // - Proper kinematic profiles (triangular/trapezoidal) between waypoints
+  // - Starting/ending at v_photo speed (exposure-limited) but can reach v_max during transit
+  const positions = waypoints.map(wp => [wp.x, wp.y, wp.z]);
+  const exposureTimeS = datasetSpec.exposure_time_ms / 1000.0;
+  const [estimatedTime, _segments] = computePlanTime(positions, vPhoto, exposureTimeS, vMaxDrone, aMax);
+
+  console.log(`Estimated mission time: ${estimatedTime.toFixed(2)} seconds (${(estimatedTime/60).toFixed(1)} min)`, {
+    waypoints: waypoints.length,
+    vPhoto,
+    vMax: vMaxDrone,
+    aMax,
+    exposureTimeS
+  });
 
   const coverageArea = datasetSpec.scan_dimension_x * datasetSpec.scan_dimension_y;
   const gsd = computeGroundSamplingDistance(camera, datasetSpec.height);
