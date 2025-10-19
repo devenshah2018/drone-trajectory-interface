@@ -137,7 +137,6 @@ export default function Home() {
 
     // Reset child components via refs
     flightSimulationRef.current?.resetSimulation();
-    horizontalConfigRef.current?.resetPresets();
   }
 
   /**
