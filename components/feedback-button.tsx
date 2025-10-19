@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MessageSquare, Bug, Lightbulb, Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,10 +28,33 @@ export function FeedbackButton() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [remaining, setRemaining] = useState<number | null>(null);
+  const [isLoadingRemaining, setIsLoadingRemaining] = useState(false);
 
   const [title, setTitle] = useState("");
   const [type, setType] = useState<"bug" | "enhancement">("enhancement");
   const [description, setDescription] = useState("");
+
+  // Fetch remaining submissions when dialog opens
+  useEffect(() => {
+    if (open && remaining === null) {
+      fetchRemainingSubmissions();
+    }
+  }, [open]);
+
+  const fetchRemainingSubmissions = async () => {
+    setIsLoadingRemaining(true);
+    try {
+      const response = await fetch("/api/create-issue");
+      const data = await response.json();
+      setRemaining(data.remaining);
+    } catch (err) {
+      console.error("Failed to fetch remaining submissions:", err);
+      setRemaining(5); // Default to 5 on error
+    } finally {
+      setIsLoadingRemaining(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,6 +87,11 @@ ${description}
 
       if (!response.ok) {
         throw new Error(data.error || "Failed to submit feedback");
+      }
+
+      // Update remaining count
+      if (typeof data.remaining === 'number') {
+        setRemaining(data.remaining);
       }
 
       // Success!
@@ -136,6 +164,19 @@ ${description}
               <DialogTitle>Send Feedback</DialogTitle>
               <DialogDescription>
                 Report a bug or suggest an enhancement. I'll review it on GitHub.
+                {!isLoadingRemaining && remaining !== null && (
+                  <span className="block mt-2 text-sm">
+                    {remaining > 0 ? (
+                      <span className="text-muted-foreground">
+                        You can submit <span className="font-semibold text-foreground">{remaining}</span> more feedback{remaining !== 1 ? 's' : ''} today.
+                      </span>
+                    ) : (
+                      <span className="text-destructive font-semibold">
+                        You've reached the daily limit. Please try again tomorrow.
+                      </span>
+                    )}
+                  </span>
+                )}
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -206,7 +247,11 @@ ${description}
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isSubmitting} className="cursor-pointer">
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting || remaining === 0} 
+                  className="cursor-pointer"
+                >
                   {isSubmitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
