@@ -72,6 +72,7 @@ export default function Home() {
    * validation error message.
    */
   const handleGenerateFlightPlan = async () => {
+    handleSoftReset();
     setIsGenerating(true);
     setValidationError(null);
 
@@ -120,6 +121,23 @@ export default function Home() {
     // Update local copy so CompactMissionStats and FlightPathVisualization can consume it
     setSimulationState(state);
   };
+
+  /**
+   * Perform a soft reset of generated mission data and UI state without
+   * changing the camera or dataset specifications.
+   * 
+   * @returns void
+   */
+  const handleSoftReset = () => {
+    // Clear generated mission data and UI state
+    setWaypoints([]);
+    setMissionStats(null);
+    setValidationError(null);
+    setSimulationState(null);
+
+    // Reset child components via refs
+    flightSimulationRef.current?.resetSimulation();
+  }
 
   /**
    * Reset the application configuration and generated flight data to defaults.

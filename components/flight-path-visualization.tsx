@@ -45,7 +45,7 @@ const SpeedometerGauge = ({
   size?: number;
 }) => {
 
-  // Simplified numeric readout (replaces the previous SVG-based gauge)
+  // Sbagimplified numeric readout (replaces the previous SVG-based gauge)
   return (
     <div
       className="bg-card/90 border-border rounded-lg border p-3 backdrop-blur-sm"
