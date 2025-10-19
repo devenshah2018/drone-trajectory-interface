@@ -4,6 +4,8 @@ A lightweight Next.js app for planning simple aerial survey missions. It generat
 
 This repository is intended as a practical prototype — easy to run locally and extend for custom workflows.
 
+Hosted demo: [https://drone-path-planner.vercel.app/](https://drone-path-planner.vercel.app/)
+
 ## Key features
 
 - Generate a grid-based flight plan from camera + mission settings
