@@ -135,7 +135,7 @@ ${description}
             <DialogHeader>
               <DialogTitle>Send Feedback</DialogTitle>
               <DialogDescription>
-                Report a bug or suggest an enhancement. We'll review it on GitHub.
+                Report a bug or suggest an enhancement. I'll review it on GitHub.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
