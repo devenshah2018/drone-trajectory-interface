@@ -9,6 +9,7 @@ import { FlightPathVisualization } from "@/components/flight-path-visualization"
 import { CompactMissionStats } from "@/components/compact-mission-stats";
 import { FloatingGenerateButton } from "@/components/floating-generate-button";
 import { AuthorProfile } from "@/components/author-profile";
+import { FeedbackButton } from "@/components/feedback-button";
 import {
   FlightSimulationController,
   type SimulationState,
@@ -188,6 +189,9 @@ export default function Home() {
 
             {/* Right Side - Navigation (compact on mobile; stays on one row) */}
             <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0 whitespace-nowrap">
+              {/* Feedback Button */}
+              <FeedbackButton />
+
               {/* Technical Documentation Link */}
               <a
                 href="https://github.com/devenshah2018/drone-trajectory"
