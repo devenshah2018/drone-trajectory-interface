@@ -3,7 +3,8 @@
 import { useState, useRef } from "react";
 import type { Camera, DatasetSpec, Waypoint, MissionStats } from "@/lib/types";
 import { generatePhotoPlaneOnGrid, computeMissionStats } from "@/lib/flight-planner";
-import { Plane, ExternalLink } from "lucide-react";
+import { Plane, ExternalLink, RotateCcw, FileUp, Download } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { HorizontalConfig, type HorizontalConfigRef } from "@/components/horizontal-config";
 import { FlightPathVisualization } from "@/components/flight-path-visualization";
 import { CompactMissionStats } from "@/components/compact-mission-stats";
@@ -15,6 +16,8 @@ import {
   type SimulationState,
   type FlightSimulationRef,
 } from "@/components/flight-simulation-controller";
+import { Badge } from "@/components/ui/badge";
+import jsPDF from "jspdf";
 
 /**
  * Root page component for the mission planning UI.
@@ -53,6 +56,7 @@ export default function Home() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [simulationState, setSimulationState] = useState<SimulationState | null>(null);
+  const [showExportBadges, setShowExportBadges] = useState(false);
 
   // Drone kinematic config (vMax m/s, aMax m/s^2)
   const [droneConfig, setDroneConfig] = useState<{ vMax?: number; aMax?: number }>({ vMax: 16, aMax: 3.5 });
@@ -88,6 +92,70 @@ export default function Home() {
     JSON.stringify(datasetSpec) !== JSON.stringify(defaultDatasetSpec) ||
     (droneConfig.vMax !== 16 || droneConfig.aMax !== 3.5);
   const canShowReset = paramsChanged || waypoints.length > 0;
+
+  const canShowExport = waypoints.length > 0;
+
+  // Export handlers
+  function exportCSV() {
+    if (!waypoints.length) return;
+    const header = Object.keys(waypoints[0]).join(",");
+    const rows = waypoints.map(wp => Object.values(wp).join(",")).join("\n");
+    const csv = header + "\n" + rows;
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "flight-plan.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportJSON() {
+    const data = {
+      camera,
+      datasetSpec,
+      droneConfig,
+      waypoints,
+      missionStats,
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "flight-plan.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportPDF() {
+    const doc = new jsPDF({ orientation: "landscape" });
+    const data = {
+      camera,
+      datasetSpec,
+      droneConfig,
+      waypoints,
+      missionStats,
+    };
+    const text = JSON.stringify(data, null, 2);
+    const pageWidth = 280; // fit to page width
+    const pageHeight = 200; // jsPDF landscape default
+    const marginLeft = 10;
+    const marginTop = 10;
+    const lineHeight = 4.5; // for fontSize 8
+    doc.setFont("courier", "normal");
+    doc.setFontSize(8);
+    const lines = doc.splitTextToSize(text, pageWidth);
+    let y = marginTop;
+    for (let i = 0; i < lines.length; i++) {
+      if (y + lineHeight > pageHeight - marginTop) {
+        doc.addPage();
+        y = marginTop;
+      }
+      doc.text(lines[i], marginLeft, y);
+      y += lineHeight;
+    }
+    doc.save("flight-plan.pdf");
+  }
 
   /**
    * Generate a flight plan from the current camera and dataset specifications.
@@ -207,8 +275,19 @@ export default function Home() {
   };
 
   // --- Render application UI ---
+  // Handler to hide export badges when clicking outside
+  function handleMainClick(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
+    // Only hide if export badges are open and click is not on the export button or badges
+    if (showExportBadges) {
+      // Check if click is inside the export button or badges
+      const exportButton = document.getElementById("export-fab-root");
+      if (exportButton && exportButton.contains(e.target as Node)) return;
+      setShowExportBadges(false);
+    }
+  }
+
   return (
-    <div className="bg-background min-h-screen">
+    <div className="bg-background min-h-screen" onClick={handleMainClick}>
       {/* Header: app title, docs link, and user profile */}
       <header className="border-border bg-card/50 sticky top-0 z-40 border-b backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4 sm:px-6 sm:py-3">
@@ -323,6 +402,50 @@ export default function Home() {
         onReset={handleReset}
         isGenerating={isGenerating}
         showReset={canShowReset}
+        exportButton={canShowExport ? (
+          <div id="export-fab-root" className="relative flex flex-col items-center">
+            <AnimatePresence>
+              {showExportBadges && (
+              <motion.div
+                key="badges"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 16 }}
+                transition={{ duration: 0.18 }}
+                className="absolute bottom-14 flex flex-col gap-2 items-center z-10"
+              >
+                <Badge
+                onClick={exportCSV}
+                className="cursor-pointer select-none w-20 text-center bg-white hover:bg-gray-100 border border-border/50 !text-black hover:!text-black shadow-lg backdrop-blur-sm"
+                >
+                CSV
+                </Badge>
+                <Badge
+                onClick={exportJSON}
+                className="cursor-pointer select-none w-20 text-center bg-white hover:bg-gray-100 border border-border/50 !text-black hover:!text-black shadow-lg backdrop-blur-sm"
+                >
+                JSON
+                </Badge>
+                <Badge
+                onClick={exportPDF}
+                className="cursor-pointer select-none w-20 text-center bg-white hover:bg-gray-100 border border-border/50 !text-black hover:!text-black shadow-lg backdrop-blur-sm"
+                >
+                PDF
+                </Badge>
+              </motion.div>
+              )}
+            </AnimatePresence>
+            <button
+              className="bg-card/90 hover:bg-card border-border/50 hover:border-border h-12 w-12 cursor-pointer rounded-full p-0 shadow-lg backdrop-blur-sm transition-all duration-200 hover:shadow-xl flex items-center justify-center"
+              style={{ border: '1px solid var(--border)' }}
+              onClick={e => { e.stopPropagation(); setShowExportBadges(v => !v); }}
+              type="button"
+              title="Export"
+            >
+              <Download className="text-muted-foreground h-5 w-5" />
+            </button>
+          </div>
+        ) : null}
       />
 
       {/* Validation Error Toast: shows user-friendly configuration errors */}

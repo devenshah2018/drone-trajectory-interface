@@ -10,12 +10,14 @@ import { Plane, RotateCcw } from "lucide-react";
  * @param onReset - Callback invoked to reset all configuration to defaults
  * @param isGenerating - Flag indicating whether generation is currently in progress
  * @param showReset - Flag indicating whether the reset button should be shown
+ * @param exportButton - Optional node to render an export button
  */
 interface FloatingGenerateButtonProps {
   onGenerate: () => void;
   onReset: () => void;
   isGenerating: boolean;
   showReset?: boolean;
+  exportButton?: React.ReactNode;
 }
 
 /**
@@ -26,7 +28,8 @@ interface FloatingGenerateButtonProps {
  * @param props.onReset - Called when the user clicks the Reset button
  * @param props.isGenerating - When true, the Generate button shows a spinner and is disabled
  * @param props.showReset - When true, the Reset button is shown
- * @returns A fixed-position control with Reset and Generate actions
+ * @param props.exportButton - Optional node to render an export button
+ * @returns A fixed-position control with Reset, Generate, and optional Export actions
  * @remarks Client component that intentionally sits above other content and should
  * be keyboard accessible. Visual styling and disabled state are preserved.
  */
@@ -35,6 +38,7 @@ export function FloatingGenerateButton({
   onReset,
   isGenerating,
   showReset = true,
+  exportButton,
 }: FloatingGenerateButtonProps) {
   return (
     <div className="fixed right-6 bottom-6 z-50 flex items-center gap-3">
@@ -51,6 +55,9 @@ export function FloatingGenerateButton({
           <RotateCcw className="text-muted-foreground h-5 w-5" />
         </Button>
       )}
+
+      {/* Export Button: optional node to render an export button */}
+      {exportButton}
 
       {/* Primary Generate Button: shows spinner and message when generating. Disabled while generating to prevent duplicate requests. */}
       <Button
