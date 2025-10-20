@@ -64,6 +64,31 @@ export default function Home() {
   // Controls the HorizontalConfig component to reset preset selections
   const horizontalConfigRef = useRef<HorizontalConfigRef>(null);
 
+  // Track if params have changed from defaults
+  const defaultCamera = {
+    fx: 2000,
+    fy: 2000,
+    cx: 2000,
+    cy: 1500,
+    sensor_size_x_mm: 13.2,
+    sensor_size_y_mm: 8.8,
+    image_size_x: 4000,
+    image_size_y: 3000,
+  };
+  const defaultDatasetSpec = {
+    overlap: 0.75,
+    sidelap: 0.65,
+    height: 30.5,
+    scan_dimension_x: 150,
+    scan_dimension_y: 150,
+    exposure_time_ms: 2.0,
+  };
+  const paramsChanged =
+    JSON.stringify(camera) !== JSON.stringify(defaultCamera) ||
+    JSON.stringify(datasetSpec) !== JSON.stringify(defaultDatasetSpec) ||
+    (droneConfig.vMax !== 16 || droneConfig.aMax !== 3.5);
+  const canShowReset = paramsChanged || waypoints.length > 0;
+
   /**
    * Generate a flight plan from the current camera and dataset specifications.
    *
@@ -297,6 +322,7 @@ export default function Home() {
         onGenerate={handleGenerateFlightPlan}
         onReset={handleReset}
         isGenerating={isGenerating}
+        showReset={canShowReset}
       />
 
       {/* Validation Error Toast: shows user-friendly configuration errors */}

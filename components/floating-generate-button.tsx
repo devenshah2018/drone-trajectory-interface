@@ -9,11 +9,13 @@ import { Plane, RotateCcw } from "lucide-react";
  * @param onGenerate - Callback invoked when the user requests flight plan generation
  * @param onReset - Callback invoked to reset all configuration to defaults
  * @param isGenerating - Flag indicating whether generation is currently in progress
+ * @param showReset - Flag indicating whether the reset button should be shown
  */
 interface FloatingGenerateButtonProps {
   onGenerate: () => void;
   onReset: () => void;
   isGenerating: boolean;
+  showReset?: boolean;
 }
 
 /**
@@ -23,6 +25,7 @@ interface FloatingGenerateButtonProps {
  * @param props.onGenerate - Called when the user clicks the Generate button
  * @param props.onReset - Called when the user clicks the Reset button
  * @param props.isGenerating - When true, the Generate button shows a spinner and is disabled
+ * @param props.showReset - When true, the Reset button is shown
  * @returns A fixed-position control with Reset and Generate actions
  * @remarks Client component that intentionally sits above other content and should
  * be keyboard accessible. Visual styling and disabled state are preserved.
@@ -31,20 +34,23 @@ export function FloatingGenerateButton({
   onGenerate,
   onReset,
   isGenerating,
+  showReset = true,
 }: FloatingGenerateButtonProps) {
   return (
     <div className="fixed right-6 bottom-6 z-50 flex items-center gap-3">
       {/* Reset Button: small circular outline button that resets configuration. Disabled while generating. */}
-      <Button
-        onClick={onReset}
-        disabled={isGenerating}
-        size="lg"
-        variant="outline"
-        className="bg-card/90 hover:bg-card border-border/50 hover:border-border h-12 w-12 cursor-pointer rounded-full p-0 shadow-lg backdrop-blur-sm transition-all duration-200 hover:shadow-xl"
-        title="Reset all configurations"
-      >
-        <RotateCcw className="text-muted-foreground h-5 w-5" />
-      </Button>
+      {showReset && (
+        <Button
+          onClick={onReset}
+          disabled={isGenerating}
+          size="lg"
+          variant="outline"
+          className="bg-card/90 hover:bg-card border-border/50 hover:border-border h-12 w-12 cursor-pointer rounded-full p-0 shadow-lg backdrop-blur-sm transition-all duration-200 hover:shadow-xl"
+          title="Reset all configurations"
+        >
+          <RotateCcw className="text-muted-foreground h-5 w-5" />
+        </Button>
+      )}
 
       {/* Primary Generate Button: shows spinner and message when generating. Disabled while generating to prevent duplicate requests. */}
       <Button
