@@ -10,8 +10,3 @@ All notable changes to this project will be documented in this file.
     - Configuration panel: Able to configure drone motion thresholds, camera parameters, and mission parameters. Includes camera and mission presets for common use cases.
 - Feedback loop for users to report issues and suggest features.
 - No new features planned until stable release.
-
-## [0.1.0] - 2025-10-21
-- First stable release
-- Documentation and usage examples
-- Bug fixes and code cleanup
