@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useImperativeHandle, forwardRef, useEffect } from "react";
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import type { Camera, DatasetSpec } from "@/lib/types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,9 +33,9 @@ interface HorizontalConfigProps {
   datasetSpec: DatasetSpec;
   onCameraChange: (camera: Camera) => void;
   onDatasetSpecChange: (datasetSpec: DatasetSpec) => void;
-  // Optional drone kinematic limits and change handler
   droneConfig?: { vMax?: number; aMax?: number };
   onDroneChange?: (drone: { vMax: number; aMax: number }) => void;
+  planGenerated?: boolean;
 }
 
 /**
@@ -59,13 +59,21 @@ export interface HorizontalConfigRef {
  * @remarks Client component using forwardRef to expose resetPresets to parents.
  */
 export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfigProps>(
-  ({ camera, datasetSpec, onCameraChange, onDatasetSpecChange, droneConfig, onDroneChange }, ref) => {
+  ({ camera, datasetSpec, onCameraChange, onDatasetSpecChange, droneConfig, onDroneChange, planGenerated }, ref) => {
     // Collapsible state for compact UI
     const [isCollapsed, setIsCollapsed] = useState(false);
     const contentId = "horizontal-config-content";
     const toggleCollapsed = () => setIsCollapsed((v) => !v);
     const [selectedPreset, setSelectedPreset] = useState("");
     const [selectedMissionPreset, setSelectedMissionPreset] = useState("");
+
+    useEffect(() => {
+      if (planGenerated) {
+        setIsCollapsed(true);
+      } else {
+        setIsCollapsed(false);
+      }
+    }, [planGenerated]);
 
     // Drone presets & state: allow selecting a template and editing vMax / aMax
     const dronePresets = {

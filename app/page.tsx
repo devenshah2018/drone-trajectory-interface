@@ -57,6 +57,7 @@ export default function Home() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [simulationState, setSimulationState] = useState<SimulationState | null>(null);
   const [showExportBadges, setShowExportBadges] = useState(false);
+  const [planGenerated, setPlanGenerated] = useState(false);
 
   // Drone kinematic config (vMax m/s, aMax m/s^2)
   const [droneConfig, setDroneConfig] = useState<{ vMax?: number; aMax?: number }>({ vMax: 16, aMax: 3.5 });
@@ -168,6 +169,7 @@ export default function Home() {
     handleSoftReset();
     setIsGenerating(true);
     setValidationError(null);
+    setPlanGenerated(false);
 
     // Small delay to allow loading UI to be visible
     await new Promise((resolve) => setTimeout(resolve, 500));
@@ -181,6 +183,7 @@ export default function Home() {
       // Persist outputs for visualization and summary
       setWaypoints(generatedWaypoints);
       setMissionStats(stats);
+      setPlanGenerated(true);
     } catch (error) {
       // Convert technical errors into user-facing messages
       console.error("Error generating flight plan:", error);
@@ -227,6 +230,7 @@ export default function Home() {
     setMissionStats(null);
     setValidationError(null);
     setSimulationState(null);
+    setPlanGenerated(false);
 
     // Reset child components via refs
     flightSimulationRef.current?.resetSimulation();
@@ -268,6 +272,7 @@ export default function Home() {
     setMissionStats(null);
     setValidationError(null);
     setSimulationState(null);
+    setPlanGenerated(false);
 
     // Reset child components via refs
     flightSimulationRef.current?.resetSimulation();
@@ -355,6 +360,7 @@ export default function Home() {
           onDatasetSpecChange={setDatasetSpec}
           droneConfig={droneConfig}
           onDroneChange={(cfg) => setDroneConfig(cfg)}
+          planGenerated={planGenerated}
         />
 
         {/* Main content grid: map visual (2 cols) + stats (1 col) */}
@@ -475,7 +481,7 @@ export default function Home() {
                 <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                   <path
                     fillRule="evenodd"
-                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
                     clipRule="evenodd"
                   />
                 </svg>

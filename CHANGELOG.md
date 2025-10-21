@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.0-beta] - 2025-10-26
+
 ## [0.0-alpha] - 2025-10-21
 - Initial alpha release with all core features:
     - Flight plan generation: Able to generate lawn-mower style flight plans based on camera intrinsics and mission parameters. Able to export the flight plan as CSV, JSON, or PDF.
