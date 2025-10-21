@@ -166,26 +166,55 @@ export default function Home() {
    * validation error message.
    */
   const handleGenerateFlightPlan = async () => {
+    horizontalConfigRef.current?.fillBlankFieldsWithPresets();
+    const latestVMax = horizontalConfigRef.current?.getDroneVMax?.() ?? 16;
+    const latestAMax = horizontalConfigRef.current?.getDroneAMax?.() ?? 3.5;
+    const effectiveDroneConfig = { vMax: latestVMax, aMax: latestAMax };
+    const latestCamera = { ...camera };
+    const cameraKeys: (keyof Camera)[] = [
+      "fx", "fy", "cx", "cy", "sensor_size_x_mm", "sensor_size_y_mm", "image_size_x", "image_size_y"
+    ];
+    for (const key of cameraKeys) {
+      if (
+        latestCamera[key] === undefined ||
+        latestCamera[key] === null ||
+        isNaN(Number(latestCamera[key]))
+      ) {
+        latestCamera[key] = horizontalConfigRef.current?.getCameraPreset?.()[key] ?? latestCamera[key];
+      }
+    }
+
+    const latestDatasetSpec = { ...datasetSpec };
+    const missionKeys: (keyof DatasetSpec)[] = [
+      "overlap", "sidelap", "height", "scan_dimension_x", "scan_dimension_y", "exposure_time_ms"
+    ];
+    for (const key of missionKeys) {
+      if (
+        latestDatasetSpec[key] === undefined ||
+        latestDatasetSpec[key] === null ||
+        isNaN(Number(latestDatasetSpec[key]))
+      ) {
+        latestDatasetSpec[key] = horizontalConfigRef.current?.getMissionPreset?.()[key] ?? latestDatasetSpec[key];
+      }
+    }
+
+    setDroneConfig(effectiveDroneConfig);
+    setCamera(latestCamera);
+    setDatasetSpec(latestDatasetSpec);
+
     handleSoftReset();
     setIsGenerating(true);
     setValidationError(null);
     setPlanGenerated(false);
-
-    // Small delay to allow loading UI to be visible
     await new Promise((resolve) => setTimeout(resolve, 500));
-
+    console.log("Generating flight plan with config:", { camera: latestCamera, datasetSpec: latestDatasetSpec, droneConfig: effectiveDroneConfig });
     try {
-      // Core flight plan generation and stats computation
-      // Pass droneConfig so waypoints receive correctly-clamped speeds at generation time
-      const generatedWaypoints = generatePhotoPlaneOnGrid(camera, datasetSpec, droneConfig);
-      const stats = computeMissionStats(generatedWaypoints, camera, datasetSpec, droneConfig);
-
-      // Persist outputs for visualization and summary
+      const generatedWaypoints = generatePhotoPlaneOnGrid(latestCamera, latestDatasetSpec, effectiveDroneConfig);
+      const stats = computeMissionStats(generatedWaypoints, latestCamera, latestDatasetSpec, effectiveDroneConfig);
       setWaypoints(generatedWaypoints);
       setMissionStats(stats);
       setPlanGenerated(true);
     } catch (error) {
-      // Convert technical errors into user-facing messages
       console.error("Error generating flight plan:", error);
       if (error instanceof Error) {
         let userMessage = error.message;

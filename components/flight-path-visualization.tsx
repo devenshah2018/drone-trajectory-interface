@@ -170,8 +170,6 @@ export function FlightPathVisualization({
         {(() => {
           const WAYPOINT_LIMIT = 1000;
           const isTooManyWaypoints = waypoints.length > WAYPOINT_LIMIT;
-          console.log("FlightPathVisualization render - waypoints:", waypoints.length, "isTooMany:", isTooManyWaypoints);
-
           if (isTooManyWaypoints) {
             return (
               <div className="w-full rounded-lg border border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20 p-4">

@@ -45,6 +45,12 @@ interface HorizontalConfigProps {
  */
 export interface HorizontalConfigRef {
   resetPresets: () => void;
+  fillBlankDroneFields: () => void;
+  getDroneVMax: () => number;
+  getDroneAMax: () => number;
+  fillBlankFieldsWithPresets: () => void;
+  getCameraPreset: () => Camera;
+  getMissionPreset: () => DatasetSpec;
 }
 
 /**
@@ -81,8 +87,8 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
     } as const;
 
     const [selectedDrone, setSelectedDrone] = useState<string>('default');
-    const [droneVMax, setDroneVMax] = useState<number>(droneConfig?.vMax ?? dronePresets.default.config.vMax);
-    const [droneAMax, setDroneAMax] = useState<number>(droneConfig?.aMax ?? dronePresets.default.config.aMax);
+    const [droneVMax, setDroneVMax] = useState<string | number>(droneConfig?.vMax ?? dronePresets.default.config.vMax);
+    const [droneAMax, setDroneAMax] = useState<string | number>(droneConfig?.aMax ?? dronePresets.default.config.aMax);
 
     // Sync local inputs when parent droneConfig prop changes (two-way binding)
     useEffect(() => {
@@ -100,10 +106,33 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
       onDroneChange?.({ vMax: preset.config.vMax, aMax: preset.config.aMax });
     };
 
-    const updateDrone = (field: 'vMax' | 'aMax', value: number) => {
+    const updateDrone = (field: 'vMax' | 'aMax', value: number | string) => {
       if (field === 'vMax') setDroneVMax(value);
       else setDroneAMax(value);
-      onDroneChange?.({ vMax: field === 'vMax' ? value : droneVMax, aMax: field === 'aMax' ? value : droneAMax });
+      const vMaxNum = typeof (field === 'vMax' ? value : droneVMax) === 'number' && !isNaN(Number(field === 'vMax' ? value : droneVMax)) ? Number(field === 'vMax' ? value : droneVMax) : undefined;
+      const aMaxNum = typeof (field === 'aMax' ? value : droneAMax) === 'number' && !isNaN(Number(field === 'aMax' ? value : droneAMax)) ? Number(field === 'aMax' ? value : droneAMax) : undefined;
+      if (vMaxNum !== undefined && aMaxNum !== undefined) {
+        onDroneChange?.({ vMax: vMaxNum, aMax: aMaxNum });
+      }
+    };
+
+    const fillBlankDroneFields = () => {
+      let updated = false;
+      let vMax = droneVMax;
+      let aMax = droneAMax;
+      if (vMax === "" || vMax === undefined || vMax === null || isNaN(Number(vMax)) || Number(vMax) <= 0) {
+        vMax = dronePresets.default.config.vMax;
+        setDroneVMax(vMax);
+        updated = true;
+      }
+      if (aMax === "" || aMax === undefined || aMax === null || isNaN(Number(aMax)) || Number(aMax) <= 0) {
+        aMax = dronePresets.default.config.aMax;
+        setDroneAMax(aMax);
+        updated = true;
+      }
+      if (updated) {
+        onDroneChange?.({ vMax: Number(vMax), aMax: Number(aMax) });
+      }
     };
 
     // Camera presets
@@ -329,7 +358,68 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
       }
     };
 
-    // Expose reset function via ref
+    const getCameraPreset = () => {
+      return {
+        fx: 2000,
+        fy: 2000,
+        cx: 2000,
+        cy: 1500,
+        sensor_size_x_mm: 13.2,
+        sensor_size_y_mm: 8.8,
+        image_size_x: 4000,
+        image_size_y: 3000,
+      };
+    };
+
+    const getMissionPreset = () => {
+      return {
+        overlap: 0.75,
+        sidelap: 0.65,
+        height: 30.5,
+        scan_dimension_x: 150,
+        scan_dimension_y: 150,
+        exposure_time_ms: 2.0,
+      };
+    };
+
+    const fillBlankFieldsWithPresets = () => {
+      const camPreset = getCameraPreset();
+      let camChanged = false;
+      const newCamera = { ...camera };
+      const cameraKeys: (keyof Camera)[] = [
+        "fx", "fy", "cx", "cy", "sensor_size_x_mm", "sensor_size_y_mm", "image_size_x", "image_size_y"
+      ];
+      for (const key of cameraKeys) {
+        if (
+          newCamera[key] === undefined ||
+          newCamera[key] === null ||
+          isNaN(Number(newCamera[key]))
+        ) {
+          newCamera[key] = camPreset[key];
+          camChanged = true;
+        }
+      }
+      if (camChanged) onCameraChange(newCamera);
+      const missionPreset = getMissionPreset();
+      let missionChanged = false;
+      const newMission = { ...datasetSpec };
+      const missionKeys: (keyof DatasetSpec)[] = [
+        "overlap", "sidelap", "height", "scan_dimension_x", "scan_dimension_y", "exposure_time_ms"
+      ];
+      for (const key of missionKeys) {
+        if (
+          newMission[key] === undefined ||
+          newMission[key] === null ||
+          isNaN(Number(newMission[key]))
+        ) {
+          newMission[key] = missionPreset[key];
+          missionChanged = true;
+        }
+      }
+      if (missionChanged) onDatasetSpecChange(newMission);
+      fillBlankDroneFields();
+    };
+
     useImperativeHandle(
       ref,
       () => ({
@@ -343,8 +433,24 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
           setDroneAMax(dronePresets.default.config.aMax);
           onDroneChange?.({ vMax: dronePresets.default.config.vMax, aMax: dronePresets.default.config.aMax });
         },
+        fillBlankDroneFields,
+        getDroneVMax: () => {
+          if (droneVMax === "" || droneVMax === undefined || droneVMax === null || isNaN(Number(droneVMax)) || Number(droneVMax) <= 0) {
+            return dronePresets.default.config.vMax;
+          }
+          return Number(droneVMax);
+        },
+        getDroneAMax: () => {
+          if (droneAMax === "" || droneAMax === undefined || droneAMax === null || isNaN(Number(droneAMax)) || Number(droneAMax) <= 0) {
+            return dronePresets.default.config.aMax;
+          }
+          return Number(droneAMax);
+        },
+        fillBlankFieldsWithPresets,
+        getCameraPreset,
+        getMissionPreset,
       }),
-      []
+      [droneVMax, droneAMax, camera, datasetSpec, selectedPreset, selectedMissionPreset]
     );
 
     // --- Render: compact two-column layout with clear section headers ---
@@ -395,7 +501,14 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                 step="0.1"
                 min="0"
                 value={droneVMax}
-                onChange={(e) => updateDrone("vMax", Number.parseFloat(e.target.value || "0"))}
+                onChange={e => {
+                  const val = e.target.value;
+                  if (val === "") {
+                    setDroneVMax("");
+                  } else {
+                    updateDrone("vMax", Number.parseFloat(val));
+                  }
+                }}
                 className="h-8 w-20 text-xs"
               />
             </div>
@@ -411,7 +524,14 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                 step="0.1"
                 min="0"
                 value={droneAMax}
-                onChange={(e) => updateDrone("aMax", Number.parseFloat(e.target.value || "0"))}
+                onChange={e => {
+                  const val = e.target.value;
+                  if (val === "") {
+                    setDroneAMax(""); // Temporarily allow empty string
+                  } else {
+                    updateDrone("aMax", Number.parseFloat(val));
+                  }
+                }}
                 className="h-8 w-20 text-xs"
               />
             </div>
