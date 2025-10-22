@@ -41,8 +41,8 @@ export function FloatingGenerateButton({
   exportButton,
 }: FloatingGenerateButtonProps) {
   return (
-    <div className="fixed right-6 bottom-6 z-50 flex items-center gap-3 sm:flex">
-      <div className={`flex items-center gap-3 sm:hidden1 ${!showReset ? "mr-4" : ""}`}>
+    <div className="fixed right-6 bottom-6 z-50 flex items-center gap-3">
+      <div className={`flex items-center gap-3 sm:hidden ${!showReset ? "mr-4" : ""}`}>
         {showReset && (
           <Button
             onClick={onReset}
@@ -69,7 +69,7 @@ export function FloatingGenerateButton({
           )}
         </Button>
       </div>
-      {/* Desktop: show full button with text */}
+      {/* Desktop: show full button with text, hidden on mobile */}
       <div className="hidden sm:flex items-center gap-3">
         {showReset && (
           <Button
