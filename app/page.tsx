@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import type { Camera, DatasetSpec, Waypoint, MissionStats } from "@/lib/types";
 import { generatePhotoPlaneOnGrid, computeMissionStats } from "@/lib/flight-planner";
-import { Plane, ExternalLink, RotateCcw, FileUp, Download } from "lucide-react";
+import { Plane, Download, ClipboardList } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { HorizontalConfig, type HorizontalConfigRef } from "@/components/horizontal-config";
 import { FlightPathVisualization } from "@/components/flight-path-visualization";
@@ -18,6 +18,7 @@ import {
 } from "@/components/flight-simulation-controller";
 import { Badge } from "@/components/ui/badge";
 import jsPDF from "jspdf";
+import { Button } from "@/components/ui/button";
 
 /**
  * Root page component for the mission planning UI.
@@ -323,60 +324,31 @@ export default function Home() {
   return (
     <div className="bg-background min-h-screen" onClick={handleMainClick}>
       {/* Header: app title, docs link, and user profile */}
-      <header className="border-border bg-card/50 sticky top-0 z-40 border-b backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4 sm:px-6 sm:py-3">
-          <div className="flex min-h-[64px] items-center justify-between gap-4">
-            {/* Left Side - compact logo + title (responsive, single-row friendly) */}
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-              {/* Logo hidden on very small screens to maximize header space */}
-              <div className="hidden sm:flex bg-primary h-9 w-9 items-center justify-center rounded-lg shadow-sm flex-shrink-0">
-                <Plane className="text-primary-foreground h-5 w-5" />
-              </div>
-              <div className="flex flex-col justify-center min-w-0">
-                <h1 className="text-foreground text-base sm:text-lg md:text-2xl leading-tight font-bold whitespace-nowrap">
-                  Drone Flight Planner
-                </h1>
-                {/* subtitle hidden on very small screens to keep header compact */}
-                <p className="text-muted-foreground text-xs md:text-sm leading-tight hidden sm:block">
-                  Mission Planning System
-                </p>
-              </div>
+      <header className="border-b border-border bg-card/80 sticky top-0 z-50 shadow-sm backdrop-blur-md">
+        <div className="container mx-auto flex items-center justify-between px-6 py-3 min-h-[64px]">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="bg-primary h-10 w-10 flex items-center justify-center rounded-lg shadow flex-shrink-0">
+              <Plane className="text-primary-foreground h-6 w-6" />
             </div>
-
-            {/* Right Side - Navigation (compact on mobile; stays on one row) */}
-            <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0 whitespace-nowrap">
-              {/* Feedback Button */}
-              <FeedbackButton />
-
-              {/* Technical Documentation Link */}
-              <a
-                href="https://github.com/devenshah2018/drone-trajectory"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border/50 flex items-center gap-2 rounded-lg border border-transparent px-3 py-2 text-sm sm:px-4 sm:py-2.5 transition-all duration-200"
-              >
-                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fillRule="evenodd"
-                    d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span className="ml-1 hidden xs:inline-block sm:inline-block">Technical Docs</span>
-              </a>
-
-              {/* Divider */}
-              <div className="bg-border/50 h-6 w-px mx-2"></div>
-
-              {/* Author Profile with Dropdown */}
-              <div className="flex items-center ml-1">
-                <AuthorProfile />
-              </div>
+            <div className="flex flex-col justify-center min-w-0">
+              <h1 className="text-foreground text-xl md:text-2xl font-bold tracking-tight whitespace-nowrap leading-tight">Drone Flight Planner</h1>
+              <span className="text-muted-foreground text-xs md:text-sm font-medium whitespace-nowrap leading-tight">Enterprise Mission Planning</span>
             </div>
           </div>
+          <div className="flex items-center gap-2 md:gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border/50 transition-all duration-200 cursor-pointer"
+              onClick={() => { window.open('https://github.com/devenshah2018/drone-trajectory', '_blank'); }}
+            >
+              <ClipboardList className="h-4 w-4" />
+              <span className="hidden sm:inline">Technical Docs</span>
+            </Button>
+            <FeedbackButton />
+            <AuthorProfile />
+          </div>
         </div>
-
-        {/* Mobile stacked panel removed — header now displays all controls inline on one row for small screens */}
       </header>
 
       <main className="container mx-auto space-y-6 px-6 py-6">
