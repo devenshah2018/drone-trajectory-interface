@@ -539,13 +539,13 @@ export function FlightPathVisualization({
               const dotFill = i === 0 ? "#22c55e" : i === waypoints.length - 1 ? "#fecaca" : "#B5A6FF";
               const dotStroke = i === 0 ? "#16a34a" : i === waypoints.length - 1 ? "#ef4444" : "#2563eb";
               return (
-                <g key={i}>
-                  {/* Invisible larger hit target to make hovering easier without changing visuals */}
+                <g key={i} style={{ pointerEvents: 'visiblePainted' }}>
                   <circle
                     cx={cxPos}
                     cy={cyPos}
                     r={rHit}
                     fill="transparent"
+                    style={{ pointerEvents: 'all' }}
                     onMouseEnter={(ev) => {
                       if (!isInteractive) return;
                       const event = new CustomEvent('waypoint-hover', { detail: { index: i, source: 'svg' } });
@@ -571,7 +571,6 @@ export function FlightPathVisualization({
                       const containerRect = svgRef.current.getBoundingClientRect();
                       setTooltipPos({ x: ev.clientX - containerRect.left, y: ev.clientY - containerRect.top });
                     }}
-                    style={{ cursor: isInteractive ? 'pointer' : 'default' }}
                     aria-hidden
                   />
                   {/* Visible marker: smooth, shadowed, with border */}
