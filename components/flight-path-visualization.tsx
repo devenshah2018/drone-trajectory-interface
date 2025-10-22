@@ -377,7 +377,7 @@ export function FlightPathVisualization({
             width="100%"
             height={svgHeight}
             viewBox={`0 0 ${width} ${height}`}
-            className="bg-background/50 max-w-full rounded-lg border"
+            className="bg-background/50 max-w-full rounded-lg overflow-visible"
           >
             {/* Grid lines */}
             <defs>
@@ -405,6 +405,80 @@ export function FlightPathVisualization({
               strokeDasharray="5,5"
               className="text-muted-foreground/50"
             />
+
+            <line
+              x1={padding}
+              y1={height - padding + 20}
+              x2={width - padding}
+              y2={height - padding + 20}
+              stroke="#d1d5db"
+              strokeWidth="2"
+              className=""
+            />
+            {Array.from({ length: 6 }).map((_, i) => {
+              const frac = i / 5;
+              const x = padding + frac * (width - 2 * padding);
+              const value = (minX + frac * (maxX - minX)).toFixed(0);
+              return (
+                <g key={i}>
+                  <line
+                    x1={x}
+                    y1={height - padding + 27}
+                    x2={x}
+                    y2={height - padding + 13}
+                    stroke="#d1d5db"
+                    strokeWidth="1"
+                    className=""
+                  />
+                  <text
+                    x={x}
+                    y={height - padding + 38}
+                    textAnchor="middle"
+                    className="fill-muted-foreground text-xs"
+                    style={{ fontFamily: 'inherit', fill: '#9ca3af' }}
+                  >
+                    {value}
+                  </text>
+                </g>
+              );
+            })}
+
+            <line
+              x1={padding - 20}
+              y1={padding}
+              x2={padding - 20}
+              y2={height - padding}
+              stroke="#d1d5db"
+              strokeWidth="2"
+              className=""
+            />
+            {Array.from({ length: 6 }).map((_, i) => {
+              const frac = i / 5;
+              const y = padding + frac * (height - 2 * padding);
+              const value = ((minY + frac * (maxY - minY)).toFixed(0));
+              return (
+              <g key={i}>
+                <line
+                x1={padding - 33}
+                y1={y}
+                x2={padding - 19}
+                y2={y}
+                stroke="#d1d5db"
+                strokeWidth="1"
+                className=""
+                />
+                <text
+                x={padding - 40}
+                y={y + 4}
+                textAnchor="end"
+                className="fill-muted-foreground text-xs"
+                style={{ fontFamily: 'inherit', fill: '#9ca3af' }}
+                >
+                {value}
+                </text>
+              </g>
+              );
+            })}
 
             {/* Flight path lines */}
             {waypoints.map((waypoint, i) => {

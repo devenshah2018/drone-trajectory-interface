@@ -370,7 +370,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="container mx-auto space-y-6 px-6 py-6">
+      <main className="container mx-auto space-y-8 py-8">
         {/* Configuration panel: camera and mission parameters (keeps map visible) */}
         <HorizontalConfig
           ref={horizontalConfigRef}
