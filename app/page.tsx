@@ -325,17 +325,33 @@ export default function Home() {
     <div className="bg-background min-h-screen" onClick={handleMainClick}>
       {/* Header: app title, docs link, and user profile */}
       <header className="border-b border-border bg-card/80 sticky top-0 z-50 shadow-sm backdrop-blur-md">
-        <div className="container mx-auto flex items-center justify-between px-6 py-3 min-h-[64px]">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="bg-primary h-10 w-10 flex items-center justify-center rounded-lg shadow flex-shrink-0">
-              <Plane className="text-primary-foreground h-6 w-6" />
+        <div className="container mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between px-3 sm:px-6 py-2 sm:py-3 min-h-[64px] gap-2 sm:gap-0">
+          <div className="flex flex-row items-center gap-2 sm:gap-3 min-w-0 w-full sm:w-auto">
+            <div className="bg-primary sm:h-10 sm:w-10 h-7 w-7 flex items-center justify-center rounded-lg shadow flex-shrink-0">
+              <Plane className="text-primary-foreground h-4 w-4 sm:h-6 sm:w-6" />
             </div>
-            <div className="flex flex-col justify-center min-w-0">
-              <h1 className="text-foreground text-xl md:text-2xl font-bold tracking-tight whitespace-nowrap leading-tight">Drone Flight Planner</h1>
-              <span className="text-muted-foreground text-xs md:text-sm font-medium whitespace-nowrap leading-tight">Enterprise Mission Planning</span>
+            <div className="flex flex-col justify-center min-w-0 w-full">
+              <div className="flex items-center w-full">
+                <h1 className="text-foreground text-md sm:text-xl md:text-2xl font-bold tracking-tight whitespace-nowrap leading-tight">Drone Flight Planner</h1>
+                {/* Mobile: float docs and feedback all the way right */}
+                <div className="flex sm:hidden items-center gap-2 flex-1 justify-end ml-4 mt-0.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border/50 transition-all duration-200 cursor-pointer px-2 py-1"
+                    onClick={() => { window.open('https://github.com/devenshah2018/drone-trajectory', '_blank'); }}
+                  >
+                    <ClipboardList className="h-4 w-4" />
+                  </Button>
+                  <FeedbackButton />
+                </div>
+              </div>
+              <span className="hidden sm:inline text-muted-foreground text-xs md:text-sm font-medium whitespace-nowrap leading-tight">
+                Enterprise Mission Planning
+              </span>
             </div>
           </div>
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="hidden sm:flex flex-row items-center gap-4 w-full sm:w-auto justify-end">
             <Button
               variant="outline"
               size="sm"
@@ -346,6 +362,9 @@ export default function Home() {
               <span className="hidden sm:inline">Technical Docs</span>
             </Button>
             <FeedbackButton />
+            <AuthorProfile />
+          </div>
+          <div className="flex sm:hidden w-full justify-end mt-1">
             <AuthorProfile />
           </div>
         </div>
