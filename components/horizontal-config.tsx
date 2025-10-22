@@ -456,100 +456,172 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
     // --- Render: compact two-column layout with clear section headers ---
     return (
       <Card className="border-border bg-card shadow-sm">
-        <CardHeader className="px-3">
+        <CardHeader className="px-3 relative">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-3">
               <CardTitle className="text-foreground text-lg font-semibold">Configuration</CardTitle>
             </div>
-            {/* Drone Configuration (top-right) */}
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-3">
-          {/* Model select with label on the left */}
-          <div className="flex items-center gap-2">
-            <Label htmlFor="hdr-drone" className="text-muted-foreground text-xs">
-              Model
-            </Label>
-            <Select
-              value={selectedDrone}
-              onValueChange={(value) => {
-                if (value) loadDronePreset(value);
-              }}
-            >
-              <SelectTrigger id="hdr-drone" className="w-36 cursor-pointer text-left text-xs h-8">
-                <SelectValue placeholder="Drone" />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(dronePresets).map(([key, preset]) => (
-            <SelectItem key={key} value={key}>
-              {preset.name}
-            </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* vMax and aMax with labels to the left */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="hdr-vmax" className="text-muted-foreground text-xs">
-                Max vel (m/s)
-              </Label>
-              <Input
-                id="hdr-vmax"
-                aria-label="Drone maximum speed vMax meters per second"
-                type="number"
-                step="0.1"
-                min="0"
-                value={droneVMax}
-                onChange={e => {
-                  const val = e.target.value;
-                  if (val === "") {
-                    setDroneVMax("");
-                  } else {
-                    updateDrone("vMax", Number.parseFloat(val));
-                  }
-                }}
-                className="h-8 w-20 text-xs"
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Label htmlFor="hdr-amax" className="text-muted-foreground text-xs">
-                Max acc (m/s²)
-              </Label>
-              <Input
-                id="hdr-amax"
-                aria-label="Drone maximum acceleration aMax meters per second squared"
-                type="number"
-                step="0.1"
-                min="0"
-                value={droneAMax}
-                onChange={e => {
-                  const val = e.target.value;
-                  if (val === "") {
-                    setDroneAMax(""); // Temporarily allow empty string
-                  } else {
-                    updateDrone("aMax", Number.parseFloat(val));
-                  }
-                }}
-                className="h-8 w-20 text-xs"
-              />
-            </div>
-          </div>
+            <div className="hidden sm:flex w-full justify-end items-center">
+              <div className="flex flex-row gap-2 items-center">
+                <Label htmlFor="hdr-drone" className="text-muted-foreground text-xs">
+                  Model
+                </Label>
+                <Select
+                  value={selectedDrone}
+                  onValueChange={(value) => {
+                    if (value) loadDronePreset(value);
+                  }}
+                >
+                  <SelectTrigger id="hdr-drone" className="w-36 cursor-pointer text-left text-xs h-8">
+                    <SelectValue placeholder="Drone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(dronePresets).map(([key, preset]) => (
+                      <SelectItem key={key} value={key}>
+                        {preset.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="hdr-vmax" className="text-muted-foreground text-xs">
+                    Max vel (m/s)
+                  </Label>
+                  <Input
+                    id="hdr-vmax"
+                    aria-label="Drone maximum speed vMax meters per second"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={droneVMax}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === "") {
+                        setDroneVMax("");
+                      } else {
+                        updateDrone("vMax", Number.parseFloat(val));
+                      }
+                    }}
+                    className="h-8 w-20 text-xs"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="hdr-amax" className="text-muted-foreground text-xs">
+                    Max acc (m/s²)
+                  </Label>
+                  <Input
+                    id="hdr-amax"
+                    aria-label="Drone maximum acceleration aMax meters per second squared"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={droneAMax}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === "") {
+                        setDroneAMax("");
+                      } else {
+                        updateDrone("aMax", Number.parseFloat(val));
+                      }
+                    }}
+                    className="h-8 w-20 text-xs"
+                  />
+                </div>
+                <Button
+                  onClick={toggleCollapsed}
+                  aria-expanded={!isCollapsed}
+                  aria-controls={contentId}
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 w-8 p-1 cursor-pointer sm:inline-flex hidden"
+                  title={isCollapsed ? 'Expand configuration' : 'Collapse configuration'}
+                >
+                  <ChevronDown className={`h-4 w-4 transition-transform ${!isCollapsed ? 'rotate-180' : ''}`} />
+                  <span className="sr-only">{isCollapsed ? 'Expand configuration' : 'Collapse configuration'}</span>
+                </Button>
               </div>
-
-              <Button
-          onClick={toggleCollapsed}
-          aria-expanded={!isCollapsed}
-          aria-controls={contentId}
-          size="sm"
-          variant="ghost"
-          className="h-8 w-8 p-1 cursor-pointer"
-          title={isCollapsed ? 'Expand configuration' : 'Collapse configuration'}
-              >
-          <ChevronDown className={`h-4 w-4 transition-transform ${!isCollapsed ? 'rotate-180' : ''}`} />
-          <span className="sr-only">{isCollapsed ? 'Expand configuration' : 'Collapse configuration'}</span>
-              </Button>
+            </div>
+          </div>
+          <div className="sm:hidden">
+            <Button
+              onClick={toggleCollapsed}
+              aria-expanded={!isCollapsed}
+              aria-controls={contentId}
+              size="sm"
+              variant="ghost"
+              className="h-8 w-8 p-1 cursor-pointer absolute top-0 right-0"
+              title={isCollapsed ? 'Expand configuration' : 'Collapse configuration'}
+            >
+              <ChevronDown className={`h-4 w-4 transition-transform ${!isCollapsed ? 'rotate-180' : ''}`} />
+              <span className="sr-only">{isCollapsed ? 'Expand configuration' : 'Collapse configuration'}</span>
+            </Button>
+            <div className="flex flex-row gap-2 w-full mt-2 items-end">
+              <div className="flex flex-col gap-1 w-1/3 min-w-[90px]">
+                <Label htmlFor="hdr-drone" className="text-muted-foreground text-xs">
+                  Model
+                </Label>
+                <Select
+                  value={selectedDrone}
+                  onValueChange={(value) => {
+                    if (value) loadDronePreset(value);
+                  }}
+                >
+                  <SelectTrigger id="hdr-drone" className="w-full cursor-pointer text-left text-xs h-8">
+                    <SelectValue placeholder="Drone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(dronePresets).map(([key, preset]) => (
+                      <SelectItem key={key} value={key}>
+                        {preset.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1 w-1/3 min-w-[90px]">
+                <Label htmlFor="hdr-vmax" className="text-muted-foreground text-xs">
+                  Max vel (m/s)
+                </Label>
+                <Input
+                  id="hdr-vmax"
+                  aria-label="Drone maximum speed vMax meters per second"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={droneVMax}
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (val === "") {
+                      setDroneVMax("");
+                    } else {
+                      updateDrone("vMax", Number.parseFloat(val));
+                    }
+                  }}
+                  className="h-8 w-full text-xs"
+                />
+              </div>
+              <div className="flex flex-col gap-1 w-1/3 min-w-[90px]">
+                <Label htmlFor="hdr-amax" className="text-muted-foreground text-xs">
+                  Max acc (m/s²)
+                </Label>
+                <Input
+                  id="hdr-amax"
+                  aria-label="Drone maximum acceleration aMax meters per second squared"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={droneAMax}
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (val === "") {
+                      setDroneAMax("");
+                    } else {
+                      updateDrone("aMax", Number.parseFloat(val));
+                    }
+                  }}
+                  className="h-8 w-full text-xs"
+                />
+              </div>
             </div>
           </div>
         </CardHeader>

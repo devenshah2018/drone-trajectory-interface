@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronDown, Github, Linkedin, ExternalLink, User } from "lucide-react";
+import { Github, Linkedin, User } from "lucide-react";
 
 /**
  * Compact author badge with a dropdown of external social links.
