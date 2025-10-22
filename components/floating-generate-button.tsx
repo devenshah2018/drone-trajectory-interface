@@ -41,45 +41,68 @@ export function FloatingGenerateButton({
   exportButton,
 }: FloatingGenerateButtonProps) {
   return (
-    <div className="fixed right-6 bottom-6 z-50 flex items-center gap-3">
-      {/* Reset Button: small circular outline button that resets configuration. Disabled while generating. */}
-      {showReset && (
+    <div className="fixed right-6 bottom-6 z-50 flex items-center gap-3 sm:flex">
+      <div className={`flex items-center gap-3 sm:hidden1 ${!showReset ? "mr-4" : ""}`}>
+        {showReset && (
+          <Button
+            onClick={onReset}
+            disabled={isGenerating}
+            size="lg"
+            variant="outline"
+            className="bg-card/90 hover:bg-card border-border/50 hover:border-border h-12 w-12 cursor-pointer rounded-full p-0 shadow-lg backdrop-blur-sm transition-all duration-200 hover:shadow-xl"
+            title="Reset all configurations"
+          >
+            <RotateCcw className="text-muted-foreground h-5 w-5" />
+          </Button>
+        )}
+        {exportButton}
         <Button
-          onClick={onReset}
+          onClick={onGenerate}
           disabled={isGenerating}
           size="lg"
-          variant="outline"
-          className="bg-card/90 hover:bg-card border-border/50 hover:border-border h-12 w-12 cursor-pointer rounded-full p-0 shadow-lg backdrop-blur-sm transition-all duration-200 hover:shadow-xl"
-          title="Reset all configurations"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground h-14 w-14 cursor-pointer rounded-full p-0 font-semibold shadow-lg transition-all duration-200 hover:shadow-xl flex items-center justify-center"
         >
-          <RotateCcw className="text-muted-foreground h-5 w-5" />
-        </Button>
-      )}
-
-      {/* Export Button: optional node to render an export button */}
-      {exportButton}
-
-      {/* Primary Generate Button: shows spinner and message when generating. Disabled while generating to prevent duplicate requests. */}
-      <Button
-        onClick={onGenerate}
-        disabled={isGenerating}
-        size="lg"
-        className="bg-primary hover:bg-primary/90 text-primary-foreground h-14 cursor-pointer rounded-full px-6 font-semibold shadow-lg transition-all duration-200 hover:shadow-xl"
-      >
-        {isGenerating ? (
-          // Loading state: spinner and text
-          <div className="flex items-center gap-3">
+          {isGenerating ? (
             <div className="border-primary-foreground/30 border-t-primary-foreground h-5 w-5 animate-spin rounded-full border-2" />
-            <span>Generating...</span>
-          </div>
-        ) : (
-          // Default state: plane icon and descriptive label
-          <div className="flex items-center gap-3">
+          ) : (
             <Plane className="h-5 w-5" />
-            <span>Generate Flight Plan</span>
-          </div>
+          )}
+        </Button>
+      </div>
+      {/* Desktop: show full button with text */}
+      <div className="hidden sm:flex items-center gap-3">
+        {showReset && (
+          <Button
+            onClick={onReset}
+            disabled={isGenerating}
+            size="lg"
+            variant="outline"
+            className="bg-card/90 hover:bg-card border-border/50 hover:border-border h-12 w-12 cursor-pointer rounded-full p-0 shadow-lg backdrop-blur-sm transition-all duration-200 hover:shadow-xl"
+            title="Reset all configurations"
+          >
+            <RotateCcw className="text-muted-foreground h-5 w-5" />
+          </Button>
         )}
-      </Button>
+        {exportButton}
+        <Button
+          onClick={onGenerate}
+          disabled={isGenerating}
+          size="lg"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground h-14 cursor-pointer rounded-full px-6 font-semibold shadow-lg transition-all duration-200 hover:shadow-xl"
+        >
+          {isGenerating ? (
+            <div className="flex items-center gap-3">
+              <div className="border-primary-foreground/30 border-t-primary-foreground h-5 w-5 animate-spin rounded-full border-2" />
+              <span>Generating...</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <Plane className="h-5 w-5" />
+              <span>Generate Flight Plan</span>
+            </div>
+          )}
+        </Button>
+      </div>
     </div>
   );
 }
