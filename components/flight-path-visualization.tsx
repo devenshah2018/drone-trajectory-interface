@@ -390,6 +390,9 @@ export function FlightPathVisualization({
                   className="text-muted/30"
                 />
               </pattern>
+              <filter id="dotShadow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="#000" flood-opacity="0.18" />
+              </filter>
             </defs>
             <rect width={width} height={height} fill="url(#grid)" />
 
@@ -529,8 +532,12 @@ export function FlightPathVisualization({
               const isInteractive = !simulationState?.isRunning;
               const markerClass = i === 0 ? "text-accent" : i === waypoints.length - 1 ? "text-destructive" : "text-primary";
               const isHovered = i === hoveredIdx;
-              const rHit = 12; // larger invisible hit radius for easier hovering
-
+              const rHit = 16; // larger invisible hit radius for easier hovering
+              // Smooth, visible dot style
+              const dotRadius = 4;
+              // Use GO green for start
+              const dotFill = i === 0 ? "#22c55e" : i === waypoints.length - 1 ? "#fecaca" : "#B5A6FF";
+              const dotStroke = i === 0 ? "#16a34a" : i === waypoints.length - 1 ? "#ef4444" : "#2563eb";
               return (
                 <g key={i}>
                   {/* Invisible larger hit target to make hovering easier without changing visuals */}
@@ -567,20 +574,22 @@ export function FlightPathVisualization({
                     style={{ cursor: isInteractive ? 'pointer' : 'default' }}
                     aria-hidden
                   />
-
-                  {/* Visible marker (unchanged visual size) */}
+                  {/* Visible marker: smooth, shadowed, with border */}
                   <circle
                     cx={cxPos}
                     cy={cyPos}
-                    r={i === 0 ? 6 : i === waypoints.length - 1 ? 6 : 3}
-                    fill="currentColor"
+                    r={dotRadius}
+                    fill={dotFill}
+                    stroke={dotStroke}
+                    strokeWidth="2"
+                    filter="url(#dotShadow)"
                     className={markerClass + (isHovered ? ' opacity-100 scale-110' : '')}
-                    style={{ transition: 'transform 160ms ease, opacity 160ms ease', transformOrigin: `${cxPos}px ${cyPos}px` }}
+                    style={{ transition: 'transform 180ms cubic-bezier(.4,2,.3,1), opacity 180ms cubic-bezier(.4,2,.3,1)', transformOrigin: `${cxPos}px ${cyPos}px` }}
                   />
                   {(i === 0 || i === waypoints.length - 1) && (
                     <text
                       x={cxPos}
-                      y={cyPos - 12}
+                      y={cyPos - dotRadius - 8}
                       textAnchor="middle"
                       className="fill-foreground font-mono text-xs"
                     >
@@ -697,11 +706,11 @@ export function FlightPathVisualization({
         </div>
         <div className="text-muted-foreground flex items-center justify-center gap-6 text-sm">
           <div className="flex items-center gap-2">
-            <div className="bg-accent h-3 w-3 rounded-full" />
+            <div className="h-3 w-3 rounded-full" style={{ background: '#22c55e' }} />
             <span>Start Point</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="bg-primary h-3 w-3 rounded-full" />
+            <div className="h-3 w-3 rounded-full" style={{ background: '#B5A6FF' }} />
             <span>Waypoints</span>
           </div>
           <div className="flex items-center gap-2">
