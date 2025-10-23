@@ -485,11 +485,13 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
       ref,
       () => ({
         resetPresets: () => {
-          // Clear selected preset values without modifying parent camera/dataset state
           setSelectedPreset("");
           setSelectedMissionPreset("");
-          // reset drone UI to preset and notify parent
-          setSelectedDrone('skydio-x10-simple');
+          setSelectedDrone("skydio-x10-simple");
+          setSelectedGlobalConfig("");
+          setEditedCameraFields(new Set());
+          setEditedMissionFields(new Set());
+          setEditedDroneFields(new Set());
           setDroneVMax(dronePresets["skydio-x10-simple"].config.vMax);
           setDroneAMax(dronePresets["skydio-x10-simple"].config.aMax);
           onDroneChange?.({ vMax: dronePresets["skydio-x10-simple"].config.vMax, aMax: dronePresets["skydio-x10-simple"].config.aMax });

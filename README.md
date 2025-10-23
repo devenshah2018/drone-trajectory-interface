@@ -54,3 +54,19 @@ Notes:
 - Reset: reset simulation state to the first waypoint.
 
 Waypoint table highlights current, completed, and upcoming rows during simulation. Only the table auto-scrolls to keep the active waypoint visible — the main page scroll remains unchanged.
+
+## CI/CD
+The app is deployed to Vercel on every push to the `main` branch. See the [hosted demo](https://drone-path-planner.vercel.app/).
+
+Branches made off main are version branches with the naming convention `vx.x` (e.g., `v0.1`).
+
+Features, enhancements, and bug fixes are made on the version branches.
+
+- To release:
+    1. Update `CHANGELOG.md`.
+    2. Commit with message `Release vx.x.`.
+    3. Tag the branch `vx.x`.
+    4. Draft a GitHub release with the changelog.
+    5. Open a PR to `main` titled `Release vx.x.`.
+    6. Merge PR to trigger deployment.
+    7. Publish the GitHub release.
