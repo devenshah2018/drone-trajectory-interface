@@ -337,7 +337,7 @@ export default function Home() {
                 <h1 className="text-foreground text-md sm:text-xl md:text-2xl font-bold tracking-tight whitespace-nowrap leading-tight flex items-center gap-2">
                   Drone Flight Planner
                   <Badge
-                    className="ml-2 px-3 py-1 text-[11px] font-medium cursor-pointer bg-blue-500! text-white rounded-full hover:bg-blue-600! focus:outline-none focus:ring-1 focus:ring-blue-300 transition-all duration-150"
+                    className="min-w-0! ml-2 px-3 py-1 text-[11px] font-medium cursor-pointer bg-blue-500! text-white rounded-full hover:bg-blue-600! focus:outline-none focus:ring-1 focus:ring-blue-300 transition-all duration-150"
                     style={{
                       letterSpacing: '0.01em',
                       textAlign: 'center',
@@ -348,8 +348,8 @@ export default function Home() {
                     tabIndex={0}
                     aria-label={`View release changelog for version ${releaseVersion}`}
                   >
-                    <Link className="mr-1 h-3 w-3" />
-                    {releaseVersion}
+                    <Link className="h-3 w-3" />
+                    <span className="hidden sm:block">{releaseVersion}</span>
                   </Badge>
                 </h1>
                 {/* Mobile: float docs and feedback all the way right */}
