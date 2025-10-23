@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import type { Camera, DatasetSpec, Waypoint, MissionStats } from "@/lib/types";
 import { generatePhotoPlaneOnGrid, computeMissionStats } from "@/lib/flight-planner";
-import { Plane, Download, ClipboardList } from "lucide-react";
+import { Plane, Download, ClipboardList, Link } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { HorizontalConfig, type HorizontalConfigRef } from "@/components/horizontal-config";
 import { FlightPathVisualization } from "@/components/flight-path-visualization";
@@ -19,6 +19,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import jsPDF from "jspdf";
 import { Button } from "@/components/ui/button";
+
+const releaseVersion = process.env.NEXT_PUBLIC_RELEASE || "v0.0.0";
 
 /**
  * Root page component for the mission planning UI.
@@ -332,7 +334,24 @@ export default function Home() {
             </div>
             <div className="flex flex-col justify-center min-w-0 w-full">
               <div className="flex items-center w-full">
-                <h1 className="text-foreground text-md sm:text-xl md:text-2xl font-bold tracking-tight whitespace-nowrap leading-tight">Drone Flight Planner</h1>
+                <h1 className="text-foreground text-md sm:text-xl md:text-2xl font-bold tracking-tight whitespace-nowrap leading-tight flex items-center gap-2">
+                  Drone Flight Planner
+                  <Badge
+                    className="ml-2 px-3 py-1 text-[11px] font-medium cursor-pointer bg-blue-500! text-white rounded-full hover:bg-blue-600! focus:outline-none focus:ring-1 focus:ring-blue-300 transition-all duration-150"
+                    style={{
+                      letterSpacing: '0.01em',
+                      textAlign: 'center',
+                      minWidth: '44px',
+                    }}
+                    onClick={() => window.open("https://github.com/devenshah2018/drone-trajectory-interface/blob/main/CHANGELOG.md", "_blank")}
+                    title={`Release: ${releaseVersion}`}
+                    tabIndex={0}
+                    aria-label={`View release changelog for version ${releaseVersion}`}
+                  >
+                    <Link className="mr-1 h-3 w-3" />
+                    {releaseVersion}
+                  </Badge>
+                </h1>
                 {/* Mobile: float docs and feedback all the way right */}
                 <div className="flex sm:hidden items-center gap-2 flex-1 justify-end ml-4 mt-0.5">
                   <Button
