@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [v0.0-beta] - 2025-10-26
+## [v0.0-beta] - 2025-10-23
 - Enhancement: Added template configuration groups for bulk configuration presets.
 - Enhancement: Ensured total mobile responsiveness.
 - Enhancement: UI design improvements for better user experience.
