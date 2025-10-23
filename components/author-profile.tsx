@@ -11,6 +11,12 @@ import { Github, Linkedin, User } from "lucide-react";
 export function AuthorProfile() {
   const socialLinks = [
     {
+      name: "Portfolio",
+      url: "https://deven-shah-portfolio.vercel.app/",
+      icon: User,
+      description: "Personal Website",
+    },
+    {
       name: "LinkedIn",
       url: "https://www.linkedin.com/in/deven-a-shah/",
       icon: Linkedin,
@@ -21,13 +27,7 @@ export function AuthorProfile() {
       url: "https://github.com/devenshah2018",
       icon: Github,
       description: "Code Repository",
-    },
-    {
-      name: "Portfolio",
-      url: "https://deven-shah-portfolio.vercel.app/",
-      icon: User,
-      description: "Personal Website",
-    },
+    }
   ];
 
   return (
