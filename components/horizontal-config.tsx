@@ -685,7 +685,7 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
               <div>
                 <div className="border-border/30 mb-3 flex items-center justify-between gap-2 border-b pb-2">
                   <div className="flex items-center gap-2">
-                    <div className="flex h-4 w-4 items-center justify-center rounded bg-blue-100 dark:bg-blue-900/30">
+                    <div className="flex h-6 w-6 items-center justify-center rounded bg-blue-100 dark:bg-blue-900/30">
                       <CameraIcon className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
                     </div>
                     <h3 className="text-md text-foreground font-semibold">Camera Settings</h3>
@@ -866,7 +866,7 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
               <div>
                 <div className="border-border/30 mb-3 flex items-center justify-between gap-2 border-b pb-2">
                   <div className="flex items-center gap-2">
-                    <div className="flex h-4 w-4 items-center justify-center rounded bg-emerald-100 dark:bg-emerald-900/30">
+                    <div className="flex h-6 w-6 items-center justify-center rounded bg-emerald-100 dark:bg-emerald-900/30">
                       <Settings className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                     </div>
                     <h3 className="text-md text-foreground font-semibold">Mission Parameters</h3>
