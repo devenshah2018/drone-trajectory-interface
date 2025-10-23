@@ -375,10 +375,10 @@ export default function Home() {
               variant="outline"
               size="sm"
               className="gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border/50 transition-all duration-200 cursor-pointer"
-              onClick={() => { window.open('https://github.com/devenshah2018/drone-trajectory', '_blank'); }}
+              onClick={() => { window.open('https://github.com/devenshah2018/drone-trajectory-planner/blob/main/main.ipynb', '_blank'); }}
             >
               <ClipboardList className="h-4 w-4" />
-              <span className="hidden sm:inline">Technical Docs</span>
+              <span className="hidden sm:inline">Docs</span>
             </Button>
             <FeedbackButton />
             <AuthorProfile />
