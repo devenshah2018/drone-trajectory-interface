@@ -491,7 +491,7 @@ export default function Home() {
             <div className="flex flex-col justify-center min-w-0 w-full">
               <div className="flex items-center w-full">
                 <h1 className="text-foreground text-md sm:text-xl md:text-2xl font-bold tracking-tight whitespace-nowrap leading-tight flex items-center gap-2">
-                  Drone Flight Planner
+                  Drone Flight Simulator
                   <Badge
                     className="min-w-0! ml-2 px-3 py-1 text-[11px] font-medium cursor-pointer bg-blue-500! text-white rounded-full hover:bg-blue-600! focus:outline-none focus:ring-1 focus:ring-blue-300 transition-all duration-150"
                     style={{
@@ -522,7 +522,7 @@ export default function Home() {
                 </div>
               </div>
               <span className="hidden sm:inline text-muted-foreground text-xs md:text-sm font-medium whitespace-nowrap leading-tight">
-                Enterprise Mission Planning
+                Path Planner for Aerial Imaging
               </span>
             </div>
           </div>
