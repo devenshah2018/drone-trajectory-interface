@@ -19,6 +19,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import jsPDF from "jspdf";
 import { Button } from "@/components/ui/button";
+import * as XLSX from "xlsx";
 
 const releaseVersion = process.env.NEXT_PUBLIC_RELEASE || "v0.0.0";
 
@@ -100,27 +101,82 @@ export default function Home() {
   const canShowExport = waypoints.length > 0;
 
   // Export handlers
-  function exportCSV() {
-    if (!waypoints.length) return;
-    const header = Object.keys(waypoints[0]).join(",");
-    const rows = waypoints.map(wp => Object.values(wp).join(",")).join("\n");
-    const csv = header + "\n" + rows;
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "flight-plan.csv";
-    a.click();
-    URL.revokeObjectURL(url);
+  function exportExcel() {
+    const configRows: string[][] = [];
+    configRows.push(["Camera Config", "", ""]);
+    [
+      ["fx", camera.fx, "px"],
+      ["fy", camera.fy, "px"],
+      ["cx", camera.cx, "px"],
+      ["cy", camera.cy, "px"],
+      ["sensor_size_x_mm", camera.sensor_size_x_mm, "mm"],
+      ["sensor_size_y_mm", camera.sensor_size_y_mm, "mm"],
+      ["image_size_x", camera.image_size_x, "px"],
+      ["image_size_y", camera.image_size_y, "px"],
+    ].forEach(([k, v, u]) => configRows.push([`${k} [${u}]`, String(v), ""]));
+    configRows.push(["", "", ""]);
+    configRows.push(["Drone Config", "", ""]);
+    [
+      ["vMax", droneConfig.vMax, "m/s"],
+      ["aMax", droneConfig.aMax, "m/s²"],
+    ].forEach(([k, v, u]) => configRows.push([`${k} [${u}]`, String(v), ""]));
+    configRows.push(["", "", ""]);
+    configRows.push(["Mission Config", "", ""]);
+    [
+      ["overlap", datasetSpec.overlap, "ratio"],
+      ["sidelap", datasetSpec.sidelap, "ratio"],
+      ["height", datasetSpec.height, "m"],
+      ["scan_dimension_x", datasetSpec.scan_dimension_x, "m"],
+      ["scan_dimension_y", datasetSpec.scan_dimension_y, "m"],
+      ["exposure_time_ms", datasetSpec.exposure_time_ms, "ms"],
+    ].forEach(([k, v, u]) => configRows.push([`${k} [${u}]`, String(v), ""]));
+    configRows.push(["", "", ""]);
+    if (missionStats) {
+      configRows.push(["Mission Stats", "", ""]);
+      Object.entries(missionStats).forEach(([k, v]) => configRows.push([k, String(v), ""]));
+    }
+    const sectionIdxs = configRows
+      .map((row, i) => row[1] === "" && row[2] === "" ? i : -1)
+      .filter(i => i !== -1);
+    const configWS = XLSX.utils.aoa_to_sheet(configRows);
+    sectionIdxs.forEach(idx => {
+      if (configWS["A" + (idx+1)]) configWS["A" + (idx+1)].s = { font: { bold: true, sz: 13 }, fill: { fgColor: { rgb: "DDEEFF" } } };
+    });
+    let waypointSheet: any[][] = [];
+    if (waypoints.length) {
+      const headers = Object.keys(waypoints[0]);
+      const units: Record<string, string> = {
+        x: "m",
+        y: "m",
+        z: "m",
+        lat: "°",
+        lon: "°",
+        alt: "m",
+        speed: "m/s",
+        time: "s",
+        heading: "°",
+        gimbal_pitch: "°",
+        gimbal_yaw: "°",
+        photo: "",
+      };
+      const headerRow = headers.map(h => units[h] ? `${h} [${units[h]}]` : h);
+      waypointSheet = [
+        headerRow,
+        ...waypoints.map(wp => headers.map(h => (wp as any)[h]))
+      ];
+    } else {
+      waypointSheet = [["No waypoints generated"]];
+    }
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, configWS, "Config");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(waypointSheet), "Waypoints");
+    XLSX.writeFile(wb, "flight-plan.xlsx");
   }
 
   function exportJSON() {
     const data = {
-      camera,
-      datasetSpec,
-      droneConfig,
+      config: { camera, datasetSpec, droneConfig, missionStats },
       waypoints,
-      missionStats,
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -133,31 +189,131 @@ export default function Home() {
 
   function exportPDF() {
     const doc = new jsPDF({ orientation: "landscape" });
-    const data = {
-      camera,
-      datasetSpec,
-      droneConfig,
-      waypoints,
-      missionStats,
-    };
-    const text = JSON.stringify(data, null, 2);
-    const pageWidth = 280; // fit to page width
-    const pageHeight = 200; // jsPDF landscape default
-    const marginLeft = 10;
-    const marginTop = 10;
-    const lineHeight = 4.5; // for fontSize 8
-    doc.setFont("courier", "normal");
-    doc.setFontSize(8);
-    const lines = doc.splitTextToSize(text, pageWidth);
-    let y = marginTop;
-    for (let i = 0; i < lines.length; i++) {
-      if (y + lineHeight > pageHeight - marginTop) {
-        doc.addPage();
-        y = marginTop;
-      }
-      doc.text(lines[i], marginLeft, y);
-      y += lineHeight;
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text("Drone Flight Plan Report", 12, 18);
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 12, 26);
+    doc.setLineWidth(0.5);
+    doc.line(12, 30, 280, 30);
+
+    let y = 38;
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("Camera Configuration", 12, y);
+    y += 7;
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    [
+      ["fx", camera.fx, "px"],
+      ["fy", camera.fy, "px"],
+      ["cx", camera.cx, "px"],
+      ["cy", camera.cy, "px"],
+      ["sensor_size_x_mm", camera.sensor_size_x_mm, "mm"],
+      ["sensor_size_y_mm", camera.sensor_size_y_mm, "mm"],
+      ["image_size_x", camera.image_size_x, "px"],
+      ["image_size_y", camera.image_size_y, "px"],
+    ].forEach(([k, v, u]) => {
+      doc.text(`${k} [${u}]`, 16, y);
+      doc.text(String(v), 60, y);
+      y += 6;
+    });
+
+    y += 4;
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("Drone Configuration", 12, y);
+    y += 7;
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    [
+      ["vMax", droneConfig.vMax, "m/s"],
+      ["aMax", droneConfig.aMax, "m/s²"],
+    ].forEach(([k, v, u]) => {
+      doc.text(`${k} [${u}]`, 16, y);
+      doc.text(String(v), 60, y);
+      y += 6;
+    });
+
+    y += 4;
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("Mission Configuration", 12, y);
+    y += 7;
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    [
+      ["overlap", datasetSpec.overlap, "ratio"],
+      ["sidelap", datasetSpec.sidelap, "ratio"],
+      ["height", datasetSpec.height, "m"],
+      ["scan_dimension_x", datasetSpec.scan_dimension_x, "m"],
+      ["scan_dimension_y", datasetSpec.scan_dimension_y, "m"],
+      ["exposure_time_ms", datasetSpec.exposure_time_ms, "ms"],
+    ].forEach(([k, v, u]) => {
+      doc.text(`${k} [${u}]`, 16, y);
+      doc.text(String(v), 60, y);
+      y += 6;
+    });
+
+    if (missionStats) {
+      y += 4;
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text("Mission Analysis", 12, y);
+      y += 7;
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      Object.entries(missionStats).forEach(([k, v]) => {
+        doc.text(k, 16, y);
+        doc.text(String(v), 60, y);
+        y += 6;
+      });
     }
+
+    y += 8;
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("Flight Path Visualization", 12, y);
+    y += 4;
+    const canvas = document.querySelector("#flight-path-canvas") as HTMLCanvasElement | null;
+    if (canvas && typeof canvas.toDataURL === "function") {
+      const imgData = canvas.toDataURL("image/png");
+      doc.addImage(imgData, "PNG", 12, y, 120, 80);
+      y += 84;
+    }
+
+    y += 8;
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("Waypoints (first 20)", 12, y);
+    y += 7;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    if (waypoints.length) {
+      const headers = Object.keys(waypoints[0]);
+      const units: Record<string, string> = {
+        x: "m", y: "m", z: "m", lat: "°", lon: "°", alt: "m", speed: "m/s", time: "s", heading: "°", gimbal_pitch: "°", gimbal_yaw: "°", photo: ""
+      };
+      const headerRow = headers.map(h => units[h] ? `${h} [${units[h]}]` : h);
+      doc.text(headerRow.join(" | "), 16, y);
+      y += 6;
+      waypoints.slice(0, 20).forEach(wp => {
+        const row = headers.map(h => String((wp as any)[h]));
+        doc.text(row.join(" | "), 16, y);
+        y += 5;
+        if (y > 190) { doc.addPage(); y = 18; }
+      });
+      if (waypoints.length > 20) {
+        doc.text(`...and ${waypoints.length - 20} more`, 16, y);
+      }
+    } else {
+      doc.text("No waypoints generated", 16, y);
+    }
+
+    doc.setFontSize(8);
+    doc.setTextColor(120);
+    doc.text("Generated by Drone Flight Planner | github.com/devenshah2018/drone-trajectory", 12, 200);
     doc.save("flight-plan.pdf");
   }
 
@@ -460,22 +616,22 @@ export default function Home() {
                 className="absolute bottom-14 flex flex-col gap-2 items-center z-10"
               >
                 <Badge
-                onClick={exportCSV}
-                className="cursor-pointer select-none w-20 text-center bg-white hover:bg-gray-100 border border-border/50 !text-black hover:!text-black shadow-lg backdrop-blur-sm"
+                  onClick={exportExcel}
+                  className="cursor-pointer select-none w-20 text-center bg-white hover:bg-gray-100 border border-border/50 !text-black hover:!text-black shadow-lg backdrop-blur-sm"
                 >
-                CSV
+                  Excel
                 </Badge>
                 <Badge
-                onClick={exportJSON}
-                className="cursor-pointer select-none w-20 text-center bg-white hover:bg-gray-100 border border-border/50 !text-black hover:!text-black shadow-lg backdrop-blur-sm"
+                  onClick={exportJSON}
+                  className="cursor-pointer select-none w-20 text-center bg-white hover:bg-gray-100 border border-border/50 !text-black hover:!text-black shadow-lg backdrop-blur-sm"
                 >
-                JSON
+                  JSON
                 </Badge>
                 <Badge
-                onClick={exportPDF}
-                className="cursor-pointer select-none w-20 text-center bg-white hover:bg-gray-100 border border-border/50 !text-black hover:!text-black shadow-lg backdrop-blur-sm"
+                  onClick={exportPDF}
+                  className="cursor-pointer select-none w-20 text-center bg-white hover:bg-gray-100 border border-border/50 !text-black hover:!text-black shadow-lg backdrop-blur-sm"
                 >
-                PDF
+                  PDF
                 </Badge>
               </motion.div>
               )}
