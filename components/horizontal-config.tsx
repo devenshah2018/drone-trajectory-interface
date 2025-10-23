@@ -315,8 +315,43 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
       },
     };
 
-    const highlightClass = "ring-2 ring-primary/60 bg-primary/5 transition-all duration-200";
+    interface GlobalConfigType {
+      name: string;
+      description: string;
+      cameraPresetKey: string;
+      modelPresetKey: string;
+      missionPresetKey: string;
+    }
+    const initialGlobalConfigs: Record<string, GlobalConfigType> = {
+      Default: {
+        name: "Default",
+        description: "Default configuration for camera, model, and mission",
+        cameraPresetKey: "skydio-x10-vt300l-wide",
+        modelPresetKey: "default",
+        missionPresetKey: "nominal",
+      },
+    };
+    const [globalConfigs] = useState<Record<string, GlobalConfigType>>(initialGlobalConfigs);
+    const [selectedGlobalConfig, setSelectedGlobalConfig] = useState<string>("");
 
+    const handleGlobalConfigSelect = (key: string) => {
+      setSelectedGlobalConfig(key);
+      const config = globalConfigs[key];
+      if (config) {
+        setSelectedPreset(config.cameraPresetKey);
+        if (cameraPresets[config.cameraPresetKey]) {
+          onCameraChange({ ...cameraPresets[config.cameraPresetKey].config });
+        }
+        setSelectedDrone(config.modelPresetKey);
+        loadDronePreset(config.modelPresetKey);
+        setSelectedMissionPreset(config.missionPresetKey);
+        if (missionPresets[config.missionPresetKey]) {
+          onDatasetSpecChange({ ...missionPresets[config.missionPresetKey].config });
+        }
+      }
+    };
+
+    const highlightClass = "ring-2 ring-primary/60 bg-primary/5 transition-all duration-200";
 
     const [editedCameraFields, setEditedCameraFields] = useState<Set<keyof Camera>>(new Set());
     const [editedMissionFields, setEditedMissionFields] = useState<Set<keyof DatasetSpec>>(new Set());
@@ -460,7 +495,24 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
         <CardHeader className="px-3 relative">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-3">
-              <CardTitle className="text-foreground text-lg font-semibold">Configuration</CardTitle>
+              <CardTitle className="text-foreground text-lg font-semibold flex items-center gap-2">
+                Configuration
+                <Select
+                  value={selectedGlobalConfig}
+                  onValueChange={handleGlobalConfigSelect}
+                >
+                  <SelectTrigger className="w-40 cursor-pointer text-left text-xs h-8">
+                    <SelectValue placeholder="Choose template" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(globalConfigs).map(([key, config]) => (
+                      <SelectItem key={key} value={key}>
+                        {config.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </CardTitle>
             </div>
             <div className="hidden sm:flex w-full justify-end items-center">
               <div className="flex flex-row gap-2 items-center">
