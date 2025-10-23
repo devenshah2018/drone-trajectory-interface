@@ -1,11 +1,11 @@
 "use client";
 
-import type { MissionStats, Waypoint } from "@/lib/types";
+import type { Camera, DatasetSpec, MissionStats, Waypoint } from "@/lib/types";
 import type { SimulationState } from "./flight-simulation-controller";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart3, Clock, MapPin, Camera, Navigation } from "lucide-react";
+import { BarChart3, Clock, MapPin, Navigation } from "lucide-react";
 import { useCallback, useRef, useEffect, useState } from "react";
-import { computePlanTime } from "@/lib/flight-planner";
+import { computePlanTime, computeSpeedDuringPhotoCapture } from "@/lib/flight-planner";
 
 /**
  * CompactMissionStats component props.
@@ -13,12 +13,16 @@ import { computePlanTime } from "@/lib/flight-planner";
  * @param stats - Mission statistics or null when no mission is available
  * @param waypoints - Array of waypoints that define the flight path
  * @param simulationState - Optional live simulation state used to drive row highlighting and progress indicators
- * @param droneConfig - Optional drone kinematic limits (vMax m/s, aMax m/s^2)
+ * @param cameraConfig - Camera configuration
+ * @param datasetSpec - Dataset specification
+ * @param droneConfig - Drone configrations
  */
 interface CompactMissionStatsProps {
   stats: MissionStats | null;
   waypoints: Waypoint[];
   simulationState?: SimulationState;
+  cameraConfig: Camera;
+  missionConfig: DatasetSpec;
   droneConfig?: { vMax?: number; aMax?: number };
 }
 
@@ -37,6 +41,8 @@ export function CompactMissionStats({
   waypoints,
   simulationState,
   droneConfig,
+  cameraConfig,
+  missionConfig
 }: CompactMissionStatsProps) {
   const tableRef = useRef<HTMLDivElement>(null);
   const currentWaypointRef = useRef<HTMLDivElement>(null);
@@ -473,8 +479,11 @@ export function CompactMissionStats({
       if (!waypoints || waypoints.length < 2) return [];
       const positions = waypoints.map((w) => [w.x, w.y, w.z]);
       const vPhotoBase = waypoints[0]?.speed ?? 0;
+
+      const vPhoto = (typeof droneConfig === 'object' && typeof stats === 'object')
+        ? computeSpeedDuringPhotoCapture(cameraConfig, missionConfig)
+        : vPhotoBase;
       const vMax = typeof droneConfig?.vMax === 'number' ? droneConfig.vMax : 16.0;
-      const vPhoto = typeof droneConfig?.vMax === 'number' ? Math.min(vPhotoBase, droneConfig.vMax) : vPhotoBase;
       const aMax = droneConfig?.aMax ?? 3.5;
       const [, segs] = computePlanTime(positions, vPhoto, 0.0, vMax, aMax);
       return segs || [];
@@ -752,7 +761,7 @@ export function CompactMissionStats({
                 const chartHeight = height - padding.top - padding.bottom;
 
                 // Get profile parameters
-                let vPhoto = 0;
+                let vPhoto = computeSpeedDuringPhotoCapture(cameraConfig, missionConfig);
                 let vPeak = 0;
                 let vCruise = 0;
                 let tAcc = 0;
@@ -760,12 +769,10 @@ export function CompactMissionStats({
                 let tDec = 0;
 
                 if (segType === 'triangular' || segType === 'triangular_fallback') {
-                  vPhoto = Number(profile.v_photo ?? 0);
                   vPeak = Number(profile.v_peak ?? 0);
                   tAcc = Number(profile.t_acc ?? 0);
                   tDec = Number(profile.t_dec ?? tAcc);
                 } else if (segType === 'trapezoidal') {
-                  vPhoto = Number(profile.v_photo ?? 0);
                   vCruise = Number(profile.v_cruise ?? 0);
                   tAcc = Number(profile.t_acc ?? 0);
                   tCruise = Number(profile.t_cruise ?? 0);

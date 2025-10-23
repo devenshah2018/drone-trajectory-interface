@@ -580,6 +580,8 @@ export default function Home() {
               waypoints={waypoints}
               simulationState={simulationState || undefined}
               droneConfig={droneConfig}
+              cameraConfig={camera}
+              missionConfig={datasetSpec}
             />
           </div>
         </div>

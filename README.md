@@ -67,6 +67,7 @@ Features, enhancements, and bug fixes are made on the version branches.
     2. Commit with message `Release vx.x.`.
     3. Tag the branch `vx.x`.
     4. Draft a GitHub release with the changelog.
-    5. Open a PR to `main` titled `Release vx.x.`.
-    6. Merge PR to trigger deployment.
-    7. Publish the GitHub release.
+    5. Increment the release ENV variable in Vercel.
+    6. Open a PR to `main` titled `Release vx.x.`.
+    7. Merge PR to trigger deployment.
+    8. Publish the GitHub release.
