@@ -504,7 +504,7 @@ export default function Home() {
                     tabIndex={0}
                     aria-label={`View release changelog for version ${releaseVersion}`}
                   >
-                    <Link className="h-3 w-3" />
+                    <Link className="h-3 w-3 sm:mr-1" />
                     <span className="hidden sm:block">{releaseVersion}</span>
                   </Badge>
                 </h1>
