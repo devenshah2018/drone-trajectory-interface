@@ -379,10 +379,10 @@ export default function Home() {
         let userMessage = error.message;
         if (error.message.includes("overlap must be in [0, 1)")) {
           userMessage =
-            "Forward overlap must be between 0% and 95%. Please adjust your overlap setting.";
+            "Overlap must be between 0% and 95%. Please adjust your overlap setting.";
         } else if (error.message.includes("sidelap must be in [0, 1)")) {
           userMessage =
-            "Side overlap must be between 0% and 95%. Please adjust your sidelap setting.";
+            "Sidelap must be between 0% and 95%. Please adjust your sidelap setting.";
         } else {
           userMessage =
             "Unable to generate flight plan. Please check your configuration parameters.";

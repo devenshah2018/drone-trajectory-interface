@@ -949,8 +949,8 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                   {/* Row 1 - Overlap & Height */}
                   <div>
                     <div className="flex items-center gap-1">
-                      <Label htmlFor="overlap" className="text-muted-foreground mb-1 block text-xs">Forward Overlap</Label>
-                      <Tooltip content="Forward overlap percentage between consecutive images in flight direction. Higher values ensure better reconstruction quality but increase flight time.">
+                      <Label htmlFor="overlap" className="text-muted-foreground mb-1 block text-xs">Overlap</Label>
+                      <Tooltip content="Overlap percentage between consecutive images in flight direction. Higher values ensure better reconstruction quality but increase flight time.">
                         <span className="inline-flex items-center cursor-pointer">
                           <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
                             <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
@@ -979,8 +979,8 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                   </div>
                   <div>
                     <div className="flex items-center gap-1">
-                      <Label htmlFor="sidelap" className="text-muted-foreground mb-1 block text-xs">Side Overlap</Label>
-                      <Tooltip content="Side overlap percentage between adjacent flight lines. Higher values ensure better coverage but increase flight time and data processing.">
+                      <Label htmlFor="sidelap" className="text-muted-foreground mb-1 block text-xs">Sidelap</Label>
+                      <Tooltip content="Sidelap percentage between adjacent flight lines. Higher values ensure better coverage but increase flight time and data processing.">
                         <span className="inline-flex items-center cursor-pointer">
                           <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
                             <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
