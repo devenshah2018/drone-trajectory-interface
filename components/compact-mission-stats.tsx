@@ -767,16 +767,19 @@ export function CompactMissionStats({
                 let tAcc = 0;
                 let tCruise = 0;
                 let tDec = 0;
+                let aMax = droneConfig?.aMax ?? 3.5;
 
                 if (segType === 'triangular' || segType === 'triangular_fallback') {
                   vPeak = Number(profile.v_peak ?? 0);
                   tAcc = Number(profile.t_acc ?? 0);
                   tDec = Number(profile.t_dec ?? tAcc);
+                  aMax = Number(profile.a_max ?? aMax);
                 } else if (segType === 'trapezoidal') {
                   vCruise = Number(profile.v_cruise ?? 0);
                   tAcc = Number(profile.t_acc ?? 0);
                   tCruise = Number(profile.t_cruise ?? 0);
                   tDec = Number(profile.t_dec ?? tAcc);
+                  aMax = Number(profile.a_max ?? aMax);
                 }
 
                 const vMax = Math.max(vPeak, vCruise, vPhoto, currentSpeed, 1);
@@ -845,6 +848,13 @@ export function CompactMissionStats({
                 const speedTicks: number[] = [];
                 for (let v = 0; v <= vMax; v += speedInterval) {
                   speedTicks.push(v);
+                }
+
+                let acceleration = aMax;
+                if (segType === 'triangular' || segType === 'triangular_fallback') {
+                  if (tAcc > 0) acceleration = (vPeak - vPhoto) / tAcc;
+                } else if (segType === 'trapezoidal') {
+                  if (tAcc > 0) acceleration = (vCruise - vPhoto) / tAcc;
                 }
 
                 return (
@@ -949,12 +959,34 @@ export function CompactMissionStats({
                       </text>
                     ))}
 
+
                     {/* Fill area under curve */}
                     <path
                       d={`${pathData} L ${scaleX(timeMax)},${scaleY(0)} L ${scaleX(0)},${scaleY(0)} Z`}
                       fill="currentColor"
                       className="text-primary/10"
                     />
+                    <g>
+                      <rect
+                        x={width - padding.right - 65}
+                        y={padding.top - 20}
+                        width={18}
+                        height={12}
+                        rx={3}
+                        fill="currentColor"
+                        className="text-primary/10"
+                        stroke="#0ea5e9"
+                        strokeWidth="0.5"
+                      />
+                      <text
+                        x={width - padding.right - 40}
+                        y={padding.top - 11}
+                        textAnchor="start"
+                        className="fill-muted-foreground text-[10px] font-medium"
+                      >
+                        Segment length
+                      </text>
+                    </g>
 
                     {/* Velocity profile curve */}
                     <path
@@ -967,7 +999,73 @@ export function CompactMissionStats({
                       strokeLinejoin="round"
                     />
 
-
+                    {(() => {
+                      let minPoints = [];
+                      let maxPoint = null;
+                      if (segType === 'triangular' || segType === 'triangular_fallback') {
+                        minPoints = [
+                          { t: 0, v: vPhoto },
+                          { t: tAcc + tDec, v: vPhoto }
+                        ];
+                        maxPoint = { t: tAcc, v: vPeak };
+                      } else if (segType === 'trapezoidal') {
+                        minPoints = [
+                          { t: 0, v: vPhoto },
+                          { t: tAcc + tCruise + tDec, v: vPhoto }
+                        ];
+                        const cruiseMid = tAcc + tCruise / 2;
+                        maxPoint = { t: cruiseMid, v: vCruise };
+                      } else {
+                        minPoints = [{ t: 0, v: vPhoto }, { t: timeMax, v: vPhoto }];
+                        maxPoint = { t: timeMax / 2, v: vPhoto };
+                      }
+                      return (
+                        <g>
+                          {minPoints.length > 1 && (
+                            <g>
+                              <circle
+                                cx={scaleX(minPoints[1].t)}
+                                cy={scaleY(minPoints[1].v)}
+                                r="4"
+                                fill="currentColor"
+                                className="text-primary"
+                                stroke="white"
+                                strokeWidth="1.5"
+                              />
+                              <text
+                                x={scaleX(minPoints[1].t)}
+                                y={scaleY(minPoints[1].v) + 12}
+                                textAnchor="middle"
+                                className="fill-primary text-[10px] font-semibold"
+                              >
+                                {minPoints[1].v.toFixed(2)} m/s
+                              </text>
+                            </g>
+                          )}
+                          {maxPoint && (
+                            <g>
+                              <circle
+                                cx={scaleX(maxPoint.t)}
+                                cy={scaleY(maxPoint.v)}
+                                r="4"
+                                fill="currentColor"
+                                className="text-sky-600"
+                                stroke="white"
+                                strokeWidth="1.5"
+                              />
+                              <text
+                                x={scaleX(maxPoint.t)}
+                                y={scaleY(maxPoint.v) - 8}
+                                textAnchor="middle"
+                                className="fill-sky-600 text-[10px] font-semibold"
+                              >
+                                {maxPoint.v.toFixed(2)} m/s
+                              </text>
+                            </g>
+                          )}
+                        </g>
+                      );
+                    })()}
 
                     {/* Current position indicator - drone on curve - only show when running */}
                     {simulationState?.isRunning && segElapsed <= tTotal && (
@@ -1054,7 +1152,7 @@ export function CompactMissionStats({
                 </div>
                 <div>
                   <div className="text-muted-foreground font-medium mb-1">
-                    {simulationState?.isRunning ? 'Distance Covered' : 'Distance'}
+                    {simulationState?.isRunning ? 'Distance Covered' : 'Segment Length'}
                   </div>
                   <div className="font-mono text-foreground">
                     {simulationState?.isRunning ? (
@@ -1082,40 +1180,46 @@ export function CompactMissionStats({
                     )}
                   </div>
                 </div>
+                <div>
+                  <div className="text-muted-foreground font-medium mb-1">
+                    Minimum Speed
+                  </div>
+                  <div className="font-mono text-foreground">
+                    <>
+                      {computeSpeedDuringPhotoCapture(cameraConfig, missionConfig).toFixed(2)} m/s
+                    </>
+                  </div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground font-medium mb-1">
+                    Maximum Speed
+                  </div>
+                  <div className="font-mono text-foreground">
+                    <>
+                      {(() => {
+                      const segments = (simulationState?.segments && (simulationState.segments.length ?? 0) > 0)
+                        ? simulationState.segments
+                        : (previewSegments ?? []);
+                      const seg = simulationState?.isRunning
+                        ? segments[simulationState.currentSegmentIndex ?? 0]
+                        : segments[0];
+                      const profile = seg?.profile ?? seg;
+                      const segType = profile?.type ?? 'degenerate';
+                      if (segType === 'trapezoidal') {
+                        return Number(profile.v_cruise ?? 0).toFixed(2);
+                      }
+                      if (segType === 'triangular' || segType === 'triangular_fallback') {
+                        return Number(profile.v_peak ?? 0).toFixed(2);
+                      }
+                      return "-";
+                      })()} m/s
+                    </>
+                  </div>
+                </div>                 
               </div>
             </div>
           </div>
         )}
-
-
-        {/* Flight Progress Panel - Only show during simulation */}
-        {simulationState?.isRunning && (
-              <div className="bg-muted/20 border-border/30 mt-4 rounded-lg border p-3">
-                <div className="mb-2 flex items-center justify-between">
-                  <h4 className="text-foreground text-xs font-medium">Flight Progress</h4>
-                  <div className="text-muted-foreground font-mono text-xs">
-                    {simulationState.isPaused ? (
-                      <span className="text-muted-foreground">⏸ Paused</span>
-                    ) : (
-                      <span className="text-primary">▶ Active</span>
-                    )}
-                  </div>
-                </div>
-                {simulationState.currentWaypointIndex < waypoints.length && (
-                  <div className="border-border/30 mt-2 border-t pt-2">
-                    <div className="text-muted-foreground text-xs">
-                      Flying to waypoint {simulationState.currentWaypointIndex + 2}/
-                      {waypoints.length}
-                      {simulationState.progress > 0 && (
-                        <span className="ml-2">
-                          ({(simulationState.progress * 100).toFixed(0)}% complete)
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
       </CardContent>
     </Card>
   );
