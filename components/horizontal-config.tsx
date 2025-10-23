@@ -83,12 +83,34 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
 
     // Drone presets & state: allow selecting a template and editing vMax / aMax
     const dronePresets = {
-      default: { name: 'Default', config: { vMax: 16, aMax: 3.5 } },
+      "skydio-x10-simple": { name: 'Skydio X10 (Simple)', config: { vMax: 16, aMax: 3.5 } },
+      "skydio-x10": { name: 'Skydio X10', config: { vMax: 45, aMax: 3.5 } },
+      "skydio-r10": { name: 'Skydio R10', config: { vMax: 27, aMax: 3.5 } },
     } as const;
 
-    const [selectedDrone, setSelectedDrone] = useState<string>('default');
-    const [droneVMax, setDroneVMax] = useState<string | number>(droneConfig?.vMax ?? dronePresets.default.config.vMax);
-    const [droneAMax, setDroneAMax] = useState<string | number>(droneConfig?.aMax ?? dronePresets.default.config.aMax);
+    const [selectedDrone, setSelectedDrone] = useState<string>('skydio-x10-simple');
+    const [droneVMax, setDroneVMax] = useState<string | number>(droneConfig?.vMax ?? dronePresets["skydio-x10-simple"].config.vMax);
+    const [droneAMax, setDroneAMax] = useState<string | number>(droneConfig?.aMax ?? dronePresets["skydio-x10-simple"].config.aMax);
+
+    const [editedDroneFields, setEditedDroneFields] = useState<Set<'vMax' | 'aMax'>>(new Set());
+    const currentDronePresetConfig = (dronePresets as Record<string, { config: { vMax: number; aMax: number } }>)[selectedDrone]?.config;
+
+    useEffect(() => {
+      setEditedDroneFields(new Set());
+    }, [selectedDrone]);
+
+    const updateDroneWithHighlight = (field: 'vMax' | 'aMax', value: number | string) => {
+      if (selectedDrone && currentDronePresetConfig && value !== currentDronePresetConfig[field]) {
+        setEditedDroneFields(prev => new Set(prev).add(field));
+      } else if (selectedDrone && currentDronePresetConfig && value === currentDronePresetConfig[field]) {
+        setEditedDroneFields(prev => {
+          const next = new Set(prev);
+          next.delete(field);
+          return next;
+        });
+      }
+      updateDrone(field, value);
+    };
 
     // Sync local inputs when parent droneConfig prop changes (two-way binding)
     useEffect(() => {
@@ -121,12 +143,12 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
       let vMax = droneVMax;
       let aMax = droneAMax;
       if (vMax === "" || vMax === undefined || vMax === null || isNaN(Number(vMax)) || Number(vMax) <= 0) {
-        vMax = dronePresets.default.config.vMax;
+        vMax = dronePresets["skydio-x10-simple"].config.vMax;
         setDroneVMax(vMax);
         updated = true;
       }
       if (aMax === "" || aMax === undefined || aMax === null || isNaN(Number(aMax)) || Number(aMax) <= 0) {
-        aMax = dronePresets.default.config.aMax;
+        aMax = dronePresets["skydio-x10-simple"].config.aMax;
         setDroneAMax(aMax);
         updated = true;
       }
@@ -141,8 +163,8 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
       description: string;
       config: Camera;
     }> = {
-      "skydio-x10-vt300l-wide": {
-        name: "Skydio X10 VT300-L Wide",
+      "vt300l-wide": {
+        name: "VT300-L Wide",
         description: "Professional mapping camera with wide field of view",
         config: {
           fx: 4938.56,
@@ -155,8 +177,8 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
           image_size_y: 6144,
         },
       },
-      "skydio-x10-vt300l-narrow": {
-        name: "Skydio X10 VT300-L Narrow",
+      "vt300l-narrow": {
+        name: "VT300-L Narrow",
         description: "Narrow field of view camera for detailed imaging",
         config: {
           fx: 12668.3474,
@@ -169,8 +191,8 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
           image_size_y: 6944,
         },
       },
-      "skydio-x10-vt300z-telephoto": {
-        name: "Skydio X10 VT300-Z Telephoto",
+      "vt300z-telephoto": {
+        name: "VT300-Z Telephoto",
         description: "Telephoto camera for long-range detailed surveys",
         config: {
           fx: 43741.25,
@@ -183,8 +205,8 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
           image_size_y: 6000,
         },
       },
-      "skydio-x10-vt300l-thermal": {
-        name: "Skydio X10 VT300-L Thermal",
+      "vt300l-thermal": {
+        name: "VT300-L Thermal",
         description: "Thermal imaging camera for inspection and analysis",
         config: {
           fx: 1135.47,
@@ -326,8 +348,8 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
       Default: {
         name: "Default",
         description: "Default configuration for camera, model, and mission",
-        cameraPresetKey: "skydio-x10-vt300l-wide",
-        modelPresetKey: "default",
+        cameraPresetKey: "vt300l-wide",
+        modelPresetKey: "skydio-x10-simple",
         missionPresetKey: "nominal",
       },
     };
@@ -339,12 +361,15 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
       const config = globalConfigs[key];
       if (config) {
         setSelectedPreset(config.cameraPresetKey);
+        setEditedCameraFields(new Set()); // Reset camera highlights
         if (cameraPresets[config.cameraPresetKey]) {
           onCameraChange({ ...cameraPresets[config.cameraPresetKey].config });
         }
         setSelectedDrone(config.modelPresetKey);
+        setEditedDroneFields(new Set()); // Reset drone highlights
         loadDronePreset(config.modelPresetKey);
         setSelectedMissionPreset(config.missionPresetKey);
+        setEditedMissionFields(new Set()); // Reset mission highlights
         if (missionPresets[config.missionPresetKey]) {
           onDatasetSpecChange({ ...missionPresets[config.missionPresetKey].config });
         }
@@ -460,25 +485,27 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
       ref,
       () => ({
         resetPresets: () => {
-          // Clear selected preset values without modifying parent camera/dataset state
           setSelectedPreset("");
           setSelectedMissionPreset("");
-          // reset drone UI to preset and notify parent
-          setSelectedDrone('default');
-          setDroneVMax(dronePresets.default.config.vMax);
-          setDroneAMax(dronePresets.default.config.aMax);
-          onDroneChange?.({ vMax: dronePresets.default.config.vMax, aMax: dronePresets.default.config.aMax });
+          setSelectedDrone("skydio-x10-simple");
+          setSelectedGlobalConfig("");
+          setEditedCameraFields(new Set());
+          setEditedMissionFields(new Set());
+          setEditedDroneFields(new Set());
+          setDroneVMax(dronePresets["skydio-x10-simple"].config.vMax);
+          setDroneAMax(dronePresets["skydio-x10-simple"].config.aMax);
+          onDroneChange?.({ vMax: dronePresets["skydio-x10-simple"].config.vMax, aMax: dronePresets["skydio-x10-simple"].config.aMax });
         },
         fillBlankDroneFields,
         getDroneVMax: () => {
           if (droneVMax === "" || droneVMax === undefined || droneVMax === null || isNaN(Number(droneVMax)) || Number(droneVMax) <= 0) {
-            return dronePresets.default.config.vMax;
+            return dronePresets["skydio-x10-simple"].config.vMax;
           }
           return Number(droneVMax);
         },
         getDroneAMax: () => {
           if (droneAMax === "" || droneAMax === undefined || droneAMax === null || isNaN(Number(droneAMax)) || Number(droneAMax) <= 0) {
-            return dronePresets.default.config.aMax;
+            return dronePresets["skydio-x10-simple"].config.aMax;
           }
           return Number(droneAMax);
         },
@@ -552,10 +579,10 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                       if (val === "") {
                         setDroneVMax("");
                       } else {
-                        updateDrone("vMax", Number.parseFloat(val));
+                        updateDroneWithHighlight("vMax", Number.parseFloat(val));
                       }
                     }}
-                    className="h-8 w-20 text-xs"
+                    className={`h-8 w-20 text-xs ${selectedDrone && editedDroneFields.has("vMax") ? highlightClass : ""}`}
                   />
                 </div>
                 <div className="flex items-center gap-2">
@@ -574,10 +601,10 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                       if (val === "") {
                         setDroneAMax("");
                       } else {
-                        updateDrone("aMax", Number.parseFloat(val));
+                        updateDroneWithHighlight("aMax", Number.parseFloat(val));
                       }
                     }}
-                    className="h-8 w-20 text-xs"
+                    className={`h-8 w-20 text-xs ${selectedDrone && editedDroneFields.has("aMax") ? highlightClass : ""}`}
                   />
                 </div>
                 <Button
@@ -647,10 +674,10 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                     if (val === "") {
                       setDroneVMax("");
                     } else {
-                      updateDrone("vMax", Number.parseFloat(val));
+                      updateDroneWithHighlight("vMax", Number.parseFloat(val));
                     }
                   }}
-                  className="h-8 w-full text-xs"
+                  className={`h-8 w-full text-xs ${selectedDrone && editedDroneFields.has("vMax") ? highlightClass : ""}`}
                 />
               </div>
               <div className="flex flex-col gap-1 w-1/3 min-w-[90px]">
@@ -669,10 +696,10 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                     if (val === "") {
                       setDroneAMax("");
                     } else {
-                      updateDrone("aMax", Number.parseFloat(val));
+                      updateDroneWithHighlight("aMax", Number.parseFloat(val));
                     }
                   }}
-                  className="h-8 w-full text-xs"
+                  className={`h-8 w-full text-xs ${selectedDrone && editedDroneFields.has("aMax") ? highlightClass : ""}`}
                 />
               </div>
             </div>
@@ -922,8 +949,8 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                   {/* Row 1 - Overlap & Height */}
                   <div>
                     <div className="flex items-center gap-1">
-                      <Label htmlFor="overlap" className="text-muted-foreground mb-1 block text-xs">Forward Overlap</Label>
-                      <Tooltip content="Forward overlap percentage between consecutive images in flight direction. Higher values ensure better reconstruction quality but increase flight time.">
+                      <Label htmlFor="overlap" className="text-muted-foreground mb-1 block text-xs">Overlap</Label>
+                      <Tooltip content="Overlap percentage between consecutive images in flight direction. Higher values ensure better reconstruction quality but increase flight time.">
                         <span className="inline-flex items-center cursor-pointer">
                           <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
                             <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
@@ -952,8 +979,8 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                   </div>
                   <div>
                     <div className="flex items-center gap-1">
-                      <Label htmlFor="sidelap" className="text-muted-foreground mb-1 block text-xs">Side Overlap</Label>
-                      <Tooltip content="Side overlap percentage between adjacent flight lines. Higher values ensure better coverage but increase flight time and data processing.">
+                      <Label htmlFor="sidelap" className="text-muted-foreground mb-1 block text-xs">Sidelap</Label>
+                      <Tooltip content="Sidelap percentage between adjacent flight lines. Higher values ensure better coverage but increase flight time and data processing.">
                         <span className="inline-flex items-center cursor-pointer">
                           <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
                             <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />

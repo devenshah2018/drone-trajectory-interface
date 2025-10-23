@@ -1,56 +1,46 @@
 # Drone Flight Planner
 
-A lightweight Next.js app for planning simple aerial survey missions. It generates a lawn‑mower style flight plan from camera intrinsics and mission parameters, visualizes the path, and runs a local simulation to preview drone motion.
+A modern web app for planning and visualizing aerial survey missions. Generate grid-style flight plans, preview drone motion, and analyze mission stats—all in your browser. For a detailed analysis on the photogrammetry mission planning process, check out the accompanying notebook: [Drone Trajectory Planner](https://github.com/devenshah2018/drone-trajectory-planner/blob/main/main.ipynb).
 
-This repository is intended as a practical prototype — easy to run locally and extend for custom workflows.
+## How to Use
 
-Hosted demo: [https://drone-path-planner.vercel.app/](https://drone-path-planner.vercel.app/)
+### 1. Access the Tool
+Visit: [drone-path-planner.vercel.app](https://drone-path-planner.vercel.app)
 
-## Key features
+### 2. Configure Your Mission
+- Use the configuration panel to select a camera model and mission preset, or enter custom parameters:
+  - Focal length, sensor size, image resolution
+  - Flight height, overlap, sidelap, exposure time
+- Preset options are available for common cameras and typical survey missions.
 
-- Generate a grid-based flight plan from camera + mission settings
-- Visualize flight path, start/end markers, and live simulated drone position
-- Compact configuration panel with camera presets and mission presets
-- Lightweight mission statistics (distance, estimated time, GSD, footprint)
-- Keyboard- and screen-reader-friendly waypoint table
+### 3. Generate a Flight Plan
+- Click **Generate Flight Plan**. The app computes a lawn-mower grid of waypoints covering your survey area, optimized for your settings.
 
-## Quick start
+### 4. Analyze the Flight Plan
+- **Flight Path Visualization:** Interactive panel shows the route and waypoints. Hover for details.
+- **Mission Statistics:** Coverage area, ground sampling distance (GSD), image footprint, total waypoints, estimated flight time.
+- **Waypoint Table:** Lists all waypoints, updates live during simulation.
+- **Speed Profile Chart:** Shows drone speed along each segment, with min/max/acceleration indicators.
 
-1. Install dependencies
+### 5. Simulate the Mission
+- Click **Start** to run a simulation. The drone icon moves along the route, and stats/table update live.
+- **Pause**, **resume**, or **reset** as needed to inspect specific waypoints or segments.
 
-```bash
-npm install
-# or
-pnpm install
-# or
-yarn
-```
+### 6. Export
+- Export your flight plan as **Excel**, **PDF**, or **JSON** for use in other tools.
 
-2. Start dev server
-
-```bash
-npm run dev
-```
-
-3. Open your browser at `http://localhost:3000`
+### 7. Feedback
+- Use the **Feedback** button to send suggestions or report issues directly from the app.
 
 
-## Basic usage
+## Features
+- Grid-based flight plan generation from camera and mission settings
+- Interactive flight path visualization and waypoint table
+- Real-time simulation of drone movement
+- Mission statistics and speed profile analysis
+- Export options: Excel, PDF, JSON
+- Mobile responsive, accessible, and enterprise-quality UI
 
-1. Set camera parameters (or choose a camera preset).
-2. Set mission parameters: overlap, sidelap, height, survey width/length, exposure.
-3. Click **Generate Flight Plan**. The map and waypoint table update.
-4. Use the simulation controls (Start / Pause / Stop / Reset) to preview drone motion.
+---
 
-Notes:
-- Overlap and sidelap are ratios in `[0, 1)`. Values near 1 increase coverage and flight time.
-- Exposure time affects the allowed flight speed for blur-free images.
-
-## Simulation controls
-
-- Start: begin a fresh simulation. If paused, the Start control resumes the simulation (no reset).
-- Pause / Resume: temporarily stops motion while keeping the current state.
-- Stop: stops and clears running flag (keeps last position visible).
-- Reset: reset simulation state to the first waypoint.
-
-Waypoint table highlights current, completed, and upcoming rows during simulation. Only the table auto-scrolls to keep the active waypoint visible — the main page scroll remains unchanged.
+For questions or feedback, use the app’s built-in Feedback button or open an issue on GitHub.
