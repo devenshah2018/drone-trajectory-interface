@@ -84,6 +84,8 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
     // Drone presets & state: allow selecting a template and editing vMax / aMax
     const dronePresets = {
       "skydio-x10-simple": { name: 'Skydio X10 (Simple)', config: { vMax: 16, aMax: 3.5 } },
+      "skydio-x10": { name: 'Skydio X10', config: { vMax: 45, aMax: 3.5 } },
+      "skydio-r10": { name: 'Skydio R10', config: { vMax: 27, aMax: 3.5 } },
     } as const;
 
     const [selectedDrone, setSelectedDrone] = useState<string>('skydio-x10-simple');
