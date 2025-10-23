@@ -136,7 +136,11 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
     };
 
     // Camera presets
-    const cameraPresets = {
+    const cameraPresets: Record<string, {
+      name: string;
+      description: string;
+      config: Camera;
+    }> = {
       "skydio-x10-vt300l-wide": {
         name: "Skydio X10 VT300-L Wide",
         description: "Professional mapping camera with wide field of view",
@@ -196,7 +200,11 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
     };
 
     // Mission presets
-    const missionPresets = {
+    const missionPresets: Record<string, {
+      name: string;
+      description: string;
+      config: DatasetSpec;
+    }> = {
       nominal: {
         name: "Nominal Survey",
         description: "Standard mapping mission with balanced coverage and efficiency",
@@ -307,55 +315,48 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
       },
     };
 
-    /**
-     * Update a single camera field and propagate the complete camera object.
-     *
-     * @param field - Key of the Camera object to update
-     * @param value - New numeric value for the specified field
-     * @returns void
-     */
-    const updateCamera = (field: keyof Camera, value: number) => {
-      // Use parent callback to keep single source of truth in the page state
+    const highlightClass = "ring-2 ring-primary/60 bg-primary/5 transition-all duration-200";
+
+
+    const [editedCameraFields, setEditedCameraFields] = useState<Set<keyof Camera>>(new Set());
+    const [editedMissionFields, setEditedMissionFields] = useState<Set<keyof DatasetSpec>>(new Set());
+
+    const currentCameraPresetConfig = selectedPreset ? cameraPresets[selectedPreset]?.config : undefined;
+    const currentMissionPresetConfig = selectedMissionPreset ? missionPresets[selectedMissionPreset]?.config : undefined;
+
+    // When preset changes, reset edited fields
+    useEffect(() => {
+      setEditedCameraFields(new Set());
+    }, [selectedPreset]);
+    useEffect(() => {
+      setEditedMissionFields(new Set());
+    }, [selectedMissionPreset]);
+
+    // Update camera field and track edits
+    const updateCameraWithHighlight = (field: keyof Camera, value: number) => {
+      if (selectedPreset && currentCameraPresetConfig && value !== currentCameraPresetConfig[field]) {
+        setEditedCameraFields(prev => new Set(prev).add(field));
+      } else if (selectedPreset && currentCameraPresetConfig && value === currentCameraPresetConfig[field]) {
+        setEditedCameraFields(prev => {
+          const next = new Set(prev);
+          next.delete(field);
+          return next;
+        });
+      }
       onCameraChange({ ...camera, [field]: value });
     };
 
-    /**
-     * Update a single dataset specification field and propagate the complete object.
-     *
-     * @param field - Key of the DatasetSpec object to update
-     * @param value - New numeric value for the specified field
-     * @returns void
-     */
-    const updateDatasetSpec = (field: keyof DatasetSpec, value: number) => {
+    const updateMissionWithHighlight = (field: keyof DatasetSpec, value: number) => {
+      if (selectedMissionPreset && currentMissionPresetConfig && value !== currentMissionPresetConfig[field]) {
+        setEditedMissionFields(prev => new Set(prev).add(field));
+      } else if (selectedMissionPreset && currentMissionPresetConfig && value === currentMissionPresetConfig[field]) {
+        setEditedMissionFields(prev => {
+          const next = new Set(prev);
+          next.delete(field);
+          return next;
+        });
+      }
       onDatasetSpecChange({ ...datasetSpec, [field]: value });
-    };
-
-    /**
-     * Load a predefined camera preset and apply its configuration.
-     *
-     * @param presetKey - Key identifying the preset from cameraPresets
-     * @returns void
-     */
-    const loadCameraPreset = (presetKey: string) => {
-      const preset = cameraPresets[presetKey as keyof typeof cameraPresets];
-      if (preset) {
-        onCameraChange(preset.config as Camera);
-        setSelectedPreset(presetKey);
-      }
-    };
-
-    /**
-     * Load a predefined mission preset and apply its dataset configuration.
-     *
-     * @param presetKey - Key identifying the preset from missionPresets
-     * @returns void
-     */
-    const loadMissionPreset = (presetKey: string) => {
-      const preset = missionPresets[presetKey as keyof typeof missionPresets];
-      if (preset) {
-        onDatasetSpecChange(preset.config as DatasetSpec);
-        setSelectedMissionPreset(presetKey);
-      }
     };
 
     const getCameraPreset = () => {
@@ -641,7 +642,10 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                     <Select
                       value={selectedPreset}
                       onValueChange={(value) => {
-                        if (value) loadCameraPreset(value);
+                        setSelectedPreset(value);
+                        if (value && cameraPresets[value]) {
+                          onCameraChange({ ...cameraPresets[value].config });
+                        }
                       }}
                     >
                       <SelectTrigger className="w-36 cursor-pointer text-left text-xs">
@@ -672,8 +676,8 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                       id="fx"
                       type="number"
                       value={camera.fx}
-                      onChange={(e) => updateCamera("fx", Number.parseFloat(e.target.value))}
-                      className="h-7 text-xs"
+                      onChange={(e) => updateCameraWithHighlight("fx", Number.parseFloat(e.target.value))}
+                      className={`h-7 text-xs ${selectedPreset && editedCameraFields.has("fx") ? highlightClass : ""}`}
                     />
                   </div>
                   <div>
@@ -689,8 +693,8 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                       id="fy"
                       type="number"
                       value={camera.fy}
-                      onChange={(e) => updateCamera("fy", Number.parseFloat(e.target.value))}
-                      className="h-7 text-xs"
+                      onChange={(e) => updateCameraWithHighlight("fy", Number.parseFloat(e.target.value))}
+                      className={`h-7 text-xs ${selectedPreset && editedCameraFields.has("fy") ? highlightClass : ""}`}
                     />
                   </div>
                   <div>
@@ -706,8 +710,8 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                       id="cx"
                       type="number"
                       value={camera.cx}
-                      onChange={(e) => updateCamera("cx", Number.parseFloat(e.target.value))}
-                      className="h-7 text-xs"
+                      onChange={(e) => updateCameraWithHighlight("cx", Number.parseFloat(e.target.value))}
+                      className={`h-7 text-xs ${selectedPreset && editedCameraFields.has("cx") ? highlightClass : ""}`}
                     />
                   </div>
                   <div>
@@ -723,8 +727,8 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                       id="cy"
                       type="number"
                       value={camera.cy}
-                      onChange={(e) => updateCamera("cy", Number.parseFloat(e.target.value))}
-                      className="h-7 text-xs"
+                      onChange={(e) => updateCameraWithHighlight("cy", Number.parseFloat(e.target.value))}
+                      className={`h-7 text-xs ${selectedPreset && editedCameraFields.has("cy") ? highlightClass : ""}`}
                     />
                   </div>
 
@@ -744,9 +748,9 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                       step="0.1"
                       value={camera.sensor_size_x_mm}
                       onChange={(e) =>
-                        updateCamera("sensor_size_x_mm", Number.parseFloat(e.target.value))
+                        updateCameraWithHighlight("sensor_size_x_mm", Number.parseFloat(e.target.value))
                       }
-                      className="h-7 text-xs"
+                      className={`h-7 text-xs ${selectedPreset && editedCameraFields.has("sensor_size_x_mm") ? highlightClass : ""}`}
                     />
                   </div>
                   <div>
@@ -764,9 +768,9 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                       step="0.1"
                       value={camera.sensor_size_y_mm}
                       onChange={(e) =>
-                        updateCamera("sensor_size_y_mm", Number.parseFloat(e.target.value))
+                        updateCameraWithHighlight("sensor_size_y_mm", Number.parseFloat(e.target.value))
                       }
-                      className="h-7 text-xs"
+                      className={`h-7 text-xs ${selectedPreset && editedCameraFields.has("sensor_size_y_mm") ? highlightClass : ""}`}
                     />
                   </div>
                   <div>
@@ -782,8 +786,8 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                       id="image_x"
                       type="number"
                       value={camera.image_size_x}
-                      onChange={(e) => updateCamera("image_size_x", Number.parseInt(e.target.value))}
-                      className="h-7 text-xs"
+                      onChange={(e) => updateCameraWithHighlight("image_size_x", Number.parseInt(e.target.value))}
+                      className={`h-7 text-xs ${selectedPreset && editedCameraFields.has("image_size_x") ? highlightClass : ""}`}
                     />
                   </div>
                   <div>
@@ -799,8 +803,8 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                       id="image_y"
                       type="number"
                       value={camera.image_size_y}
-                      onChange={(e) => updateCamera("image_size_y", Number.parseInt(e.target.value))}
-                      className="h-7 text-xs"
+                      onChange={(e) => updateCameraWithHighlight("image_size_y", Number.parseInt(e.target.value))}
+                      className={`h-7 text-xs ${selectedPreset && editedCameraFields.has("image_size_y") ? highlightClass : ""}`}
                     />
                   </div>
                 </div>
@@ -819,7 +823,10 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                     <Select
                       value={selectedMissionPreset}
                       onValueChange={(value) => {
-                        if (value) loadMissionPreset(value);
+                        setSelectedMissionPreset(value);
+                        if (value && missionPresets[value]) {
+                          onDatasetSpecChange({ ...missionPresets[value].config });
+                        }
                       }}
                     >
                       <SelectTrigger className="w-36 cursor-pointer text-left text-xs">
@@ -855,9 +862,9 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                         max="0.95"
                         value={datasetSpec.overlap}
                         onChange={(e) =>
-                          updateDatasetSpec("overlap", Number.parseFloat(e.target.value))
+                          updateMissionWithHighlight("overlap", Number.parseFloat(e.target.value))
                         }
-                        className="h-7 pr-12 text-xs"
+                        className={`h-7 pr-12 text-xs ${selectedMissionPreset && editedMissionFields.has("overlap") ? highlightClass : ""}`}
                       />
                       <span className="text-primary pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-xs font-medium">
                         {Math.round(datasetSpec.overlap * 100)}%
@@ -882,9 +889,9 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                         max="0.95"
                         value={datasetSpec.sidelap}
                         onChange={(e) =>
-                          updateDatasetSpec("sidelap", Number.parseFloat(e.target.value))
+                          updateMissionWithHighlight("sidelap", Number.parseFloat(e.target.value))
                         }
-                        className="h-7 pr-12 text-xs"
+                        className={`h-7 pr-12 text-xs ${selectedMissionPreset && editedMissionFields.has("sidelap") ? highlightClass : ""}`}
                       />
                       <span className="text-primary pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-xs font-medium">
                         {Math.round(datasetSpec.sidelap * 100)}%
@@ -905,8 +912,8 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                       type="number"
                       step="0.5"
                       value={datasetSpec.height}
-                      onChange={(e) => updateDatasetSpec("height", Number.parseFloat(e.target.value))}
-                      className="h-7 text-xs"
+                      onChange={(e) => updateMissionWithHighlight("height", Number.parseFloat(e.target.value))}
+                      className={`h-7 text-xs ${selectedMissionPreset && editedMissionFields.has("height") ? highlightClass : ""}`}
                     />
                   </div>
 
@@ -925,9 +932,9 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                       type="number"
                       value={datasetSpec.scan_dimension_x}
                       onChange={(e) =>
-                        updateDatasetSpec("scan_dimension_x", Number.parseFloat(e.target.value))
+                        updateMissionWithHighlight("scan_dimension_x", Number.parseFloat(e.target.value))
                       }
-                      className="h-7 text-xs"
+                      className={`h-7 text-xs ${selectedMissionPreset && editedMissionFields.has("scan_dimension_x") ? highlightClass : ""}`}
                     />
                   </div>
                   <div>
@@ -944,9 +951,9 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                       type="number"
                       value={datasetSpec.scan_dimension_y}
                       onChange={(e) =>
-                        updateDatasetSpec("scan_dimension_y", Number.parseFloat(e.target.value))
+                        updateMissionWithHighlight("scan_dimension_y", Number.parseFloat(e.target.value))
                       }
-                      className="h-7 text-xs"
+                      className={`h-7 text-xs ${selectedMissionPreset && editedMissionFields.has("scan_dimension_y") ? highlightClass : ""}`}
                     />
                   </div>
                   <div>
@@ -964,9 +971,9 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                       step="0.1"
                       value={datasetSpec.exposure_time_ms}
                       onChange={(e) =>
-                        updateDatasetSpec("exposure_time_ms", Number.parseFloat(e.target.value))
+                        updateMissionWithHighlight("exposure_time_ms", Number.parseFloat(e.target.value))
                       }
-                      className="h-7 text-xs"
+                      className={`h-7 text-xs ${selectedMissionPreset && editedMissionFields.has("exposure_time_ms") ? highlightClass : ""}`}
                     />
                   </div>
                 </div>
