@@ -716,14 +716,17 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                 <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   {/* Row 1 - Focal Length & Principal Point */}
                   <div>
-                    <Tooltip content="Focal length in X direction (pixels). Determines horizontal field of view and image scale.">
-                      <Label
-                        htmlFor="fx"
-                        className="text-muted-foreground mb-1 block cursor-pointer text-xs"
-                      >
-                        Focal Length X (px)
-                      </Label>
-                    </Tooltip>
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="fx" className="text-muted-foreground mb-1 block text-xs">Focal Length X (px)</Label>
+                      <Tooltip content="Focal length in X direction (pixels). Determines horizontal field of view and image scale.">
+                        <span className="inline-flex items-center cursor-pointer">
+                          <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
+                            <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
+                            <text x="10" y="15" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="Arial" fontWeight="bold">i</text>
+                          </svg>
+                        </span>
+                      </Tooltip>
+                    </div>
                     <Input
                       id="fx"
                       type="number"
@@ -733,14 +736,17 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                     />
                   </div>
                   <div>
-                    <Tooltip content="Focal length in Y direction (pixels). Determines vertical field of view and image scale.">
-                      <Label
-                        htmlFor="fy"
-                        className="text-muted-foreground mb-1 block cursor-pointer text-xs"
-                      >
-                        Focal Length Y (px)
-                      </Label>
-                    </Tooltip>
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="fy" className="text-muted-foreground mb-1 block text-xs">Focal Length Y (px)</Label>
+                      <Tooltip content="Focal length in Y direction (pixels). Determines vertical field of view and image scale.">
+                        <span className="inline-flex items-center cursor-pointer">
+                          <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
+                            <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
+                            <text x="10" y="15" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="Arial" fontWeight="bold">i</text>
+                          </svg>
+                        </span>
+                      </Tooltip>
+                    </div>
                     <Input
                       id="fy"
                       type="number"
@@ -750,14 +756,17 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                     />
                   </div>
                   <div>
-                    <Tooltip content="Principal point X coordinate (pixels). The X-coordinate of the optical center on the image sensor.">
-                      <Label
-                        htmlFor="cx"
-                        className="text-muted-foreground mb-1 block cursor-pointer text-xs"
-                      >
-                        Principal Point X (px)
-                      </Label>
-                    </Tooltip>
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="cx" className="text-muted-foreground mb-1 block text-xs">Principal Point X (px)</Label>
+                      <Tooltip content="Principal point X coordinate (pixels). The X-coordinate of the optical center on the image sensor.">
+                        <span className="inline-flex items-center cursor-pointer">
+                          <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
+                            <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
+                            <text x="10" y="15" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="Arial" fontWeight="bold">i</text>
+                          </svg>
+                        </span>
+                      </Tooltip>
+                    </div>
                     <Input
                       id="cx"
                       type="number"
@@ -767,14 +776,17 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                     />
                   </div>
                   <div>
-                    <Tooltip content="Principal point Y coordinate (pixels). The Y-coordinate of the optical center on the image sensor.">
-                      <Label
-                        htmlFor="cy"
-                        className="text-muted-foreground mb-1 block cursor-pointer text-xs"
-                      >
-                        Principal Point Y (px)
-                      </Label>
-                    </Tooltip>
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="cy" className="text-muted-foreground mb-1 block text-xs">Principal Point Y (px)</Label>
+                      <Tooltip content="Principal point Y coordinate (pixels). The Y-coordinate of the optical center on the image sensor.">
+                        <span className="inline-flex items-center cursor-pointer">
+                          <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
+                            <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
+                            <text x="10" y="15" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="Arial" fontWeight="bold">i</text>
+                          </svg>
+                        </span>
+                      </Tooltip>
+                    </div>
                     <Input
                       id="cy"
                       type="number"
@@ -786,14 +798,17 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
 
                   {/* Row 2 - Sensor & Image Size */}
                   <div>
-                    <Tooltip content="Physical width of the camera sensor in millimeters. Used to calculate ground sampling distance.">
-                      <Label
-                        htmlFor="sensor_x"
-                        className="text-muted-foreground mb-1 block cursor-pointer text-xs"
-                      >
-                        Sensor Width (mm)
-                      </Label>
-                    </Tooltip>
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="sensor_x" className="text-muted-foreground mb-1 block text-xs">Sensor Width (mm)</Label>
+                      <Tooltip content="Physical width of the camera sensor in millimeters. Used to calculate ground sampling distance.">
+                        <span className="inline-flex items-center cursor-pointer">
+                          <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
+                            <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
+                            <text x="10" y="15" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="Arial" fontWeight="bold">i</text>
+                          </svg>
+                        </span>
+                      </Tooltip>
+                    </div>
                     <Input
                       id="sensor_x"
                       type="number"
@@ -806,14 +821,17 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                     />
                   </div>
                   <div>
-                    <Tooltip content="Physical height of the camera sensor in millimeters. Used to calculate ground sampling distance.">
-                      <Label
-                        htmlFor="sensor_y"
-                        className="text-muted-foreground mb-1 block cursor-pointer text-xs"
-                      >
-                        Sensor Height (mm)
-                      </Label>
-                    </Tooltip>
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="sensor_y" className="text-muted-foreground mb-1 block text-xs">Sensor Height (mm)</Label>
+                      <Tooltip content="Physical height of the camera sensor in millimeters. Used to calculate ground sampling distance.">
+                        <span className="inline-flex items-center cursor-pointer">
+                          <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
+                            <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
+                            <text x="10" y="15" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="Arial" fontWeight="bold">i</text>
+                          </svg>
+                        </span>
+                      </Tooltip>
+                    </div>
                     <Input
                       id="sensor_y"
                       type="number"
@@ -826,14 +844,17 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                     />
                   </div>
                   <div>
-                    <Tooltip content="Image width in pixels. The horizontal resolution of captured images.">
-                      <Label
-                        htmlFor="image_x"
-                        className="text-muted-foreground mb-1 block cursor-pointer text-xs"
-                      >
-                        Image Width (px)
-                      </Label>
-                    </Tooltip>
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="image_x" className="text-muted-foreground mb-1 block text-xs">Image Width (px)</Label>
+                      <Tooltip content="Image width in pixels. The horizontal resolution of captured images.">
+                        <span className="inline-flex items-center cursor-pointer">
+                          <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
+                            <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
+                            <text x="10" y="15" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="Arial" fontWeight="bold">i</text>
+                          </svg>
+                        </span>
+                      </Tooltip>
+                    </div>
                     <Input
                       id="image_x"
                       type="number"
@@ -843,14 +864,17 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                     />
                   </div>
                   <div>
-                    <Tooltip content="Image height in pixels. The vertical resolution of captured images.">
-                      <Label
-                        htmlFor="image_y"
-                        className="text-muted-foreground mb-1 block cursor-pointer text-xs"
-                      >
-                        Image Height (px)
-                      </Label>
-                    </Tooltip>
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="image_y" className="text-muted-foreground mb-1 block text-xs">Image Height (px)</Label>
+                      <Tooltip content="Image height in pixels. The vertical resolution of captured images.">
+                        <span className="inline-flex items-center cursor-pointer">
+                          <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
+                            <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
+                            <text x="10" y="15" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="Arial" fontWeight="bold">i</text>
+                          </svg>
+                        </span>
+                      </Tooltip>
+                    </div>
                     <Input
                       id="image_y"
                       type="number"
@@ -866,7 +890,7 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
               <div>
                 <div className="border-border/30 mb-3 flex items-center justify-between gap-2 border-b pb-2">
                   <div className="flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded bg-emerald-100 dark:bg-emerald-900/30">
+                    <div className  ="flex h-6 w-6 items-center justify-center rounded bg-emerald-100 dark:bg-emerald-900/30">
                       <Settings className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
                     </div>
                     <h3 className="text-md text-foreground font-semibold">Mission Parameters</h3>
@@ -897,14 +921,17 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                 <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   {/* Row 1 - Overlap & Height */}
                   <div>
-                    <Tooltip content="Forward overlap percentage between consecutive images in flight direction. Higher values ensure better reconstruction quality but increase flight time.">
-                      <Label
-                        htmlFor="overlap"
-                        className="text-muted-foreground mb-1 block cursor-pointer text-xs"
-                      >
-                        Forward Overlap
-                      </Label>
-                    </Tooltip>
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="overlap" className="text-muted-foreground mb-1 block text-xs">Forward Overlap</Label>
+                      <Tooltip content="Forward overlap percentage between consecutive images in flight direction. Higher values ensure better reconstruction quality but increase flight time.">
+                        <span className="inline-flex items-center cursor-pointer">
+                          <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
+                            <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
+                            <text x="10" y="15" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="Arial" fontWeight="bold">i</text>
+                          </svg>
+                        </span>
+                      </Tooltip>
+                    </div>
                     <div className="relative">
                       <Input
                         id="overlap"
@@ -924,14 +951,17 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                     </div>
                   </div>
                   <div>
-                    <Tooltip content="Side overlap percentage between adjacent flight lines. Higher values ensure better coverage but increase flight time and data processing.">
-                      <Label
-                        htmlFor="sidelap"
-                        className="text-muted-foreground mb-1 block cursor-pointer text-xs"
-                      >
-                        Side Overlap
-                      </Label>
-                    </Tooltip>
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="sidelap" className="text-muted-foreground mb-1 block text-xs">Side Overlap</Label>
+                      <Tooltip content="Side overlap percentage between adjacent flight lines. Higher values ensure better coverage but increase flight time and data processing.">
+                        <span className="inline-flex items-center cursor-pointer">
+                          <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
+                            <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
+                            <text x="10" y="15" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="Arial" fontWeight="bold">i</text>
+                          </svg>
+                        </span>
+                      </Tooltip>
+                    </div>
                     <div className="relative">
                       <Input
                         id="sidelap"
@@ -951,14 +981,17 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                     </div>
                   </div>
                   <div>
-                    <Tooltip content="Flight altitude above ground level in meters. Higher altitudes cover more area per image but reduce ground sampling distance.">
-                      <Label
-                        htmlFor="height"
-                        className="text-muted-foreground mb-1 block cursor-pointer text-xs"
-                      >
-                        Flight Height (m)
-                      </Label>
-                    </Tooltip>
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="height" className="text-muted-foreground mb-1 block text-xs">Flight Height (m)</Label>
+                      <Tooltip content="Flight altitude above ground level in meters. Higher altitudes cover more area per image but reduce ground sampling distance.">
+                        <span className="inline-flex items-center cursor-pointer">
+                          <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
+                            <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
+                            <text x="10" y="15" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="Arial" fontWeight="bold">i</text>
+                          </svg>
+                        </span>
+                      </Tooltip>
+                    </div>
                     <Input
                       id="height"
                       type="number"
@@ -971,14 +1004,17 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
 
                   {/* Row 2 - Survey Area & Exposure */}
                   <div>
-                    <Tooltip content="Width of the survey area in meters. Defines the east-west extent of the mapping mission.">
-                      <Label
-                        htmlFor="scan_x"
-                        className="text-muted-foreground mb-1 block cursor-pointer text-xs"
-                      >
-                        Survey Width (m)
-                      </Label>
-                    </Tooltip>
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="scan_x" className="text-muted-foreground mb-1 block text-xs">Survey Width (m)</Label>
+                      <Tooltip content="Width of the survey area in meters. Defines the east-west extent of the mapping mission.">
+                        <span className="inline-flex items-center cursor-pointer">
+                          <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
+                            <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
+                            <text x="10" y="15" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="Arial" fontWeight="bold">i</text>
+                          </svg>
+                        </span>
+                      </Tooltip>
+                    </div>
                     <Input
                       id="scan_x"
                       type="number"
@@ -990,14 +1026,17 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                     />
                   </div>
                   <div>
-                    <Tooltip content="Length of the survey area in meters. Defines the north-south extent of the mapping mission.">
-                      <Label
-                        htmlFor="scan_y"
-                        className="text-muted-foreground mb-1 block cursor-pointer text-xs"
-                      >
-                        Survey Length (m)
-                      </Label>
-                    </Tooltip>
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="scan_y" className="text-muted-foreground mb-1 block text-xs">Survey Length (m)</Label>
+                      <Tooltip content="Length of the survey area in meters. Defines the north-south extent of the mapping mission.">
+                        <span className="inline-flex items-center cursor-pointer">
+                          <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
+                            <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
+                            <text x="10" y="15" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="Arial" fontWeight="bold">i</text>
+                          </svg>
+                        </span>
+                      </Tooltip>
+                    </div>
                     <Input
                       id="scan_y"
                       type="number"
@@ -1009,14 +1048,17 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                     />
                   </div>
                   <div>
-                    <Tooltip content="Camera shutter exposure time in milliseconds. Shorter times reduce motion blur but require more light. Typical range: 1-5ms.">
-                      <Label
-                        htmlFor="exposure"
-                        className="text-muted-foreground mb-1 block cursor-pointer text-xs"
-                      >
-                        Exposure Time (ms)
-                      </Label>
-                    </Tooltip>
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="exposure" className="text-muted-foreground mb-1 block text-xs">Exposure Time (ms)</Label>
+                      <Tooltip content="Camera shutter exposure time in milliseconds. Shorter times reduce motion blur but require more light. Typical range: 1-5ms.">
+                        <span className="inline-flex items-center cursor-pointer">
+                          <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
+                            <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
+                            <text x="10" y="15" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="Arial" fontWeight="bold">i</text>
+                          </svg>
+                        </span>
+                      </Tooltip>
+                    </div>
                     <Input
                       id="exposure"
                       type="number"
