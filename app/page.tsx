@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import type { Camera, DatasetSpec, Waypoint, MissionStats } from "@/lib/types";
 import { generatePhotoPlaneOnGrid, computeMissionStats } from "@/lib/flight-planner";
-import { Plane, ExternalLink, RotateCcw, FileUp, Download } from "lucide-react";
+import { Plane, Download, ClipboardList, Link } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { HorizontalConfig, type HorizontalConfigRef } from "@/components/horizontal-config";
 import { FlightPathVisualization } from "@/components/flight-path-visualization";
@@ -18,6 +18,9 @@ import {
 } from "@/components/flight-simulation-controller";
 import { Badge } from "@/components/ui/badge";
 import jsPDF from "jspdf";
+import { Button } from "@/components/ui/button";
+
+const releaseVersion = process.env.NEXT_PUBLIC_RELEASE || "v0.0.0";
 
 /**
  * Root page component for the mission planning UI.
@@ -57,6 +60,7 @@ export default function Home() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [simulationState, setSimulationState] = useState<SimulationState | null>(null);
   const [showExportBadges, setShowExportBadges] = useState(false);
+  const [planGenerated, setPlanGenerated] = useState(false);
 
   // Drone kinematic config (vMax m/s, aMax m/s^2)
   const [droneConfig, setDroneConfig] = useState<{ vMax?: number; aMax?: number }>({ vMax: 16, aMax: 3.5 });
@@ -165,24 +169,55 @@ export default function Home() {
    * validation error message.
    */
   const handleGenerateFlightPlan = async () => {
+    horizontalConfigRef.current?.fillBlankFieldsWithPresets();
+    const latestVMax = horizontalConfigRef.current?.getDroneVMax?.() ?? 16;
+    const latestAMax = horizontalConfigRef.current?.getDroneAMax?.() ?? 3.5;
+    const effectiveDroneConfig = { vMax: latestVMax, aMax: latestAMax };
+    const latestCamera = { ...camera };
+    const cameraKeys: (keyof Camera)[] = [
+      "fx", "fy", "cx", "cy", "sensor_size_x_mm", "sensor_size_y_mm", "image_size_x", "image_size_y"
+    ];
+    for (const key of cameraKeys) {
+      if (
+        latestCamera[key] === undefined ||
+        latestCamera[key] === null ||
+        isNaN(Number(latestCamera[key]))
+      ) {
+        latestCamera[key] = horizontalConfigRef.current?.getCameraPreset?.()[key] ?? latestCamera[key];
+      }
+    }
+
+    const latestDatasetSpec = { ...datasetSpec };
+    const missionKeys: (keyof DatasetSpec)[] = [
+      "overlap", "sidelap", "height", "scan_dimension_x", "scan_dimension_y", "exposure_time_ms"
+    ];
+    for (const key of missionKeys) {
+      if (
+        latestDatasetSpec[key] === undefined ||
+        latestDatasetSpec[key] === null ||
+        isNaN(Number(latestDatasetSpec[key]))
+      ) {
+        latestDatasetSpec[key] = horizontalConfigRef.current?.getMissionPreset?.()[key] ?? latestDatasetSpec[key];
+      }
+    }
+
+    setDroneConfig(effectiveDroneConfig);
+    setCamera(latestCamera);
+    setDatasetSpec(latestDatasetSpec);
+
     handleSoftReset();
     setIsGenerating(true);
     setValidationError(null);
-
-    // Small delay to allow loading UI to be visible
+    setPlanGenerated(false);
     await new Promise((resolve) => setTimeout(resolve, 500));
-
+    console.log("Generating flight plan with config:", { camera: latestCamera, datasetSpec: latestDatasetSpec, droneConfig: effectiveDroneConfig });
     try {
-      // Core flight plan generation and stats computation
-      // Pass droneConfig so waypoints receive correctly-clamped speeds at generation time
-      const generatedWaypoints = generatePhotoPlaneOnGrid(camera, datasetSpec, droneConfig);
-      const stats = computeMissionStats(generatedWaypoints, camera, datasetSpec, droneConfig);
-
-      // Persist outputs for visualization and summary
+      const generatedWaypoints = generatePhotoPlaneOnGrid(latestCamera, latestDatasetSpec, effectiveDroneConfig);
+      const stats = computeMissionStats(generatedWaypoints, latestCamera, latestDatasetSpec, effectiveDroneConfig);
       setWaypoints(generatedWaypoints);
       setMissionStats(stats);
+      setPlanGenerated(true);
     } catch (error) {
-      // Convert technical errors into user-facing messages
       console.error("Error generating flight plan:", error);
       if (error instanceof Error) {
         let userMessage = error.message;
@@ -227,6 +262,7 @@ export default function Home() {
     setMissionStats(null);
     setValidationError(null);
     setSimulationState(null);
+    setPlanGenerated(false);
 
     // Reset child components via refs
     flightSimulationRef.current?.resetSimulation();
@@ -268,6 +304,7 @@ export default function Home() {
     setMissionStats(null);
     setValidationError(null);
     setSimulationState(null);
+    setPlanGenerated(false);
 
     // Reset child components via refs
     flightSimulationRef.current?.resetSimulation();
@@ -289,60 +326,67 @@ export default function Home() {
   return (
     <div className="bg-background min-h-screen" onClick={handleMainClick}>
       {/* Header: app title, docs link, and user profile */}
-      <header className="border-border bg-card/50 sticky top-0 z-40 border-b backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4 sm:px-6 sm:py-3">
-          <div className="flex min-h-[64px] items-center justify-between gap-4">
-            {/* Left Side - compact logo + title (responsive, single-row friendly) */}
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-              {/* Logo hidden on very small screens to maximize header space */}
-              <div className="hidden sm:flex bg-primary h-9 w-9 items-center justify-center rounded-lg shadow-sm flex-shrink-0">
-                <Plane className="text-primary-foreground h-5 w-5" />
-              </div>
-              <div className="flex flex-col justify-center min-w-0">
-                <h1 className="text-foreground text-base sm:text-lg md:text-2xl leading-tight font-bold whitespace-nowrap">
-                  Drone Flight Planner
-                </h1>
-                {/* subtitle hidden on very small screens to keep header compact */}
-                <p className="text-muted-foreground text-xs md:text-sm leading-tight hidden sm:block">
-                  Mission Planning System
-                </p>
-              </div>
+      <header className="border-b border-border bg-card/80 sticky top-0 z-50 shadow-sm backdrop-blur-md">
+        <div className="container mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between px-3 sm:px-6 py-2 sm:py-3 min-h-[64px] gap-2 sm:gap-0">
+          <div className="flex flex-row items-center gap-2 sm:gap-3 min-w-0 w-full sm:w-auto">
+            <div className="bg-primary sm:h-10 sm:w-10 h-7 w-7 flex items-center justify-center rounded-lg shadow flex-shrink-0">
+              <Plane className="text-primary-foreground h-4 w-4 sm:h-6 sm:w-6" />
             </div>
-
-            {/* Right Side - Navigation (compact on mobile; stays on one row) */}
-            <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0 whitespace-nowrap">
-              {/* Feedback Button */}
-              <FeedbackButton />
-
-              {/* Technical Documentation Link */}
-              <a
-                href="https://github.com/devenshah2018/drone-trajectory"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border/50 flex items-center gap-2 rounded-lg border border-transparent px-3 py-2 text-sm sm:px-4 sm:py-2.5 transition-all duration-200"
-              >
-                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path
-                    fillRule="evenodd"
-                    d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span className="ml-1 hidden xs:inline-block sm:inline-block">Technical Docs</span>
-              </a>
-
-              {/* Divider */}
-              <div className="bg-border/50 h-6 w-px mx-2"></div>
-
-              {/* Author Profile with Dropdown */}
-              <div className="flex items-center ml-1">
-                <AuthorProfile />
+            <div className="flex flex-col justify-center min-w-0 w-full">
+              <div className="flex items-center w-full">
+                <h1 className="text-foreground text-md sm:text-xl md:text-2xl font-bold tracking-tight whitespace-nowrap leading-tight flex items-center gap-2">
+                  Drone Flight Planner
+                  <Badge
+                    className="min-w-0! ml-2 px-3 py-1 text-[11px] font-medium cursor-pointer bg-blue-500! text-white rounded-full hover:bg-blue-600! focus:outline-none focus:ring-1 focus:ring-blue-300 transition-all duration-150"
+                    style={{
+                      letterSpacing: '0.01em',
+                      textAlign: 'center',
+                      minWidth: '44px',
+                    }}
+                    onClick={() => window.open("https://github.com/devenshah2018/drone-trajectory-interface/blob/main/CHANGELOG.md", "_blank")}
+                    title={`Release: ${releaseVersion}`}
+                    tabIndex={0}
+                    aria-label={`View release changelog for version ${releaseVersion}`}
+                  >
+                    <Link className="h-3 w-3" />
+                    <span className="hidden sm:block">{releaseVersion}</span>
+                  </Badge>
+                </h1>
+                {/* Mobile: float docs and feedback all the way right */}
+                <div className="flex sm:hidden items-center gap-2 flex-1 justify-end ml-4 mt-0.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border/50 transition-all duration-200 cursor-pointer px-2 py-1"
+                    onClick={() => { window.open('https://github.com/devenshah2018/drone-trajectory', '_blank'); }}
+                  >
+                    <ClipboardList className="h-4 w-4" />
+                  </Button>
+                  <FeedbackButton />
+                </div>
               </div>
+              <span className="hidden sm:inline text-muted-foreground text-xs md:text-sm font-medium whitespace-nowrap leading-tight">
+                Enterprise Mission Planning
+              </span>
             </div>
           </div>
+          <div className="hidden sm:flex flex-row items-center gap-4 w-full sm:w-auto justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border/50 transition-all duration-200 cursor-pointer"
+              onClick={() => { window.open('https://github.com/devenshah2018/drone-trajectory-planner/blob/main/main.ipynb', '_blank'); }}
+            >
+              <ClipboardList className="h-4 w-4" />
+              <span className="hidden sm:inline">Docs</span>
+            </Button>
+            <FeedbackButton />
+            <AuthorProfile />
+          </div>
+          <div className="flex sm:hidden w-full justify-end mt-1">
+            <AuthorProfile />
+          </div>
         </div>
-
-        {/* Mobile stacked panel removed — header now displays all controls inline on one row for small screens */}
       </header>
 
       <main className="container mx-auto space-y-6 px-6 py-6">
@@ -355,6 +399,7 @@ export default function Home() {
           onDatasetSpecChange={setDatasetSpec}
           droneConfig={droneConfig}
           onDroneChange={(cfg) => setDroneConfig(cfg)}
+          planGenerated={planGenerated}
         />
 
         {/* Main content grid: map visual (2 cols) + stats (1 col) */}
@@ -475,7 +520,7 @@ export default function Home() {
                 <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
                   <path
                     fillRule="evenodd"
-                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
                     clipRule="evenodd"
                   />
                 </svg>

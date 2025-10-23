@@ -170,8 +170,6 @@ export function FlightPathVisualization({
         {(() => {
           const WAYPOINT_LIMIT = 1000;
           const isTooManyWaypoints = waypoints.length > WAYPOINT_LIMIT;
-          console.log("FlightPathVisualization render - waypoints:", waypoints.length, "isTooMany:", isTooManyWaypoints);
-
           if (isTooManyWaypoints) {
             return (
               <div className="w-full rounded-lg border border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20 p-4">
@@ -379,7 +377,7 @@ export function FlightPathVisualization({
             width="100%"
             height={svgHeight}
             viewBox={`0 0 ${width} ${height}`}
-            className="bg-background/50 max-w-full rounded-lg border"
+            className="bg-background/50 max-w-full rounded-lg overflow-visible"
           >
             {/* Grid lines */}
             <defs>
@@ -392,6 +390,9 @@ export function FlightPathVisualization({
                   className="text-muted/30"
                 />
               </pattern>
+              <filter id="dotShadow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="#000" flood-opacity="0.18" />
+              </filter>
             </defs>
             <rect width={width} height={height} fill="url(#grid)" />
 
@@ -407,6 +408,80 @@ export function FlightPathVisualization({
               strokeDasharray="5,5"
               className="text-muted-foreground/50"
             />
+
+            <line
+              x1={padding}
+              y1={height - padding + 20}
+              x2={width - padding}
+              y2={height - padding + 20}
+              stroke="#d1d5db"
+              strokeWidth="2"
+              className=""
+            />
+            {Array.from({ length: 6 }).map((_, i) => {
+              const frac = i / 5;
+              const x = padding + frac * (width - 2 * padding);
+              const value = (minX + frac * (maxX - minX)).toFixed(0);
+              return (
+                <g key={i}>
+                  <line
+                    x1={x}
+                    y1={height - padding + 27}
+                    x2={x}
+                    y2={height - padding + 13}
+                    stroke="#d1d5db"
+                    strokeWidth="1"
+                    className=""
+                  />
+                  <text
+                    x={x}
+                    y={height - padding + 38}
+                    textAnchor="middle"
+                    className="fill-muted-foreground text-xs"
+                    style={{ fontFamily: 'inherit', fill: '#9ca3af' }}
+                  >
+                    {value}
+                  </text>
+                </g>
+              );
+            })}
+
+            <line
+              x1={padding - 20}
+              y1={padding}
+              x2={padding - 20}
+              y2={height - padding}
+              stroke="#d1d5db"
+              strokeWidth="2"
+              className=""
+            />
+            {Array.from({ length: 6 }).map((_, i) => {
+              const frac = i / 5;
+              const y = padding + frac * (height - 2 * padding);
+              const value = ((minY + frac * (maxY - minY)).toFixed(0));
+              return (
+              <g key={i}>
+                <line
+                x1={padding - 33}
+                y1={y}
+                x2={padding - 19}
+                y2={y}
+                stroke="#d1d5db"
+                strokeWidth="1"
+                className=""
+                />
+                <text
+                x={padding - 40}
+                y={y + 4}
+                textAnchor="end"
+                className="fill-muted-foreground text-xs"
+                style={{ fontFamily: 'inherit', fill: '#9ca3af' }}
+                >
+                {value}
+                </text>
+              </g>
+              );
+            })}
 
             {/* Flight path lines */}
             {waypoints.map((waypoint, i) => {
@@ -457,16 +532,20 @@ export function FlightPathVisualization({
               const isInteractive = !simulationState?.isRunning;
               const markerClass = i === 0 ? "text-accent" : i === waypoints.length - 1 ? "text-destructive" : "text-primary";
               const isHovered = i === hoveredIdx;
-              const rHit = 12; // larger invisible hit radius for easier hovering
-
+              const rHit = 16; // larger invisible hit radius for easier hovering
+              // Smooth, visible dot style
+              const dotRadius = 4;
+              // Use GO green for start
+              const dotFill = i === 0 ? "#22c55e" : i === waypoints.length - 1 ? "#fecaca" : "#B5A6FF";
+              const dotStroke = i === 0 ? "#16a34a" : i === waypoints.length - 1 ? "#ef4444" : "#2563eb";
               return (
-                <g key={i}>
-                  {/* Invisible larger hit target to make hovering easier without changing visuals */}
+                <g key={i} style={{ pointerEvents: 'visiblePainted' }}>
                   <circle
                     cx={cxPos}
                     cy={cyPos}
                     r={rHit}
                     fill="transparent"
+                    style={{ pointerEvents: 'all' }}
                     onMouseEnter={(ev) => {
                       if (!isInteractive) return;
                       const event = new CustomEvent('waypoint-hover', { detail: { index: i, source: 'svg' } });
@@ -492,23 +571,24 @@ export function FlightPathVisualization({
                       const containerRect = svgRef.current.getBoundingClientRect();
                       setTooltipPos({ x: ev.clientX - containerRect.left, y: ev.clientY - containerRect.top });
                     }}
-                    style={{ cursor: isInteractive ? 'pointer' : 'default' }}
                     aria-hidden
                   />
-
-                  {/* Visible marker (unchanged visual size) */}
+                  {/* Visible marker: smooth, shadowed, with border */}
                   <circle
                     cx={cxPos}
                     cy={cyPos}
-                    r={i === 0 ? 6 : i === waypoints.length - 1 ? 6 : 3}
-                    fill="currentColor"
+                    r={dotRadius}
+                    fill={dotFill}
+                    stroke={dotStroke}
+                    strokeWidth="2"
+                    filter="url(#dotShadow)"
                     className={markerClass + (isHovered ? ' opacity-100 scale-110' : '')}
-                    style={{ transition: 'transform 160ms ease, opacity 160ms ease', transformOrigin: `${cxPos}px ${cyPos}px` }}
+                    style={{ transition: 'transform 180ms cubic-bezier(.4,2,.3,1), opacity 180ms cubic-bezier(.4,2,.3,1)', transformOrigin: `${cxPos}px ${cyPos}px` }}
                   />
                   {(i === 0 || i === waypoints.length - 1) && (
                     <text
                       x={cxPos}
-                      y={cyPos - 12}
+                      y={cyPos - dotRadius - 8}
                       textAnchor="middle"
                       className="fill-foreground font-mono text-xs"
                     >
@@ -625,11 +705,11 @@ export function FlightPathVisualization({
         </div>
         <div className="text-muted-foreground flex items-center justify-center gap-6 text-sm">
           <div className="flex items-center gap-2">
-            <div className="bg-accent h-3 w-3 rounded-full" />
+            <div className="h-3 w-3 rounded-full" style={{ background: '#22c55e' }} />
             <span>Start Point</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="bg-primary h-3 w-3 rounded-full" />
+            <div className="h-3 w-3 rounded-full" style={{ background: '#B5A6FF' }} />
             <span>Waypoints</span>
           </div>
           <div className="flex items-center gap-2">

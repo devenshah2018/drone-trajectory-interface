@@ -135,7 +135,7 @@ ${description}
           <span className="hidden sm:inline">Feedback</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] w-full max-w-full p-4 sm:p-6 rounded-lg sm:rounded-xl shadow-lg sm:shadow-2xl border border-border bg-background overflow-y-auto max-h-[100dvh] sm:max-h-[90vh] flex flex-col justify-center sm:mx-0 mx-4">
         {submitted ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
@@ -186,7 +186,7 @@ ${description}
                   value={type}
                   onValueChange={(value) => setType(value as "bug" | "enhancement")}
                 >
-                  <SelectTrigger id="type" className="cursor-pointer">
+                  <SelectTrigger id="type" className="cursor-pointer w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -215,6 +215,7 @@ ${description}
                   onChange={(e) => setTitle(e.target.value)}
                   required
                   disabled={isSubmitting}
+                  className="w-full"
                 />
               </div>
 
@@ -228,6 +229,7 @@ ${description}
                   required
                   disabled={isSubmitting}
                   rows={5}
+                  className="w-full"
                 />
               </div>
 
@@ -237,32 +239,23 @@ ${description}
                 </div>
               )}
 
-              <DialogFooter>
+              <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setOpen(false)}
                   disabled={isSubmitting}
-                  className="cursor-pointer"
+                  className="w-full sm:w-auto cursor-pointer"
                 >
                   Cancel
                 </Button>
                 <Button 
                   type="submit" 
                   disabled={isSubmitting || remaining === 0} 
-                  className="cursor-pointer"
+                  className="w-full sm:w-auto cursor-pointer flex items-center justify-center gap-2"
                 >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Submitting...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="mr-2 h-4 w-4" />
-                      Submit
-                    </>
-                  )}
+                  <Send className="h-4 w-4" />
+                  <span>Submit</span>
                 </Button>
               </DialogFooter>
             </form>
