@@ -135,132 +135,149 @@ ${description}
           <span className="hidden sm:inline">Feedback</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px] w-full max-w-full p-4 sm:p-6 rounded-lg sm:rounded-xl shadow-lg sm:shadow-2xl border border-border bg-background overflow-y-auto max-h-[100dvh] sm:max-h-[90vh] flex flex-col justify-center sm:mx-0 mx-4">
-        {submitted ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-              <svg
-                className="h-6 w-6 text-green-600 dark:text-green-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            </div>
-            <DialogTitle className="mb-2">Thank you!</DialogTitle>
-            <DialogDescription>
-              Your feedback has been submitted successfully.
-            </DialogDescription>
+      <DialogContent className="sm:max-w-[500px] w-full max-w-full p-0 sm:p-0 rounded-xl shadow-2xl border border-border bg-background overflow-y-auto max-h-[100dvh] sm:max-h-[90vh] flex flex-col justify-center sm:mx-0 mx-4">
+        <div className="p-0 sm:p-0">
+          <div className="rounded-t-xl border-b border-border px-6 py-4 flex items-center gap-3">
+            <MessageSquare className="h-5 w-5" aria-hidden />
+            <DialogTitle className="text-lg font-bold text-foreground">Send Feedback</DialogTitle>
           </div>
-        ) : (
-          <>
-            <DialogHeader>
-              <DialogTitle>Send Feedback</DialogTitle>
-              <DialogDescription>
-                Report a bug or suggest an enhancement. I'll review it on GitHub.
-                {!isLoadingRemaining && remaining !== null && (
-                  <span className="block mt-2 text-sm">
-                    {remaining > 0 ? (
-                      <span className="text-muted-foreground">
-                        You can submit <span className="font-semibold text-foreground">{remaining}</span> more feedback{remaining !== 1 ? 's' : ''} today.
-                      </span>
-                    ) : (
-                      <span className="text-destructive font-semibold">
-                        You've reached the daily limit. Please try again tomorrow.
-                      </span>
-                    )}
-                  </span>
-                )}
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="type">Type</Label>
-                <Select
-                  value={type}
-                  onValueChange={(value) => setType(value as "bug" | "enhancement")}
-                >
-                  <SelectTrigger id="type" className="cursor-pointer w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="bug">
-                      <div className="flex items-center gap-2">
-                        <Bug className="h-4 w-4 text-red-500" />
-                        <span>Bug Report</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="enhancement">
-                      <div className="flex items-center gap-2">
-                        <Lightbulb className="h-4 w-4 text-yellow-500" />
-                        <span>Feature Request</span>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="title">Title</Label>
-                <Input
-                  id="title"
-                  placeholder="Brief summary of the issue or suggestion"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  required
-                  disabled={isSubmitting}
-                  className="w-full"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Provide details about the bug or enhancement..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  required
-                  disabled={isSubmitting}
-                  rows={5}
-                  className="w-full"
-                />
-              </div>
-
-              {error && (
-                <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                  {error}
+          <div className="px-6 py-6">
+            {submitted ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
+                  <svg
+                    className="h-6 w-6 text-green-600 dark:text-green-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
                 </div>
-              )}
+                <DialogTitle className="mb-2">Thank you!</DialogTitle>
+                <DialogDescription>
+                  Your feedback has been submitted successfully.
+                </DialogDescription>
+              </div>
+            ) : (
+              <>
+                <DialogDescription className="mb-4 text-sm text-muted-foreground">
+                  Report a bug or suggest an enhancement. I'll review it on GitHub.
+                  {!isLoadingRemaining && remaining !== null && (
+                    <span className="block mt-2 text-xs">
+                      {remaining > 0 ? (
+                        <span className="text-muted-foreground">
+                          You can submit <span className="font-semibold text-foreground">{remaining}</span> more feedback{remaining !== 1 ? 's' : ''} today.
+                        </span>
+                      ) : (
+                        <span className="text-destructive font-semibold">
+                          You've reached the daily limit. Please try again tomorrow.
+                        </span>
+                      )}
+                    </span>
+                  )}
+                </DialogDescription>
+                <form onSubmit={handleSubmit} className="space-y-5" aria-label="Feedback form">
+                  <div className="space-y-2">
+                    <Label htmlFor="type" className="text-sm font-medium">Type</Label>
+                    <Select
+                      value={type}
+                      onValueChange={(value) => setType(value as "bug" | "enhancement")}
+                    >
+                      <SelectTrigger id="type" className="cursor-pointer w-full focus:ring-2 focus:ring-sky-400 focus:outline-none">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="bug">
+                          <div className="flex items-center gap-2">
+                            <Bug className="h-4 w-4 text-red-500" aria-hidden />
+                            <span>Bug Report</span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="enhancement">
+                          <div className="flex items-center gap-2">
+                            <Lightbulb className="h-4 w-4 text-yellow-500" aria-hidden />
+                            <span>Feature Request</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setOpen(false)}
-                  disabled={isSubmitting}
-                  className="w-full sm:w-auto cursor-pointer"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={isSubmitting || remaining === 0} 
-                  className="w-full sm:w-auto cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <Send className="h-4 w-4" />
-                  <span>Submit</span>
-                </Button>
-              </DialogFooter>
-            </form>
-          </>
-        )}
+                  <div className="space-y-2">
+                    <Label htmlFor="title" className="text-sm font-medium">Title</Label>
+                    <Input
+                      id="title"
+                      placeholder="Brief summary of the issue or suggestion"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      required
+                      disabled={isSubmitting}
+                      className="w-full focus:ring-2 focus:ring-sky-400 focus:outline-none"
+                      maxLength={80}
+                      aria-required="true"
+                      aria-label="Feedback title"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="description" className="text-sm font-medium">Description</Label>
+                    <Textarea
+                      id="description"
+                      placeholder="Provide details about the bug or enhancement..."
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      required
+                      disabled={isSubmitting}
+                      rows={5}
+                      className="w-full focus:ring-2 focus:ring-sky-400 focus:outline-none"
+                      maxLength={1000}
+                      aria-required="true"
+                      aria-label="Feedback description"
+                    />
+                    <div className="text-xs text-muted-foreground text-right">
+                      {description.length}/1000
+                    </div>
+                  </div>
+
+                  {error && (
+                    <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+                      {error}
+                    </div>
+                  )}
+
+                  <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full mt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setOpen(false)}
+                      disabled={isSubmitting}
+                      className="w-full sm:w-auto cursor-pointer"
+                      aria-label="Cancel feedback"
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      disabled={isSubmitting || remaining === 0} 
+                      className="w-full sm:w-auto cursor-pointer flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-700 text-white font-semibold shadow-sm focus:ring-2 focus:ring-sky-400 focus:outline-none"
+                      aria-label="Submit feedback"
+                    >
+                      {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Send className="h-4 w-4" aria-hidden />}
+                      <span>Submit</span>
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </>
+            )}
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   );

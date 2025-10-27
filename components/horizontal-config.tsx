@@ -345,8 +345,8 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
       missionPresetKey: string;
     }
     const initialGlobalConfigs: Record<string, GlobalConfigType> = {
-      Default: {
-        name: "Default",
+      Nominal: {
+        name: "Nominal",
         description: "Default configuration for camera, model, and mission",
         cameraPresetKey: "vt300l-wide",
         modelPresetKey: "skydio-x10-simple",

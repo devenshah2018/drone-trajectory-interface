@@ -2,6 +2,9 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v0.1] - 2025-10-27
+- Enhancement: User interface and verbiage improvements for better accessibility and responsiveness.
+
 ## [v0.0] - 2025-10-24
 - Bugfix: Speed profile charts now correctly display the blur-free speeds.
 - Bugfix: Clicking reset now also resets the template configuration dropdown.
