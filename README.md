@@ -1,4 +1,4 @@
-# Drone Flight Planner
+# Drone Flight Simulator
 
 A modern web app for planning and visualizing aerial survey missions. Generate grid-style flight plans, preview drone motion, and analyze mission stats—all in your browser. For a detailed analysis on the photogrammetry mission planning process, check out the accompanying notebook: [Drone Trajectory Planner](https://github.com/devenshah2018/drone-trajectory-planner/blob/main/main.ipynb).
 
@@ -32,7 +32,6 @@ Visit: [drone-path-planner.vercel.app](https://drone-path-planner.vercel.app)
 ### 7. Feedback
 - Use the **Feedback** button to send suggestions or report issues directly from the app.
 
-
 ## Features
 - Grid-based flight plan generation from camera and mission settings
 - Interactive flight path visualization and waypoint table
@@ -40,6 +39,12 @@ Visit: [drone-path-planner.vercel.app](https://drone-path-planner.vercel.app)
 - Mission statistics and speed profile analysis
 - Export options: Excel, PDF, JSON
 - Mobile responsive, accessible, and enterprise-quality UI
+
+## Acknowledgements
+
+This project was developed as part of **The Build Fellowship** program by **OpenAvenue Ventures**, a transformative experience that provided the foundation for building real-world engineering solutions. Special thanks to **Ayush Baid** and the **Drone Flight Planner System** team for providing mentorship and support throughout the development process.
+
+This project was originally forked from the [Drone Flight Planner System](https://hub.buildfellowship.com/projects/drone-flight-planner-system-flight-path-for-efficient-data-capture) build project, which served as the foundation for implementing advanced flight planning algorithms and optimization techniques.
 
 ---
 
