@@ -19,6 +19,7 @@ import {
   Settings,
   ChevronDown,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 /**
  * Props for the horizontal configuration panel.
@@ -36,6 +37,8 @@ interface HorizontalConfigProps {
   droneConfig?: { vMax?: number; aMax?: number };
   onDroneChange?: (drone: { vMax: number; aMax: number }) => void;
   planGenerated?: boolean;
+  /** When "sidepanel", renders as a compact vertical sidebar for left-side layout */
+  variant?: "default" | "sidepanel";
 }
 
 /**
@@ -65,7 +68,7 @@ export interface HorizontalConfigRef {
  * @remarks Client component using forwardRef to expose resetPresets to parents.
  */
 export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfigProps>(
-  ({ camera, datasetSpec, onCameraChange, onDatasetSpecChange, droneConfig, onDroneChange, planGenerated }, ref) => {
+  ({ camera, datasetSpec, onCameraChange, onDatasetSpecChange, droneConfig, onDroneChange, planGenerated, variant = "default" }, ref) => {
     // Collapsible state for compact UI
     const [isCollapsed, setIsCollapsed] = useState(false);
     const contentId = "horizontal-config-content";
@@ -73,13 +76,7 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
     const [selectedPreset, setSelectedPreset] = useState("");
     const [selectedMissionPreset, setSelectedMissionPreset] = useState("");
 
-    useEffect(() => {
-      if (planGenerated) {
-        setIsCollapsed(true);
-      } else {
-        setIsCollapsed(false);
-      }
-    }, [planGenerated]);
+    // No longer auto-collapse when plan is generated - keep settings visible
 
     // Drone presets & state: allow selecting a template and editing vMax / aMax
     const dronePresets = {
@@ -516,26 +513,66 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
       [droneVMax, droneAMax, camera, datasetSpec, selectedPreset, selectedMissionPreset]
     );
 
+    const isSidepanel = variant === "sidepanel";
+
     // --- Render: compact two-column layout with clear section headers ---
     return (
-      <Card className="border-border bg-card shadow-sm">
-        <CardHeader className="px-3 relative">
-          <div className="flex items-center justify-between gap-2">
+      <Card className={cn("bg-card shadow-sm", isSidepanel && "w-[280px] shrink-0 overflow-y-auto max-h-[calc(100vh-5rem)] rounded-none border-0 shadow-none border-r border-border/30 bg-card/95 backdrop-blur-sm")}>
+        <CardHeader className={cn("px-3 relative", isSidepanel && "px-4 pt-4 pb-4 flex flex-col gap-4 border-b border-border/20")}>
+          <div className={cn("flex items-center justify-between gap-2", isSidepanel && "flex-col items-stretch gap-3")}>
+            {isSidepanel ? (
+              <>
+                <div className="space-y-2">
+                  <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Template</h2>
+                  <Select value={selectedGlobalConfig} onValueChange={handleGlobalConfigSelect}>
+                    <SelectTrigger className="w-full cursor-pointer text-left text-xs h-8 border-border/50">
+                      <SelectValue placeholder="Choose template" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(globalConfigs).map(([key, config]) => (
+                        <SelectItem key={key} value={key}>{config.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="pt-3 border-t border-border/20 space-y-3">
+                  <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Drone</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="col-span-2">
+                      <Select value={selectedDrone} onValueChange={(v) => v && loadDronePreset(v)}>
+                        <SelectTrigger id="hdr-drone" className="w-full h-8 text-xs border-border/50">
+                          <SelectValue placeholder="Model" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(dronePresets).map(([key, preset]) => (
+                            <SelectItem key={key} value={key}>{preset.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="hdr-vmax" className="text-[11px] text-muted-foreground">vMax (m/s)</Label>
+                      <Input id="hdr-vmax" type="number" step="0.1" min="0" value={droneVMax} onChange={e => { const v = e.target.value; setDroneVMax(v === "" ? "" : Number.parseFloat(v)); updateDroneWithHighlight("vMax", v === "" ? "" : Number.parseFloat(v)); }} className={cn("h-8 text-xs border-border/50", selectedDrone && editedDroneFields.has("vMax") && highlightClass)} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="hdr-amax" className="text-[11px] text-muted-foreground">aMax</Label>
+                      <Input id="hdr-amax" type="number" step="0.1" min="0" value={droneAMax} onChange={e => { const v = e.target.value; setDroneAMax(v === "" ? "" : Number.parseFloat(v)); updateDroneWithHighlight("aMax", v === "" ? "" : Number.parseFloat(v)); }} className={cn("h-8 text-xs border-border/50", selectedDrone && editedDroneFields.has("aMax") && highlightClass)} />
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+            <>
             <div className="flex items-center gap-3">
               <CardTitle className="text-foreground text-lg font-semibold flex items-center gap-2">
                 Configuration
-                <Select
-                  value={selectedGlobalConfig}
-                  onValueChange={handleGlobalConfigSelect}
-                >
+                <Select value={selectedGlobalConfig} onValueChange={handleGlobalConfigSelect}>
                   <SelectTrigger className="w-40 cursor-pointer text-left text-xs h-8">
                     <SelectValue placeholder="Choose template" />
                   </SelectTrigger>
                   <SelectContent>
                     {Object.entries(globalConfigs).map(([key, config]) => (
-                      <SelectItem key={key} value={key}>
-                        {config.name}
-                      </SelectItem>
+                      <SelectItem key={key} value={key}>{config.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -621,8 +658,7 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                 </Button>
               </div>
             </div>
-          </div>
-          <div className="sm:hidden">
+          <div className="sm:hidden" key="mobile-drone">
             <Button
               onClick={toggleCollapsed}
               aria-expanded={!isCollapsed}
@@ -704,18 +740,23 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
               </div>
             </div>
           </div>
+            </>
+            )}
+          </div>
         </CardHeader>
         { !isCollapsed && (
-          <CardContent id={contentId} className="py-2 px-3">
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <CardContent id={contentId} className={cn("py-2 px-3", isSidepanel && "px-4 py-4 space-y-6 [&_input]:h-8")}>
+            <div className={cn("grid gap-6", isSidepanel ? "grid-cols-1 gap-0" : "grid-cols-1 lg:grid-cols-2")}>
               {/* Camera Settings */}
-              <div>
-                <div className="border-border/30 mb-3 flex items-center justify-between gap-2 border-b pb-2">
+              <div className={cn(isSidepanel && "pt-4 border-t border-border/20 first:pt-0 first:border-0 space-y-3")}>
+                <div className={cn("mb-3 flex items-center justify-between gap-2 pb-2", isSidepanel && "mb-3 pb-0 flex-col items-stretch gap-2")}>
                   <div className="flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded bg-blue-100 dark:bg-blue-900/30">
-                      <CameraIcon className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <h3 className="text-md text-foreground font-semibold">Camera Settings</h3>
+                    {!isSidepanel && (
+                      <div className="flex h-6 w-6 items-center justify-center rounded bg-blue-100 dark:bg-blue-900/30">
+                        <CameraIcon className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                      </div>
+                    )}
+                    <h3 className={cn("text-foreground font-semibold", isSidepanel ? "text-xs font-medium uppercase tracking-wider text-muted-foreground" : "text-md")}>Camera</h3>
                   </div>
                   <div>
                     <Select
@@ -727,7 +768,7 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                         }
                       }}
                     >
-                      <SelectTrigger className="w-36 cursor-pointer text-left text-xs">
+                      <SelectTrigger className={cn("cursor-pointer text-left text-xs", isSidepanel ? "w-full" : "w-36")}>
                         <SelectValue placeholder="Camera preset" />
                       </SelectTrigger>
                       <SelectContent>
@@ -740,13 +781,13 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                     </Select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className={cn("grid gap-3", isSidepanel ? "grid grid-cols-2 gap-2" : "grid-cols-2 sm:grid-cols-2 lg:grid-cols-4")}>
                   {/* Row 1 - Focal Length & Principal Point */}
                   <div>
                     <div className="flex items-center gap-1">
-                      <Label htmlFor="fx" className="text-muted-foreground mb-1 block text-xs">Focal Length X (px)</Label>
+                      <Label htmlFor="fx" className={cn("text-muted-foreground mb-1 block text-xs", isSidepanel && "text-[11px]")} title={isSidepanel ? "Focal length X (px)" : undefined}>{isSidepanel ? "fx" : "Focal Length X (px)"}</Label>
                       <Tooltip content="Focal length in X direction (pixels). Determines horizontal field of view and image scale.">
-                        <span className="inline-flex items-center cursor-pointer">
+                        <span className={cn("inline-flex items-center cursor-pointer", isSidepanel && "hidden")}>
                           <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
                             <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
                             <text x="10" y="15" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="Arial" fontWeight="bold">i</text>
@@ -764,9 +805,9 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                   </div>
                   <div>
                     <div className="flex items-center gap-1">
-                      <Label htmlFor="fy" className="text-muted-foreground mb-1 block text-xs">Focal Length Y (px)</Label>
+                      <Label htmlFor="fy" className={cn("text-muted-foreground mb-1 block text-xs", isSidepanel && "text-[11px]")} title={isSidepanel ? "Focal length Y (px)" : undefined}>{isSidepanel ? "fy" : "Focal Length Y (px)"}</Label>
                       <Tooltip content="Focal length in Y direction (pixels). Determines vertical field of view and image scale.">
-                        <span className="inline-flex items-center cursor-pointer">
+                        <span className={cn("inline-flex items-center cursor-pointer", isSidepanel && "hidden")}>
                           <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
                             <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
                             <text x="10" y="15" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="Arial" fontWeight="bold">i</text>
@@ -784,9 +825,9 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                   </div>
                   <div>
                     <div className="flex items-center gap-1">
-                      <Label htmlFor="cx" className="text-muted-foreground mb-1 block text-xs">Principal Point X (px)</Label>
+                      <Label htmlFor="cx" className={cn("text-muted-foreground mb-1 block text-xs", isSidepanel && "text-[11px]")} title={isSidepanel ? "Principal point X (px)" : undefined}>{isSidepanel ? "cx" : "Principal Point X (px)"}</Label>
                       <Tooltip content="Principal point X coordinate (pixels). The X-coordinate of the optical center on the image sensor.">
-                        <span className="inline-flex items-center cursor-pointer">
+                        <span className={cn("inline-flex items-center cursor-pointer", isSidepanel && "hidden")}>
                           <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
                             <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
                             <text x="10" y="15" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="Arial" fontWeight="bold">i</text>
@@ -804,9 +845,9 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                   </div>
                   <div>
                     <div className="flex items-center gap-1">
-                      <Label htmlFor="cy" className="text-muted-foreground mb-1 block text-xs">Principal Point Y (px)</Label>
+                      <Label htmlFor="cy" className={cn("text-muted-foreground mb-1 block text-xs", isSidepanel && "text-[11px]")} title={isSidepanel ? "Principal point Y (px)" : undefined}>{isSidepanel ? "cy" : "Principal Point Y (px)"}</Label>
                       <Tooltip content="Principal point Y coordinate (pixels). The Y-coordinate of the optical center on the image sensor.">
-                        <span className="inline-flex items-center cursor-pointer">
+                        <span className={cn("inline-flex items-center cursor-pointer", isSidepanel && "hidden")}>
                           <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
                             <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
                             <text x="10" y="15" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="Arial" fontWeight="bold">i</text>
@@ -826,9 +867,9 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                   {/* Row 2 - Sensor & Image Size */}
                   <div>
                     <div className="flex items-center gap-1">
-                      <Label htmlFor="sensor_x" className="text-muted-foreground mb-1 block text-xs">Sensor Width (mm)</Label>
+                      <Label htmlFor="sensor_x" className={cn("text-muted-foreground mb-1 block text-xs", isSidepanel && "text-[11px]")} title={isSidepanel ? "Sensor width (mm)" : undefined}>{isSidepanel ? "Sensor X" : "Sensor Width (mm)"}</Label>
                       <Tooltip content="Physical width of the camera sensor in millimeters. Used to calculate ground sampling distance.">
-                        <span className="inline-flex items-center cursor-pointer">
+                        <span className={cn("inline-flex items-center cursor-pointer", isSidepanel && "hidden")}>
                           <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
                             <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
                             <text x="10" y="15" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="Arial" fontWeight="bold">i</text>
@@ -849,9 +890,9 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                   </div>
                   <div>
                     <div className="flex items-center gap-1">
-                      <Label htmlFor="sensor_y" className="text-muted-foreground mb-1 block text-xs">Sensor Height (mm)</Label>
+                      <Label htmlFor="sensor_y" className={cn("text-muted-foreground mb-1 block text-xs", isSidepanel && "text-[11px]")} title={isSidepanel ? "Sensor height (mm)" : undefined}>{isSidepanel ? "Sensor Y" : "Sensor Height (mm)"}</Label>
                       <Tooltip content="Physical height of the camera sensor in millimeters. Used to calculate ground sampling distance.">
-                        <span className="inline-flex items-center cursor-pointer">
+                        <span className={cn("inline-flex items-center cursor-pointer", isSidepanel && "hidden")}>
                           <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
                             <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
                             <text x="10" y="15" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="Arial" fontWeight="bold">i</text>
@@ -872,9 +913,9 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                   </div>
                   <div>
                     <div className="flex items-center gap-1">
-                      <Label htmlFor="image_x" className="text-muted-foreground mb-1 block text-xs">Image Width (px)</Label>
+                      <Label htmlFor="image_x" className={cn("text-muted-foreground mb-1 block text-xs", isSidepanel && "text-[11px]")} title={isSidepanel ? "Image width (px)" : undefined}>{isSidepanel ? "Img X" : "Image Width (px)"}</Label>
                       <Tooltip content="Image width in pixels. The horizontal resolution of captured images.">
-                        <span className="inline-flex items-center cursor-pointer">
+                        <span className={cn("inline-flex items-center cursor-pointer", isSidepanel && "hidden")}>
                           <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
                             <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
                             <text x="10" y="15" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="Arial" fontWeight="bold">i</text>
@@ -892,9 +933,9 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                   </div>
                   <div>
                     <div className="flex items-center gap-1">
-                      <Label htmlFor="image_y" className="text-muted-foreground mb-1 block text-xs">Image Height (px)</Label>
+                      <Label htmlFor="image_y" className={cn("text-muted-foreground mb-1 block text-xs", isSidepanel && "text-[11px]")} title={isSidepanel ? "Image height (px)" : undefined}>{isSidepanel ? "Img Y" : "Image Height (px)"}</Label>
                       <Tooltip content="Image height in pixels. The vertical resolution of captured images.">
-                        <span className="inline-flex items-center cursor-pointer">
+                        <span className={cn("inline-flex items-center cursor-pointer", isSidepanel && "hidden")}>
                           <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
                             <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
                             <text x="10" y="15" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="Arial" fontWeight="bold">i</text>
@@ -914,13 +955,15 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
               </div>
 
               {/* Mission Parameters */}
-              <div>
-                <div className="border-border/30 mb-3 flex items-center justify-between gap-2 border-b pb-2">
+              <div className={cn(isSidepanel && "space-y-3")}>
+                <div className={cn("mb-3 flex items-center justify-between gap-2 pb-2", isSidepanel && "mb-2 pb-2 flex-col items-stretch gap-2")}>
                   <div className="flex items-center gap-2">
-                    <div className  ="flex h-6 w-6 items-center justify-center rounded bg-emerald-100 dark:bg-emerald-900/30">
-                      <Settings className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                    </div>
-                    <h3 className="text-md text-foreground font-semibold">Mission Parameters</h3>
+                    {!isSidepanel && (
+                      <div className="flex h-6 w-6 items-center justify-center rounded bg-emerald-100 dark:bg-emerald-900/30">
+                        <Settings className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                    )}
+                    <h3 className={cn("text-foreground font-semibold", isSidepanel ? "text-xs uppercase tracking-wider text-muted-foreground" : "text-md")}>Mission</h3>
                   </div>
                   <div>
                     <Select
@@ -932,7 +975,7 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                         }
                       }}
                     >
-                      <SelectTrigger className="w-36 cursor-pointer text-left text-xs">
+                      <SelectTrigger className={cn("cursor-pointer text-left text-xs", isSidepanel ? "w-full" : "w-36")}>
                         <SelectValue placeholder="Mission preset" />
                       </SelectTrigger>
                       <SelectContent>
@@ -945,13 +988,13 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                     </Select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                <div className={cn("grid gap-3", isSidepanel ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-2 md:grid-cols-3")}>
                   {/* Row 1 - Overlap & Height */}
                   <div>
                     <div className="flex items-center gap-1">
                       <Label htmlFor="overlap" className="text-muted-foreground mb-1 block text-xs">Overlap</Label>
                       <Tooltip content="Overlap percentage between consecutive images in flight direction. Higher values ensure better reconstruction quality but increase flight time.">
-                        <span className="inline-flex items-center cursor-pointer">
+                        <span className={cn("inline-flex items-center cursor-pointer", isSidepanel && "hidden")}>
                           <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
                             <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
                             <text x="10" y="15" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="Arial" fontWeight="bold">i</text>
@@ -981,7 +1024,7 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                     <div className="flex items-center gap-1">
                       <Label htmlFor="sidelap" className="text-muted-foreground mb-1 block text-xs">Sidelap</Label>
                       <Tooltip content="Sidelap percentage between adjacent flight lines. Higher values ensure better coverage but increase flight time and data processing.">
-                        <span className="inline-flex items-center cursor-pointer">
+                        <span className={cn("inline-flex items-center cursor-pointer", isSidepanel && "hidden")}>
                           <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
                             <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
                             <text x="10" y="15" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="Arial" fontWeight="bold">i</text>
@@ -1011,7 +1054,7 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                     <div className="flex items-center gap-1">
                       <Label htmlFor="height" className="text-muted-foreground mb-1 block text-xs">Flight Height (m)</Label>
                       <Tooltip content="Flight altitude above ground level in meters. Higher altitudes cover more area per image but reduce ground sampling distance.">
-                        <span className="inline-flex items-center cursor-pointer">
+                        <span className={cn("inline-flex items-center cursor-pointer", isSidepanel && "hidden")}>
                           <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
                             <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
                             <text x="10" y="15" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="Arial" fontWeight="bold">i</text>
@@ -1034,7 +1077,7 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                     <div className="flex items-center gap-1">
                       <Label htmlFor="scan_x" className="text-muted-foreground mb-1 block text-xs">Survey Width (m)</Label>
                       <Tooltip content="Width of the survey area in meters. Defines the east-west extent of the mapping mission.">
-                        <span className="inline-flex items-center cursor-pointer">
+                        <span className={cn("inline-flex items-center cursor-pointer", isSidepanel && "hidden")}>
                           <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
                             <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
                             <text x="10" y="15" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="Arial" fontWeight="bold">i</text>
@@ -1056,7 +1099,7 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                     <div className="flex items-center gap-1">
                       <Label htmlFor="scan_y" className="text-muted-foreground mb-1 block text-xs">Survey Length (m)</Label>
                       <Tooltip content="Length of the survey area in meters. Defines the north-south extent of the mapping mission.">
-                        <span className="inline-flex items-center cursor-pointer">
+                        <span className={cn("inline-flex items-center cursor-pointer", isSidepanel && "hidden")}>
                           <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
                             <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
                             <text x="10" y="15" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="Arial" fontWeight="bold">i</text>
@@ -1078,7 +1121,7 @@ export const HorizontalConfig = forwardRef<HorizontalConfigRef, HorizontalConfig
                     <div className="flex items-center gap-1">
                       <Label htmlFor="exposure" className="text-muted-foreground mb-1 block text-xs">Exposure Time (ms)</Label>
                       <Tooltip content="Camera shutter exposure time in milliseconds. Shorter times reduce motion blur but require more light. Typical range: 1-5ms.">
-                        <span className="inline-flex items-center cursor-pointer">
+                        <span className={cn("inline-flex items-center cursor-pointer", isSidepanel && "hidden")}>
                           <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="text-blue-400" aria-label="Info">
                             <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="2" fill="white" />
                             <text x="10" y="15" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="Arial" fontWeight="bold">i</text>

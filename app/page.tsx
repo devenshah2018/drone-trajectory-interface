@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import type { Camera, DatasetSpec, Waypoint, MissionStats } from "@/lib/types";
 import { generatePhotoPlaneOnGrid, computeMissionStats } from "@/lib/flight-planner";
-import { Plane, Download, ClipboardList, Link } from "lucide-react";
+import { Rocket, Download, ClipboardList, ScrollText, RotateCcw } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { HorizontalConfig, type HorizontalConfigRef } from "@/components/horizontal-config";
 import { FlightPathVisualization } from "@/components/flight-path-visualization";
 import { CompactMissionStats } from "@/components/compact-mission-stats";
-import { FloatingGenerateButton } from "@/components/floating-generate-button";
 import { AuthorProfile } from "@/components/author-profile";
-import { FeedbackButton } from "@/components/feedback-button";
+import { ChangelogDialog } from "@/components/changelog-dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   FlightSimulationController,
   type SimulationState,
@@ -21,7 +21,7 @@ import jsPDF from "jspdf";
 import { Button } from "@/components/ui/button";
 import * as XLSX from "xlsx";
 
-const releaseVersion = process.env.NEXT_PUBLIC_RELEASE || "v0.0.0";
+import { currentVersion } from "@/lib/changelog";
 
 /**
  * Root page component for the mission planning UI.
@@ -62,6 +62,17 @@ export default function Home() {
   const [simulationState, setSimulationState] = useState<SimulationState | null>(null);
   const [showExportBadges, setShowExportBadges] = useState(false);
   const [planGenerated, setPlanGenerated] = useState(false);
+  const [changelogOpen, setChangelogOpen] = useState(false);
+
+  // Only pass changelog open state to the visible ChangelogDialog (avoids double popover)
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const m = window.matchMedia("(max-width: 640px)");
+    setIsMobile(m.matches);
+    const h = () => setIsMobile(m.matches);
+    m.addEventListener("change", h);
+    return () => m.removeEventListener("change", h);
+  }, []);
 
   // Drone kinematic config (vMax m/s, aMax m/s^2)
   const [droneConfig, setDroneConfig] = useState<{ vMax?: number; aMax?: number }>({ vMax: 16, aMax: 3.5 });
@@ -482,43 +493,45 @@ export default function Home() {
   return (
     <div className="bg-background min-h-screen" onClick={handleMainClick}>
       {/* Header: app title, docs link, and user profile */}
-      <header className="border-b border-border bg-card/80 sticky top-0 z-50 shadow-sm backdrop-blur-md">
-        <div className="container mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between px-3 sm:px-6 py-2 sm:py-3 min-h-[64px] gap-2 sm:gap-0">
-          <div className="flex flex-row items-center gap-2 sm:gap-3 min-w-0 w-full sm:w-auto">
-            <div className="bg-primary sm:h-10 sm:w-10 h-7 w-7 flex items-center justify-center rounded-lg shadow flex-shrink-0">
-              <Plane className="text-primary-foreground h-4 w-4 sm:h-6 sm:w-6" />
+      <header className="border-b border-border/20 bg-card/80 sticky top-0 z-50 shadow-sm backdrop-blur-md">
+        <div className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between pl-0 sm:pl-4 pr-3 sm:pr-6 py-2 sm:py-3 min-h-[64px] gap-2 sm:gap-0">
+          <div className="flex flex-row items-center gap-2 sm:gap-3 min-w-0 shrink-0">
+            <div className="bg-black sm:h-10 sm:w-10 h-7 w-7 flex items-center justify-center rounded-lg shadow flex-shrink-0">
+              <Rocket className="text-white h-4 w-4 sm:h-6 sm:w-6" />
             </div>
             <div className="flex flex-col justify-center min-w-0 w-full">
               <div className="flex items-center w-full">
                 <h1 className="text-foreground text-md sm:text-xl md:text-2xl font-bold tracking-tight whitespace-nowrap leading-tight flex items-center gap-2">
                   Drone Flight Simulator
                   <Badge
-                    className="min-w-0! ml-2 px-3 py-1 text-[11px] font-medium cursor-pointer bg-blue-500! text-white rounded-full hover:bg-blue-600! focus:outline-none focus:ring-1 focus:ring-blue-300 transition-all duration-150"
+                    className="min-w-0! ml-2 px-3 py-1 text-[11px] font-medium cursor-pointer bg-[#0066FF]! text-white rounded-full hover:bg-[#0052CC] focus:outline-none focus:ring-2 focus:ring-[#0066FF]/50 focus:ring-offset-2 transition-all duration-150"
                     style={{
                       letterSpacing: '0.01em',
                       textAlign: 'center',
                       minWidth: '44px',
                     }}
-                    onClick={() => window.open("https://github.com/devenshah2018/drone-trajectory-interface/blob/main/CHANGELOG.md", "_blank")}
-                    title={`Release: ${releaseVersion}`}
+                    onClick={(e) => { e.stopPropagation(); setChangelogOpen(true); }}
+                    title={`Version ${currentVersion} — View changelog`}
                     tabIndex={0}
-                    aria-label={`View release changelog for version ${releaseVersion}`}
+                    aria-label={`View changelog for version ${currentVersion}`}
                   >
-                    <Link className="h-3 w-3 sm:mr-1" />
-                    <span className="hidden sm:block">{releaseVersion}</span>
+                    <span>{currentVersion}</span>
                   </Badge>
                 </h1>
-                {/* Mobile: float docs and feedback all the way right */}
+                {/* Mobile: float docs all the way right */}
                 <div className="flex sm:hidden items-center gap-2 flex-1 justify-end ml-4 mt-0.5">
+                  <ChangelogDialog
+                    open={isMobile ? changelogOpen : undefined}
+                    onOpenChange={isMobile ? setChangelogOpen : undefined}
+                  />
                   <Button
                     variant="outline"
                     size="sm"
-                    className="gap-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border/50 transition-all duration-200 cursor-pointer px-2 py-1"
+                    className="gap-1 text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-all duration-200 cursor-pointer px-2 py-1"
                     onClick={() => { window.open('https://github.com/devenshah2018/drone-trajectory', '_blank'); }}
                   >
                     <ClipboardList className="h-4 w-4" />
                   </Button>
-                  <FeedbackButton />
                 </div>
               </div>
               <span className="hidden sm:inline text-muted-foreground text-xs md:text-sm font-medium whitespace-nowrap leading-tight">
@@ -527,16 +540,19 @@ export default function Home() {
             </div>
           </div>
           <div className="hidden sm:flex flex-row items-center gap-4 w-full sm:w-auto justify-end">
+            <ChangelogDialog
+              open={!isMobile ? changelogOpen : undefined}
+              onOpenChange={!isMobile ? setChangelogOpen : undefined}
+            />
             <Button
               variant="outline"
               size="sm"
-              className="gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/50 hover:border-border/50 transition-all duration-200 cursor-pointer"
+              className="gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-all duration-200 cursor-pointer"
               onClick={() => { window.open('https://github.com/devenshah2018/drone-trajectory-planner/blob/main/main.ipynb', '_blank'); }}
             >
               <ClipboardList className="h-4 w-4" />
               <span className="hidden sm:inline">Docs</span>
             </Button>
-            <FeedbackButton />
             <AuthorProfile />
           </div>
           <div className="flex sm:hidden w-full justify-end mt-1">
@@ -545,21 +561,92 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="container mx-auto space-y-6 px-6 py-6">
-        {/* Configuration panel: camera and mission parameters (keeps map visible) */}
-        <HorizontalConfig
-          ref={horizontalConfigRef}
-          camera={camera}
-          datasetSpec={datasetSpec}
-          onCameraChange={setCamera}
-          onDatasetSpecChange={setDatasetSpec}
-          droneConfig={droneConfig}
-          onDroneChange={(cfg) => setDroneConfig(cfg)}
-          planGenerated={planGenerated}
-        />
+      <main className="flex min-h-[calc(100vh-4rem)] w-full">
+        {/* Left: action buttons + configuration sidepanel */}
+        <aside className="shrink-0 w-[280px] flex flex-col border-r border-border/30 bg-card/95 backdrop-blur-sm">
+          {/* Generate, Reset, Export - above config */}
+          <div className="px-4 pt-4 pb-3 flex flex-col gap-2 border-b border-border/20">
+            <Button
+              onClick={handleGenerateFlightPlan}
+              disabled={isGenerating}
+              className="bg-[#0066FF] hover:bg-[#0052CC] text-white h-11 w-full font-medium rounded-lg flex items-center justify-center gap-2 shadow-sm hover:shadow transition-shadow"
+            >
+              {isGenerating ? (
+                <>
+                  <div className="border-white/30 border-t-white h-4 w-4 animate-spin rounded-full border-2" />
+                  <span>Generating...</span>
+                </>
+              ) : (
+                <>
+                  <Rocket className="h-4 w-4" />
+                  <span>Generate Flight Plan</span>
+                </>
+              )}
+            </Button>
+            <div className="flex gap-2">
+              {canShowReset && (
+                <Button
+                  onClick={handleReset}
+                  disabled={isGenerating}
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 h-9 gap-1.5"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  <span>Reset</span>
+                </Button>
+              )}
+              {canShowExport && (
+                <Popover open={showExportBadges} onOpenChange={setShowExportBadges}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="flex-1 h-9 gap-1.5">
+                      <Download className="h-3.5 w-3.5" />
+                      <span>Export</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" side="bottom" className="w-48 p-2">
+                    <div className="flex flex-col gap-1">
+                      <button
+                        onClick={() => { exportExcel(); setShowExportBadges(false); }}
+                        className="px-3 py-2 text-sm text-left rounded-md hover:bg-muted transition-colors"
+                      >
+                        Excel
+                      </button>
+                      <button
+                        onClick={() => { exportJSON(); setShowExportBadges(false); }}
+                        className="px-3 py-2 text-sm text-left rounded-md hover:bg-muted transition-colors"
+                      >
+                        JSON
+                      </button>
+                      <button
+                        onClick={() => { exportPDF(); setShowExportBadges(false); }}
+                        className="px-3 py-2 text-sm text-left rounded-md hover:bg-muted transition-colors"
+                      >
+                        PDF
+                      </button>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
+            </div>
+          </div>
+          <HorizontalConfig
+            ref={horizontalConfigRef}
+            camera={camera}
+            datasetSpec={datasetSpec}
+            onCameraChange={setCamera}
+            onDatasetSpecChange={setDatasetSpec}
+            droneConfig={droneConfig}
+            onDroneChange={(cfg) => setDroneConfig(cfg)}
+            planGenerated={planGenerated}
+            variant="sidepanel"
+          />
+        </aside>
 
-        {/* Main content grid: map visual (2 cols) + stats (1 col) */}
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        {/* Right: visualization + stats */}
+        <div className="flex-1 min-w-0 flex flex-col">
+          <div className="flex-1 container mx-auto px-4 py-4 sm:px-6 sm:py-6 w-full">
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
           {/* Flight Path Visualization - primary map view (larger area) */}
           <div className="xl:col-span-2">
             <FlightPathVisualization
@@ -586,75 +673,25 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Hidden simulation controller: provides animation/state but not visible */}
-        {waypoints.length >= 2 && (
-          <div className="hidden">
-            <FlightSimulationController
-              waypoints={waypoints}
-              onSimulationUpdate={handleSimulationUpdate}
-              ref={flightSimulationRef}
-              droneConfig={droneConfig}
-            />
+            {/* Hidden simulation controller: provides animation/state but not visible */}
+            {waypoints.length >= 2 && (
+              <div className="hidden">
+                <FlightSimulationController
+                  waypoints={waypoints}
+                  onSimulationUpdate={handleSimulationUpdate}
+                  ref={flightSimulationRef}
+                  droneConfig={droneConfig}
+                />
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </main>
-
-      {/* Floating Generate Button: triggers plan generation or reset */}
-      <FloatingGenerateButton
-        onGenerate={handleGenerateFlightPlan}
-        onReset={handleReset}
-        isGenerating={isGenerating}
-        showReset={canShowReset}
-        exportButton={canShowExport ? (
-          <div id="export-fab-root" className="relative flex flex-col items-center">
-            <AnimatePresence>
-              {showExportBadges && (
-              <motion.div
-                key="badges"
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 16 }}
-                transition={{ duration: 0.18 }}
-                className="absolute bottom-14 flex flex-col gap-2 items-center z-10"
-              >
-                <Badge
-                  onClick={exportExcel}
-                  className="cursor-pointer select-none w-20 text-center bg-white hover:bg-gray-100 border border-border/50 !text-black hover:!text-black shadow-lg backdrop-blur-sm"
-                >
-                  Excel
-                </Badge>
-                <Badge
-                  onClick={exportJSON}
-                  className="cursor-pointer select-none w-20 text-center bg-white hover:bg-gray-100 border border-border/50 !text-black hover:!text-black shadow-lg backdrop-blur-sm"
-                >
-                  JSON
-                </Badge>
-                <Badge
-                  onClick={exportPDF}
-                  className="cursor-pointer select-none w-20 text-center bg-white hover:bg-gray-100 border border-border/50 !text-black hover:!text-black shadow-lg backdrop-blur-sm"
-                >
-                  PDF
-                </Badge>
-              </motion.div>
-              )}
-            </AnimatePresence>
-            <button
-              className="bg-card/90 hover:bg-card border-border/50 hover:border-border h-12 w-12 cursor-pointer rounded-full p-0 shadow-lg backdrop-blur-sm transition-all duration-200 hover:shadow-xl flex items-center justify-center"
-              style={{ border: '1px solid var(--border)' }}
-              onClick={e => { e.stopPropagation(); setShowExportBadges(v => !v); }}
-              type="button"
-              title="Export"
-            >
-              <Download className="text-muted-foreground h-5 w-5" />
-            </button>
-          </div>
-        ) : null}
-      />
 
       {/* Validation Error Toast: shows user-friendly configuration errors */}
       {validationError && (
         <div className="fixed bottom-6 left-1/2 z-50 max-w-md -translate-x-1/2 transform">
-          <div className="bg-destructive/90 text-destructive-foreground border-destructive/20 rounded-lg border px-6 py-4 shadow-lg backdrop-blur-sm">
+          <div className="bg-destructive/90 text-destructive-foreground rounded-lg px-6 py-4 shadow-lg backdrop-blur-sm">
             <div className="flex items-start gap-3">
               <svg
                 className="text-destructive-foreground mt-0.5 h-5 w-5 flex-shrink-0"

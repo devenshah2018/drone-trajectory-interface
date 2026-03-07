@@ -550,7 +550,7 @@ export function CompactMissionStats({
 
   if (!stats) {
     return (
-      <Card className="border-border bg-card shadow-sm">
+      <Card className="bg-card shadow-sm">
         <CardHeader className="pb-4">
           <div className="flex items-center gap-2">
             <div className="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-lg">
@@ -573,7 +573,7 @@ export function CompactMissionStats({
   }
 
   return (
-    <Card className="border-border bg-card shadow-sm">
+    <Card className="bg-card shadow-sm">
       <CardHeader>
         <div className="flex items-center gap-2">
           <div className="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-lg">
@@ -622,7 +622,7 @@ export function CompactMissionStats({
         {/* Waypoints Table */}
         {waypoints && waypoints.length > 0 && (
           <div className="space-y-4" role="region" aria-labelledby="waypoints-heading">
-            <div className="border-border/50 flex items-center gap-2 border-b pb-2 justify-between">
+            <div className="flex items-center gap-2 border-b border-border/10 pb-2 justify-between">
               <div className="flex items-center gap-2">
                 <Navigation className="text-muted-foreground h-4 w-4" aria-hidden="true" />
                 <h3 id="waypoints-heading" className="text-foreground text-sm font-medium">
@@ -637,14 +637,14 @@ export function CompactMissionStats({
               ref={tableRef}
               tabIndex={0}
               style={{ WebkitOverflowScrolling: 'touch' }}
-              className="border-border/50 focus-within:ring-primary/50 max-h-80 overflow-y-auto rounded-lg border [scrollbar-gutter:stable] focus-within:ring-2 touch-auto"
+              className="focus-within:ring-primary/40 max-h-80 overflow-y-auto rounded-lg bg-muted/20 [scrollbar-gutter:stable] focus-within:ring-2 touch-auto"
               role="table"
               aria-label={`Flight path waypoints table with ${waypoints.length} waypoints`}
               aria-describedby="waypoints-description"
               onKeyDown={handleKeyNavigation}
             >
               <div
-                className="bg-card/95 border-border/50 sticky top-0 z-30 border-b pr-3 backdrop-blur-sm"
+                className="bg-card/95 sticky top-0 z-30 border-b border-border/10 pr-3 backdrop-blur-sm"
                 role="rowgroup"
                 aria-label="Table headers"
               >
@@ -701,7 +701,7 @@ export function CompactMissionStats({
         {/* Speed Profile Chart - Show during simulation OR as preview of first segment */}
         {waypoints && waypoints.length > 1 && (
           <div className="space-y-4" role="region" aria-labelledby="speed-profile-heading">
-            <div className="border-border/50 flex items-center gap-2 border-b pb-2 justify-between">
+            <div className="flex items-center gap-2 border-b border-border/10 pb-2 justify-between">
               <div className="flex items-center gap-2">
                 <Navigation className="text-muted-foreground h-4 w-4" aria-hidden="true" />
                 <h3 id="speed-profile-heading" className="text-foreground text-sm font-medium">
@@ -720,7 +720,7 @@ export function CompactMissionStats({
             </div>
 
             {/* Speed Profile SVG Chart */}
-            <div className="bg-muted/10 border-border/30 relative rounded-lg border p-4">
+            <div className="bg-muted/10 relative rounded-lg p-4">
               {(() => {
                 const segments = (simulationState?.segments && (simulationState.segments.length ?? 0) > 0)
                   ? simulationState.segments
@@ -1118,7 +1118,7 @@ export function CompactMissionStats({
             </div>
 
             {/* Segment info below chart */}
-            <div className="bg-muted/20 border-border/30 rounded-lg border p-3">
+            <div className="bg-muted/20 rounded-lg p-3">
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
                   <div className="text-muted-foreground font-medium mb-1">
