@@ -48,7 +48,7 @@ const SpeedometerGauge = ({
   // Sbagimplified numeric readout (replaces the previous SVG-based gauge)
   return (
     <div
-      className="bg-card/90 border-border rounded-lg border p-3 backdrop-blur-sm"
+      className="bg-card/90 rounded-lg p-3 backdrop-blur-sm shadow-sm"
       style={{ width: size, maxWidth: "100%", boxSizing: "border-box", display: "inline-block" }}
       aria-hidden={false}
       role="status"
@@ -120,7 +120,7 @@ export function FlightPathVisualization({
   // If no waypoints, render an informative empty state
   if (waypoints.length === 0) {
     return (
-      <Card className={`border-border bg-card ${className || ""}`}>
+      <Card className={`bg-card shadow-sm ${className || ""}`}>
         <CardHeader>
           <CardTitle className="text-lg font-semibold">Flight Path Visualization</CardTitle>
         </CardHeader>
@@ -161,7 +161,7 @@ export function FlightPathVisualization({
   const scaleY = (y: number) => ((y - minY) / rangeY) * (height - 2 * padding) + padding;
 
   return (
-    <Card className={`border-border bg-card ${className || ""}`}>
+    <Card className={`bg-card shadow-sm ${className || ""}`}>
       <CardHeader>
         <CardTitle className="text-lg font-semibold">Flight Path Visualization</CardTitle>
       </CardHeader>
@@ -205,7 +205,7 @@ export function FlightPathVisualization({
                       <Button
                         onClick={onStartSimulation}
                         disabled={isTooManyWaypoints || (simulationState?.isRunning && !simulationState?.isPaused)}
-                        className="h-12 w-full flex items-center justify-center gap-2"
+                        className={`h-12 w-full flex items-center justify-center gap-2${simulationState?.isRunning && !simulationState?.isPaused ? "" : " bg-[#0066FF]"}`}
                         variant={
                           simulationState?.isRunning && !simulationState?.isPaused
                             ? "secondary"
@@ -250,7 +250,7 @@ export function FlightPathVisualization({
                           ? "secondary"
                           : "default"
                       }
-                      className="cursor-pointer"
+                      className={`cursor-pointer ${!(simulationState?.isRunning && !simulationState?.isPaused) ? "bg-[#0066FF] text-white hover:bg-[#0052CC]" : ""}`}
                     >
                       <Play className="mr-1 h-4 w-4" />
                       {simulationState?.isRunning && !simulationState?.isPaused ? "Running" : "Start"}

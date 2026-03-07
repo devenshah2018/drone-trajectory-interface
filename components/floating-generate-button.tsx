@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Plane, RotateCcw } from "lucide-react";
+import { Rocket, RotateCcw } from "lucide-react";
 
 /**
  * Props for the floating generate/reset control.
@@ -41,68 +41,25 @@ export function FloatingGenerateButton({
   exportButton,
 }: FloatingGenerateButtonProps) {
   return (
-    <div className="fixed right-6 bottom-6 z-50 flex items-center gap-3">
-      <div className={`flex items-center gap-3 sm:hidden ${!showReset ? "mr-4" : ""}`}>
-        {showReset && (
-          <Button
-            onClick={onReset}
-            disabled={isGenerating}
-            size="lg"
-            variant="outline"
-            className="bg-card/90 hover:bg-card border-border/50 hover:border-border h-12 w-12 cursor-pointer rounded-full p-0 shadow-lg backdrop-blur-sm transition-all duration-200 hover:shadow-xl"
-            title="Reset all configurations"
-          >
-            <RotateCcw className="text-muted-foreground h-5 w-5" />
-          </Button>
+    <div className="fixed right-6 bottom-6 z-50 flex flex-row items-center gap-2">
+      <Button
+        onClick={onGenerate}
+        disabled={isGenerating}
+        size="lg"
+        className="bg-black hover:bg-black/90 text-white h-12 sm:h-12 sm:min-w-[180px] cursor-pointer rounded-full p-0 sm:px-6 font-semibold shadow-lg transition-all duration-200 hover:shadow-xl flex items-center justify-center shrink-0"
+      >
+        {isGenerating ? (
+          <div className="flex items-center gap-3">
+            <div className="border-white/30 border-t-white h-5 w-5 animate-spin rounded-full border-2" />
+            <span className="hidden sm:inline">Generating...</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <Rocket className="h-5 w-5 shrink-0" />
+            <span className="hidden sm:inline">Generate Flight Plan</span>
+          </div>
         )}
-        {exportButton}
-        <Button
-          onClick={onGenerate}
-          disabled={isGenerating}
-          size="lg"
-          className="bg-primary hover:bg-primary/90 text-primary-foreground h-14 w-14 cursor-pointer rounded-full p-0 font-semibold shadow-lg transition-all duration-200 hover:shadow-xl flex items-center justify-center"
-        >
-          {isGenerating ? (
-            <div className="border-primary-foreground/30 border-t-primary-foreground h-5 w-5 animate-spin rounded-full border-2" />
-          ) : (
-            <Plane className="h-5 w-5" />
-          )}
-        </Button>
-      </div>
-      {/* Desktop: show full button with text, hidden on mobile */}
-      <div className="hidden sm:flex items-center gap-3">
-        {showReset && (
-          <Button
-            onClick={onReset}
-            disabled={isGenerating}
-            size="lg"
-            variant="outline"
-            className="bg-card/90 hover:bg-card border-border/50 hover:border-border h-12 w-12 cursor-pointer rounded-full p-0 shadow-lg backdrop-blur-sm transition-all duration-200 hover:shadow-xl"
-            title="Reset all configurations"
-          >
-            <RotateCcw className="text-muted-foreground h-5 w-5" />
-          </Button>
-        )}
-        {exportButton}
-        <Button
-          onClick={onGenerate}
-          disabled={isGenerating}
-          size="lg"
-          className="bg-primary hover:bg-primary/90 text-primary-foreground h-14 cursor-pointer rounded-full px-6 font-semibold shadow-lg transition-all duration-200 hover:shadow-xl"
-        >
-          {isGenerating ? (
-            <div className="flex items-center gap-3">
-              <div className="border-primary-foreground/30 border-t-primary-foreground h-5 w-5 animate-spin rounded-full border-2" />
-              <span>Generating...</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <Plane className="h-5 w-5" />
-              <span>Generate Flight Plan</span>
-            </div>
-          )}
-        </Button>
-      </div>
+      </Button>
     </div>
   );
 }

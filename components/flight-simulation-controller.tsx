@@ -457,7 +457,7 @@ export const FlightSimulationController = forwardRef<
   if (isTooManyWaypoints) {
     console.warn(`FlightSimulationController: rendering disclaimer - waypoints=${waypoints.length} exceeds limit=${WAYPOINT_LIMIT}`);
     return (
-      <Card className={`border-border bg-card ${className || ""}`}>
+      <Card className={`bg-card shadow-sm ${className || ""}`}>
         <CardHeader className="pb-4">
           <CardTitle className="text-lg font-semibold">Flight Simulation</CardTitle>
         </CardHeader>
@@ -492,7 +492,7 @@ export const FlightSimulationController = forwardRef<
   }
 
   return (
-    <Card className={`border-border bg-card ${className || ""}`}>
+    <Card className={`bg-card shadow-sm ${className || ""}`}>
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-semibold">Flight Simulation</CardTitle>
       </CardHeader>

@@ -135,9 +135,9 @@ ${description}
           <span className="hidden sm:inline">Feedback</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px] w-full max-w-full p-0 sm:p-0 rounded-xl shadow-2xl border border-border bg-background overflow-y-auto max-h-[100dvh] sm:max-h-[90vh] flex flex-col justify-center sm:mx-0 mx-4">
+      <DialogContent className="sm:max-w-[500px] w-full max-w-full p-0 sm:p-0 rounded-xl shadow-2xl bg-background overflow-y-auto max-h-[100dvh] sm:max-h-[90vh] flex flex-col justify-center sm:mx-0 mx-4">
         <div className="p-0 sm:p-0">
-          <div className="rounded-t-xl border-b border-border px-6 py-4 flex items-center gap-3">
+          <div className="rounded-t-xl border-b border-border/20 px-6 py-4 flex items-center gap-3">
             <MessageSquare className="h-5 w-5" aria-hidden />
             <DialogTitle className="text-lg font-bold text-foreground">Send Feedback</DialogTitle>
           </div>
