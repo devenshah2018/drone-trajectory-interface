@@ -15,8 +15,143 @@ import {
   Geographies,
   Geography,
 } from "react-simple-maps";
+import { Loader2 } from "lucide-react";
 
 const CHART_HEIGHT = 432;
+
+function SkeletonBlock({
+  className,
+  delayMs = 0,
+}: {
+  className?: string;
+  delayMs?: number;
+}) {
+  return (
+    <div
+      className={`rounded-md bg-muted/50 dark:bg-muted/35 ${className ?? ""}`}
+      style={{ animationDelay: `${delayMs}ms` }}
+    />
+  );
+}
+
+/** Placeholder layout aligned with loaded charts — enterprise-style, no raw “Loading…” only */
+function TrendsChartsLoading() {
+  return (
+    <div
+      className="w-full"
+      role="status"
+      aria-live="polite"
+      aria-label="Loading trend charts"
+    >
+      <div className="mb-4 flex items-center gap-2.5 border-b border-border/35 pb-3">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border/45 bg-muted/15">
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" aria-hidden />
+        </div>
+        <p className="text-xs font-medium leading-snug text-muted-foreground">
+          Loading time series and regional map…
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-14">
+        {/* Line chart skeleton */}
+        <div
+          className="flex flex-col rounded-lg border border-border/50 bg-card/20 p-3 shadow-sm dark:border-border/40 dark:bg-card/10"
+          style={{ minHeight: CHART_HEIGHT }}
+        >
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <SkeletonBlock className="h-2.5 w-32 animate-pulse" />
+            <SkeletonBlock className="h-2 w-24 animate-pulse" delayMs={80} />
+          </div>
+          <div className="relative min-h-0 flex-1 px-1 pt-1">
+            <div className="absolute inset-x-0 top-2 bottom-10 flex flex-col justify-between">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="h-px w-full bg-border/40"
+                />
+              ))}
+            </div>
+            <div className="absolute bottom-10 left-0 top-2 w-7 border-r border-border/30 pr-1">
+              <div className="flex h-full flex-col justify-between py-1">
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <SkeletonBlock key={i} className="ml-auto h-1.5 w-4 animate-pulse" delayMs={i * 60} />
+                ))}
+              </div>
+            </div>
+            <div className="absolute inset-x-0 bottom-10 left-8 top-2">
+              <svg
+                className="h-full w-full text-muted-foreground/25 dark:text-muted-foreground/20"
+                preserveAspectRatio="none"
+                viewBox="0 0 400 120"
+                aria-hidden
+              >
+                <defs>
+                  <linearGradient id="trends-skel-fill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="currentColor" stopOpacity="0.35" />
+                    <stop offset="100%" stopColor="currentColor" stopOpacity="0.02" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M0,88 C40,82 60,95 100,72 S180,48 220,58 S320,28 400,38 L400,120 L0,120 Z"
+                  fill="url(#trends-skel-fill)"
+                  className="animate-pulse"
+                />
+                <path
+                  d="M0,88 C40,82 60,95 100,72 S180,48 220,58 S320,28 400,38"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  vectorEffect="non-scaling-stroke"
+                />
+              </svg>
+            </div>
+            <div className="absolute bottom-0 left-8 right-0 flex justify-between gap-1 pt-2">
+              {Array.from({ length: 9 }).map((_, i) => (
+                <SkeletonBlock key={i} className="h-1.5 flex-1 max-w-[2.5rem] animate-pulse" delayMs={i * 40} />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Map skeleton */}
+        <div
+          className="relative flex flex-col overflow-hidden rounded-lg border border-border/50 bg-card/20 shadow-sm dark:border-border/40 dark:bg-card/10"
+          style={{ minHeight: CHART_HEIGHT }}
+        >
+          <div className="flex items-center justify-between border-b border-border/35 px-3 py-2.5">
+            <SkeletonBlock className="h-2 w-28 animate-pulse" />
+            <SkeletonBlock className="h-2 w-16 animate-pulse" delayMs={50} />
+          </div>
+          <div className="relative min-h-0 flex-1 bg-muted/10 p-3 dark:bg-muted/5">
+            <div className="relative h-full min-h-[280px] w-full overflow-hidden rounded-md bg-muted/15 dark:bg-muted/10">
+              <div
+                className="absolute left-[6%] top-[14%] h-[26%] w-[38%] rounded-2xl bg-muted/45 animate-pulse dark:bg-muted/35"
+                style={{ animationDuration: "2s" }}
+              />
+              <div
+                className="absolute right-[8%] top-[18%] h-[30%] w-[36%] rounded-3xl bg-muted/40 animate-pulse dark:bg-muted/30"
+                style={{ animationDuration: "2.2s", animationDelay: "120ms" }}
+              />
+              <div
+                className="absolute bottom-[20%] left-[22%] h-[22%] w-[28%] rounded-2xl bg-muted/35 animate-pulse dark:bg-muted/25"
+                style={{ animationDuration: "1.8s", animationDelay: "200ms" }}
+              />
+              <div
+                className="absolute bottom-[12%] right-[18%] h-[18%] w-[24%] rounded-xl bg-muted/40 animate-pulse dark:bg-muted/28"
+                style={{ animationDuration: "2s", animationDelay: "80ms" }}
+              />
+            </div>
+            <div className="pointer-events-none absolute bottom-3 right-3 flex items-center gap-1 rounded border border-border/40 bg-background/85 px-1.5 py-0.5 shadow-sm backdrop-blur-sm">
+              <SkeletonBlock className="h-1 w-10 animate-pulse" />
+              <SkeletonBlock className="h-1 w-12 animate-pulse" delayMs={40} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 const GEO_URL =
   "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json";
 
@@ -235,22 +370,7 @@ export function DroneTrendsCharts() {
   }
 
   if (!overTime || !byRegion) {
-    return (
-      <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-14">
-        <div
-          className="flex items-center justify-center bg-transparent"
-          style={{ minHeight: CHART_HEIGHT }}
-        >
-          <p className="text-sm text-muted-foreground">Loading charts…</p>
-        </div>
-        <div
-          className="flex items-center justify-center bg-transparent"
-          style={{ minHeight: CHART_HEIGHT }}
-        >
-          <p className="text-sm text-muted-foreground">Loading charts…</p>
-        </div>
-      </div>
-    );
+    return <TrendsChartsLoading />;
   }
 
   return (
