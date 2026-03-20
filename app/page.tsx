@@ -3,8 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import type { Camera, DatasetSpec, Waypoint, MissionStats } from "@/lib/types";
 import { generatePhotoPlaneOnGrid, computeMissionStats } from "@/lib/flight-planner";
-import { Rocket, Download, ClipboardList, ScrollText, RotateCcw } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Rocket, Loader2, Download, ClipboardList, ScrollText, RotateCcw } from "lucide-react";
 import { HorizontalConfig, type HorizontalConfigRef } from "@/components/horizontal-config";
 import { FlightPathVisualization } from "@/components/flight-path-visualization";
 import { CompactMissionStats } from "@/components/compact-mission-stats";
@@ -23,7 +22,8 @@ import * as XLSX from "xlsx";
 
 import { currentVersion } from "@/lib/changelog";
 import { resolveTemplate } from "@/lib/templates";
-import { GoogleTrendsEmbed } from "@/components/google-trends-embed";
+import { DroneTrendsCharts } from "@/components/drone-trends-charts";
+import { cn } from "@/lib/utils";
 
 /**
  * Root page component for the mission planning UI.
@@ -65,7 +65,6 @@ export default function Home() {
   const [showExportBadges, setShowExportBadges] = useState(false);
   const [planGenerated, setPlanGenerated] = useState(false);
   const [changelogOpen, setChangelogOpen] = useState(false);
-
   // Only pass changelog open state to the visible ChangelogDialog (avoids double popover)
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -575,18 +574,15 @@ export default function Home() {
             <Button
               onClick={() => handleGenerateFlightPlan()}
               disabled={isGenerating}
-              className="bg-blue-400 hover:bg-blue-500 text-white h-11 w-full font-medium rounded-lg flex items-center justify-center gap-2 shadow-sm hover:shadow transition-shadow cursor-pointer disabled:cursor-not-allowed"
+              className="bg-blue-400 hover:bg-blue-500 text-white h-11 w-full font-medium rounded-lg flex items-center justify-center overflow-hidden shadow-sm hover:shadow transition-shadow cursor-pointer disabled:cursor-not-allowed relative"
             >
               {isGenerating ? (
-                <>
-                  <div className="border-white/30 border-t-white h-4 w-4 animate-spin rounded-full border-2" />
-                  <span>Generating...</span>
-                </>
+                <span className="inline-flex items-center justify-center gap-2 text-sm font-medium">
+                  <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+                  Generating…
+                </span>
               ) : (
-                <>
-                  <Rocket className="h-4 w-4" />
-                  <span>Generate Flight Plan</span>
-                </>
+                <span>Generate Flight Plan</span>
               )}
             </Button>
             <div className="flex gap-2">
@@ -651,39 +647,60 @@ export default function Home() {
 
         {/* Right: visualization + stats, or single empty state when no plan */}
         <div className="flex-1 min-w-0 flex flex-col min-h-0">
-          <div className="flex-1 min-h-0 container mx-auto pl-0 pr-4 pt-4 pb-4 sm:pt-6 sm:pb-6 w-full flex flex-col">
+          <div
+            className={cn(
+              "flex-1 min-h-0 w-full flex flex-col",
+              waypoints.length === 0
+                ? "mx-0 max-w-none bg-transparent pl-0 pr-4 pt-12 pb-2 sm:pt-20 sm:pb-3"
+                : "container mx-auto pl-0 pr-4 bg-transparent pt-4 pb-4 sm:pt-6 sm:pb-6"
+            )}
+          >
             {waypoints.length === 0 ? (
-              /* Empty state: message, quick create, and Google Trends embeds */
-              <div className="flex-1 flex flex-col min-h-full overflow-y-auto">
-                <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
-                  <p className="text-lg font-medium text-foreground mb-1">No flight plan generated</p>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Start with{" "}
-                    <button
-                      type="button"
-                      disabled={isGenerating}
-                      onClick={() => {
-                        const resolved = resolveTemplate("Nominal");
-                        if (!resolved) return;
-                        horizontalConfigRef.current?.applyTemplate("Nominal");
-                        setCamera(resolved.camera);
-                        setDatasetSpec(resolved.datasetSpec);
-                        setDroneConfig(resolved.droneConfig);
-                        handleGenerateFlightPlan(resolved);
-                      }}
-                      className="inline-flex items-center rounded-full border border-border bg-muted/50 px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted hover:border-primary/30 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Nominal
-                    </button>{" "}
-                    template, or configure your mission in the sidebar.
-                  </p>
-                </div>
-                <div className="px-4 pb-6">
-                  <p className="text-xs font-medium text-muted-foreground mb-3 text-center">
-                    Google Trends: interest in &quot;drones&quot;
-                  </p>
-                  <GoogleTrendsEmbed />
-                </div>
+              /* Empty state: mission CTA + trends in a restrained enterprise layout */
+              <div className="flex min-h-0 flex-col overflow-y-auto">
+                <header className="shrink-0 px-4 sm:px-8">
+                  <div className="mx-auto w-full text-center">
+                    <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      Mission workspace
+                    </p>
+                    <h2 className="mx-auto mb-3 max-w-lg text-balance text-xl font-semibold tracking-tight text-foreground sm:text-2xl">
+                      No flight plan generated
+                    </h2>
+                    <div className="flex justify-center overflow-x-auto [-webkit-overflow-scrolling:touch]">
+                      <p className="whitespace-nowrap text-sm leading-relaxed text-muted-foreground sm:text-[15px]">
+                        Start with the{" "}
+                        <button
+                          type="button"
+                          disabled={isGenerating}
+                          onClick={() => {
+                            const resolved = resolveTemplate("Nominal");
+                            if (!resolved) return;
+                            horizontalConfigRef.current?.applyTemplate("Nominal");
+                            setCamera(resolved.camera);
+                            setDatasetSpec(resolved.datasetSpec);
+                            setDroneConfig(resolved.droneConfig);
+                            handleGenerateFlightPlan(resolved);
+                          }}
+                          className="inline-flex shrink-0 cursor-pointer items-center rounded-md border border-border/80 bg-background px-2.5 py-1 text-sm font-medium text-foreground transition-colors animate-nominal-pulse hover:border-border hover:bg-muted/60 hover:animate-none disabled:animate-none disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Nominal
+                        </button>{" "}
+                        template, or configure your mission in the sidebar.
+                      </p>
+                    </div>
+                  </div>
+                </header>
+
+                <section className="mt-10 shrink-0 bg-transparent sm:mt-12">
+                  <div className="px-4 sm:px-8">
+                    <div className="mb-6 flex flex-col gap-1 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
+                      <span className="text-[11px] font-medium tabular-nums text-muted-foreground/70">
+                        Google Trends
+                      </span>
+                    </div>
+                    <DroneTrendsCharts />
+                  </div>
+                </section>
               </div>
             ) : (
               <div className="grid grid-cols-1 grid-rows-[1fr_1fr] gap-6 xl:grid-cols-3 xl:grid-rows-1 min-h-full flex-1 items-stretch">
