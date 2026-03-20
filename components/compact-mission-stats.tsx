@@ -550,8 +550,8 @@ export function CompactMissionStats({
 
   if (!stats) {
     return (
-      <Card className="bg-card shadow-sm">
-        <CardHeader className="pb-4">
+      <Card className="bg-card shadow-sm h-full flex flex-col min-h-0">
+        <CardHeader className="pb-4 shrink-0">
           <div className="flex items-center gap-2">
             <div className="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-lg">
               <BarChart3 className="text-primary h-4 w-4" />
@@ -561,8 +561,8 @@ export function CompactMissionStats({
             </CardTitle>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="text-muted-foreground py-17 text-center">
+        <CardContent className="flex-1 flex items-center justify-center min-h-0">
+          <div className="text-muted-foreground text-center">
             <BarChart3 className="text-muted-foreground/50 mx-auto mb-3 h-12 w-12" />
             <p className="mb-1 text-sm font-medium">No Mission Data</p>
             <p className="text-xs">Generate a flight plan to see statistics</p>

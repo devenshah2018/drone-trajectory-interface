@@ -22,6 +22,8 @@ import { Button } from "@/components/ui/button";
 import * as XLSX from "xlsx";
 
 import { currentVersion } from "@/lib/changelog";
+import { resolveTemplate } from "@/lib/templates";
+import { GoogleTrendsEmbed } from "@/components/google-trends-embed";
 
 /**
  * Root page component for the mission planning UI.
@@ -335,26 +337,30 @@ export default function Home() {
    * updates waypoints and mission stats; on failure it sets a user-friendly
    * validation error message.
    */
-  const handleGenerateFlightPlan = async () => {
+  const handleGenerateFlightPlan = async (override?: {
+    camera?: Camera;
+    datasetSpec?: DatasetSpec;
+    droneConfig?: { vMax: number; aMax: number };
+  }) => {
     horizontalConfigRef.current?.fillBlankFieldsWithPresets();
-    const latestVMax = horizontalConfigRef.current?.getDroneVMax?.() ?? 16;
-    const latestAMax = horizontalConfigRef.current?.getDroneAMax?.() ?? 3.5;
-    const effectiveDroneConfig = { vMax: latestVMax, aMax: latestAMax };
-    const latestCamera = { ...camera };
-    const cameraKeys: (keyof Camera)[] = [
-      "fx", "fy", "cx", "cy", "sensor_size_x_mm", "sensor_size_y_mm", "image_size_x", "image_size_y"
-    ];
-    for (const key of cameraKeys) {
-      if (
-        latestCamera[key] === undefined ||
-        latestCamera[key] === null ||
-        isNaN(Number(latestCamera[key]))
-      ) {
-        latestCamera[key] = horizontalConfigRef.current?.getCameraPreset?.()[key] ?? latestCamera[key];
+    const effectiveDroneConfig = override?.droneConfig ?? {
+      vMax: horizontalConfigRef.current?.getDroneVMax?.() ?? 16,
+      aMax: horizontalConfigRef.current?.getDroneAMax?.() ?? 3.5,
+    };
+    const latestCamera = override?.camera ?? (() => {
+      const c = { ...camera };
+      const cameraKeys: (keyof Camera)[] = [
+        "fx", "fy", "cx", "cy", "sensor_size_x_mm", "sensor_size_y_mm", "image_size_x", "image_size_y"
+      ];
+      for (const key of cameraKeys) {
+        if (c[key] === undefined || c[key] === null || isNaN(Number(c[key]))) {
+          c[key] = horizontalConfigRef.current?.getCameraPreset?.()[key] ?? c[key];
+        }
       }
-    }
+      return c;
+    })();
 
-    const latestDatasetSpec = { ...datasetSpec };
+    const latestDatasetSpec = override?.datasetSpec ? { ...override.datasetSpec } : { ...datasetSpec };
     const missionKeys: (keyof DatasetSpec)[] = [
       "overlap", "sidelap", "height", "scan_dimension_x", "scan_dimension_y", "exposure_time_ms"
     ];
@@ -561,15 +567,15 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="flex min-h-[calc(100vh-4rem)] w-full">
+      <main className="flex min-h-[calc(100vh-4rem)] w-full gap-4">
         {/* Left: action buttons + configuration sidepanel */}
         <aside className="shrink-0 w-[280px] flex flex-col border-r border-border/30 bg-card/95 backdrop-blur-sm">
           {/* Generate, Reset, Export - above config */}
           <div className="px-4 pt-4 pb-3 flex flex-col gap-2 border-b border-border/20">
             <Button
-              onClick={handleGenerateFlightPlan}
+              onClick={() => handleGenerateFlightPlan()}
               disabled={isGenerating}
-              className="bg-[#0066FF] hover:bg-[#0052CC] text-white h-11 w-full font-medium rounded-lg flex items-center justify-center gap-2 shadow-sm hover:shadow transition-shadow"
+              className="bg-blue-400 hover:bg-blue-500 text-white h-11 w-full font-medium rounded-lg flex items-center justify-center gap-2 shadow-sm hover:shadow transition-shadow cursor-pointer disabled:cursor-not-allowed"
             >
               {isGenerating ? (
                 <>
@@ -590,7 +596,7 @@ export default function Home() {
                   disabled={isGenerating}
                   variant="outline"
                   size="sm"
-                  className="flex-1 h-9 gap-1.5"
+                  className="flex-1 h-9 gap-1.5 cursor-pointer disabled:cursor-not-allowed"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
                   <span>Reset</span>
@@ -599,7 +605,7 @@ export default function Home() {
               {canShowExport && (
                 <Popover open={showExportBadges} onOpenChange={setShowExportBadges}>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" className="flex-1 h-9 gap-1.5">
+                    <Button variant="outline" size="sm" className="flex-1 h-9 gap-1.5 cursor-pointer disabled:cursor-not-allowed" disabled={isGenerating}>
                       <Download className="h-3.5 w-3.5" />
                       <span>Export</span>
                     </Button>
@@ -643,35 +649,70 @@ export default function Home() {
           />
         </aside>
 
-        {/* Right: visualization + stats */}
-        <div className="flex-1 min-w-0 flex flex-col">
-          <div className="flex-1 container mx-auto px-4 py-4 sm:px-6 sm:py-6 w-full">
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-          {/* Flight Path Visualization - primary map view (larger area) */}
-          <div className="xl:col-span-2">
-            <FlightPathVisualization
-              waypoints={waypoints}
-              simulationState={simulationState || undefined}
-              missionStats={missionStats ?? undefined}
-              onStartSimulation={() => flightSimulationRef.current?.startSimulation()}
-              onPauseSimulation={() => flightSimulationRef.current?.pauseSimulation()}
-              onStopSimulation={() => flightSimulationRef.current?.stopSimulation()}
-              onResetSimulation={() => flightSimulationRef.current?.resetSimulation()}
-            />
-          </div>
+        {/* Right: visualization + stats, or single empty state when no plan */}
+        <div className="flex-1 min-w-0 flex flex-col min-h-0">
+          <div className="flex-1 min-h-0 container mx-auto pl-0 pr-4 pt-4 pb-4 sm:pt-6 sm:pb-6 w-full flex flex-col">
+            {waypoints.length === 0 ? (
+              /* Empty state: message, quick create, and Google Trends embeds */
+              <div className="flex-1 flex flex-col min-h-full overflow-y-auto">
+                <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
+                  <p className="text-lg font-medium text-foreground mb-1">No flight plan generated</p>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Start with{" "}
+                    <button
+                      type="button"
+                      disabled={isGenerating}
+                      onClick={() => {
+                        const resolved = resolveTemplate("Nominal");
+                        if (!resolved) return;
+                        horizontalConfigRef.current?.applyTemplate("Nominal");
+                        setCamera(resolved.camera);
+                        setDatasetSpec(resolved.datasetSpec);
+                        setDroneConfig(resolved.droneConfig);
+                        handleGenerateFlightPlan(resolved);
+                      }}
+                      className="inline-flex items-center rounded-full border border-border bg-muted/50 px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted hover:border-primary/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Nominal
+                    </button>{" "}
+                    template, or configure your mission in the sidebar.
+                  </p>
+                </div>
+                <div className="px-4 pb-6">
+                  <p className="text-xs font-medium text-muted-foreground mb-3 text-center">
+                    Google Trends: interest in &quot;drones&quot;
+                  </p>
+                  <GoogleTrendsEmbed />
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 grid-rows-[1fr_1fr] gap-6 xl:grid-cols-3 xl:grid-rows-1 min-h-full flex-1 items-stretch">
+                {/* Flight Path Visualization - primary map view (larger area) */}
+                <div className="xl:col-span-2 min-h-0">
+                  <FlightPathVisualization
+                    waypoints={waypoints}
+                    simulationState={simulationState || undefined}
+                    missionStats={missionStats ?? undefined}
+                    onStartSimulation={() => flightSimulationRef.current?.startSimulation()}
+                    onPauseSimulation={() => flightSimulationRef.current?.pauseSimulation()}
+                    onStopSimulation={() => flightSimulationRef.current?.stopSimulation()}
+                    onResetSimulation={() => flightSimulationRef.current?.resetSimulation()}
+                  />
+                </div>
 
-          {/* Right column: compact mission stats and waypoint table */}
-          <div className="space-y-6 xl:col-span-1">
-            <CompactMissionStats
-              stats={missionStats}
-              waypoints={waypoints}
-              simulationState={simulationState || undefined}
-              droneConfig={droneConfig}
-              cameraConfig={camera}
-              missionConfig={datasetSpec}
-            />
-          </div>
-        </div>
+                {/* Right column: compact mission stats and waypoint table */}
+                <div className="space-y-6 xl:col-span-1 min-h-0">
+                  <CompactMissionStats
+                    stats={missionStats}
+                    waypoints={waypoints}
+                    simulationState={simulationState || undefined}
+                    droneConfig={droneConfig}
+                    cameraConfig={camera}
+                    missionConfig={datasetSpec}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Hidden simulation controller: provides animation/state but not visible */}
             {waypoints.length >= 2 && (

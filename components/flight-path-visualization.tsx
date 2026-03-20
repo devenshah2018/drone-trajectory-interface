@@ -117,22 +117,15 @@ export function FlightPathVisualization({
     };
   }, []);
 
-  // If no waypoints, render an informative empty state
+  // If no waypoints, render minimal fallback (page handles empty state when no plan)
   if (waypoints.length === 0) {
     return (
-      <Card className={`bg-card shadow-sm ${className || ""}`}>
-        <CardHeader>
+      <Card className={`bg-card shadow-sm h-full flex flex-col min-h-0 ${className || ""}`}>
+        <CardHeader className="shrink-0">
           <CardTitle className="text-lg font-semibold">Flight Path Visualization</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="text-muted-foreground flex h-64 items-center justify-center">
-            <div className="text-center">
-              <p className="mb-2 text-lg">No flight plan generated</p>
-              <p className="text-sm">
-                Configure your mission parameters and click "Generate Flight Plan"
-              </p>
-            </div>
-          </div>
+        <CardContent className="flex-1 flex items-center justify-center min-h-0">
+          <p className="text-muted-foreground text-sm">No flight plan generated</p>
         </CardContent>
       </Card>
     );

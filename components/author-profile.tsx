@@ -12,7 +12,7 @@ export function AuthorProfile() {
   const socialLinks = [
     {
       name: "Portfolio",
-      url: "https://deven-shah-portfolio.vercel.app/",
+      url: "https://deven-shah.com",
       icon: User,
       description: "Personal Website",
     },
